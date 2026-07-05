@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8a3d529a-91f2-4a08-bcfb-adcbde2b1062" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="133" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Record" />
+        <option value="package-info" />
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Ratanak-IT&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/KEVMENEA/University-Management-System.git&quot;,
+    &quot;accountId&quot;: &quot;89cc6916-6c59-4554-be30-e468ffc987e5&quot;
+  }
+}</component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="3FCNXwfMIDCTbQ05uITWAW6QyrR" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Gradle.Build University-Management-System.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Build vv4.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Download Sources.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;Spring Boot.UniversityManagementApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Ratanak&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/generation 2/ABackend Final Y2/vv4&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.appearance&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
+    ]
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\generation 2\ABackend Final Y2\vv4" />
+      <recent name="D:\generation 2\ABackend Final Y2\University-Management-System\src\main\java\com\universitymanagement" />
+      <recent name="D:\generation 2\ABackend Final Y2\University-Management-System\src\main\java\com\universitymanagement\exception" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\generation 2\ABackend Final Y2\University-Management-System" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.universitymanagement.config" />
+    </key>
+  </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="npm run dev" />
+    </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="UniversityManagementApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <envs>
+        <env name="KEYCLOAK_CLIENT_SECRET" value="pkYISAeKXVIInCwdQGA6CTPSAhzZA28Z" />
+        <env name="DB_PASSWORD" value="0116" />
+      </envs>
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="universitymanagement.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.universitymanagement.UniversityManagementApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UniversityManagementApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <envs>
+        <env name="KEYCLOAK_CLIENT_SECRET" value="pkYISAeKXVIInCwdQGA6CTPSAhzZA28Z" />
+        <env name="DB_PASSWORD" value="0116" />
+      </envs>
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="universitymanagement.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.universitymanagement.UniversityManagementApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-26cb7f24e5b0-intellij.indexing.shared.core-IU-253.29346.138" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.29346.138" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8a3d529a-91f2-4a08-bcfb-adcbde2b1062" name="Changes" comment="" />
+      <created>1781575134954</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1781575134954</updated>
+      <workItem from="1781575136039" duration="803000" />
+      <workItem from="1781579050238" duration="310000" />
+      <workItem from="1781580125285" duration="9479000" />
+      <workItem from="1781607290753" duration="8612000" />
+      <workItem from="1781627555146" duration="1267000" />
+      <workItem from="1781658761552" duration="14144000" />
+      <workItem from="1781677769510" duration="1092000" />
+      <workItem from="1781711646186" duration="9937000" />
+      <workItem from="1781782762133" duration="1320000" />
+      <workItem from="1782111703346" duration="1000" />
+      <workItem from="1782118828422" duration="11000" />
+      <workItem from="1782127029722" duration="5185000" />
+      <workItem from="1782197383398" duration="9000" />
+      <workItem from="1782375729136" duration="1361000" />
+      <workItem from="1782447012796" duration="42000" />
+      <workItem from="1782447095270" duration="341000" />
+      <workItem from="1782448034392" duration="561000" />
+      <workItem from="1782716971006" duration="664000" />
+      <workItem from="1782781072205" duration="5470000" />
+      <workItem from="1782790246570" duration="5139000" />
+      <workItem from="1782801180809" duration="374000" />
+      <workItem from="1782803081390" duration="36000" />
+      <workItem from="1782877497390" duration="411000" />
+      <workItem from="1782891322280" duration="58000" />
+      <workItem from="1782953179478" duration="68000" />
+      <workItem from="1783147803080" duration="16000" />
+      <workItem from="1783147917297" duration="2029000" />
+      <workItem from="1783151324208" duration="1696000" />
+      <workItem from="1783166139315" duration="3000" />
+      <workItem from="1783183810234" duration="814000" />
+      <workItem from="1783187247981" duration="208000" />
+      <workItem from="1783187471352" duration="3021000" />
+      <workItem from="1783225549773" duration="5775000" />
+      <workItem from="1783234545968" duration="92000" />
+      <workItem from="1783235108909" duration="25000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="Ratanak" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

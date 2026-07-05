@@ -1,0 +1,2654 @@
+Index: src/main/resources/application.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>minio:\r\n  endpoint: http://localhost:9000\r\n  access-key: admin\r\n  secret-key: password123\r\n  bucket: file\r\n\r\nspring:\r\n  security:\r\n    oauth2:\r\n      client:\r\n        registration:\r\n          keycloak:\r\n            client-id: ratanak-demo\r\n            client-secret: ${KEYCLOAK_CLIENT_SECRET}\r\n            scope:\r\n              - openid\r\n              - profile\r\n              - email\r\n            authorization-grant-type: authorization_code\r\n            redirect-uri: http://localhost:8080/login/oauth2/code/keycloak\r\n\r\n        provider:\r\n          keycloak:\r\n            issuer-uri: http://localhost:8080/realms/university\r\n            user-name-attribute: preferred_username\r\n\r\n      resourceserver:\r\n        jwt:\r\n          issuer-uri: http://localhost:8080/realms/university\r\n\r\n  datasource:\r\n    url: jdbc:postgresql://localhost:1681/university\r\n    username: postgres\r\n    password: ${DB_PASSWORD}\r\n    driver-class-name: org.postgresql.Driver\r\n\r\n  jpa:\r\n    hibernate:\r\n      ddl-auto: create-drop\r\n    show-sql: true\r\n    properties:\r\n      hibernate:\r\n        format_sql: true\r\n\r\n\r\nkeycloak:\r\n  server-url: http://localhost:8080\r\n  realm: university\r\n  client-id: ratanak-demo\r\n  client-secret: ${KEYCLOAK_CLIENT_SECRET}\r\nserver:\r\n  port: 8081
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/resources/application.yaml b/src/main/resources/application.yaml
+--- a/src/main/resources/application.yaml	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/resources/application.yaml	(date 1783150187438)
+@@ -1,3 +1,4 @@
++<<<<<<< HEAD
+ minio:
+   endpoint: http://localhost:9000
+   access-key: admin
+@@ -49,4 +50,60 @@
+   client-id: ratanak-demo
+   client-secret: ${KEYCLOAK_CLIENT_SECRET}
+ server:
+-  port: 8081
+\ No newline at end of file
++  port: 8081
++=======
++
++spring:
++  application:
++    name: universitymanagement
++
++
++
++  datasource:
++    driver-class-name: org.postgresql.Driver
++    username: postgres
++    password: 123
++    url: jdbc:postgresql://localhost:5433/uml
++  jpa:
++    hibernate:
++      ddl-auto: update
++
++
++  security:
++    oauth2:
++      resourceserver:
++        jwt:
++          issuer-uri: http://localhost:8088/realms/University-Management
++
++
++  logging:
++    level:
++      org:
++        springframework:
++          security: DEBUG
++
++  jwt:
++    auth:
++      converter:
++        resource-id: demo
++        principle-attribute: preferred_username
++
++
++server:
++  port: 8072
++
++keycloak:
++  server-url: http://localhost:8088
++  realm: University-Management
++  client-id: identity-service
++  client-secret: b1JQCK70CfqdWguqj0dDn3nvN22QaLvI
++  username: admin
++  password: admin
++
++
++minio:
++  endpoint: http://localhost:9000
++  access-key: minioadmin
++  secret-key: minioadmin
++  bucket: my-application-bucket
++>>>>>>> origin/main
+Index: src/main/java/com/universitymanagement/identity/repository/PermissionRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.repository;\r\n\r\npublic interface PermissionRepository {\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/PermissionRepository.java b/src/main/java/com/universitymanagement/identity/repository/PermissionRepository.java
+--- a/src/main/java/com/universitymanagement/identity/repository/PermissionRepository.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/repository/PermissionRepository.java	(date 1783150187435)
+@@ -1,4 +1,14 @@
+ package com.universitymanagement.identity.repository;
+ 
++<<<<<<< HEAD
+ public interface PermissionRepository {
++=======
++import com.universitymanagement.identity.entity.Permission;
++import org.springframework.data.jpa.repository.JpaRepository;
++
++import java.util.Optional;
++
++public interface PermissionRepository extends JpaRepository<Permission, Long> {
++    Optional<Permission> findByName(String name);
++>>>>>>> origin/main
+ }
+Index: src/main/java/com/universitymanagement/identity/entity/Permission.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.entity;\r\n\r\n\r\nimport com.universitymanagement.auditing.BasedEntity;\r\nimport jakarta.persistence.*;\r\nimport lombok.Getter;\r\nimport lombok.Setter;\r\n\r\nimport java.util.UUID;\r\n\r\n@Getter\r\n@Setter\r\n@Entity\r\n@Table(name = \"permissions\")\r\npublic class Permission extends BasedEntity {\r\n\r\n    @Id\r\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\r\n    @Column(name = \"permission_id\")\r\n    private Long id;\r\n\r\n    @Column(name = \"permission_name\", nullable = false, unique = true)\r\n    private String name;\r\n\r\n    private String description;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/Permission.java b/src/main/java/com/universitymanagement/identity/entity/Permission.java
+--- a/src/main/java/com/universitymanagement/identity/entity/Permission.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/entity/Permission.java	(date 1783150187434)
+@@ -6,8 +6,6 @@
+ import lombok.Getter;
+ import lombok.Setter;
+ 
+-import java.util.UUID;
+-
+ @Getter
+ @Setter
+ @Entity
+Index: src/main/java/com/universitymanagement/identity/entity/Role.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.entity;\r\n\r\nimport com.universitymanagement.auditing.BasedEntity;\r\nimport jakarta.persistence.*;\r\nimport lombok.Getter;\r\nimport lombok.Setter;\r\n\r\nimport java.util.UUID;\r\n\r\n@Getter\r\n@Setter\r\n@Entity\r\n@Table(name = \"roles\")\r\npublic class Role extends BasedEntity {\r\n\r\n    @Id\r\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\r\n    @Column(name = \"role_id\")\r\n    private Long id;\r\n\r\n    @Column(name = \"role_name\", nullable = false, unique = true)\r\n    private String name;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/Role.java b/src/main/java/com/universitymanagement/identity/entity/Role.java
+--- a/src/main/java/com/universitymanagement/identity/entity/Role.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/entity/Role.java	(date 1783150187434)
+@@ -5,8 +5,6 @@
+ import lombok.Getter;
+ import lombok.Setter;
+ 
+-import java.util.UUID;
+-
+ @Getter
+ @Setter
+ @Entity
+Index: src/main/java/com/universitymanagement/identity/entity/User.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.entity;\r\n\r\nimport com.universitymanagement.auditing.BasedEntity;\r\nimport jakarta.persistence.Column;\r\nimport jakarta.persistence.Entity;\r\nimport jakarta.persistence.Id;\r\nimport jakarta.persistence.Table;\r\nimport lombok.AllArgsConstructor;\r\nimport lombok.Getter;\r\nimport lombok.NoArgsConstructor;\r\nimport lombok.Setter;\r\n\r\nimport java.time.LocalDateTime;\r\nimport java.util.UUID;\r\n\r\n\r\n@Getter\r\n@Setter\r\n@AllArgsConstructor\r\n@NoArgsConstructor\r\n@Entity(name = \"IdentityUser\")\r\n@Table(name = \"users\")\r\n\r\npublic class User extends BasedEntity {\r\n    @Id\r\n    @Column(name = \"user_id\")\r\n    private UUID id;\r\n\r\n    @Column(name = \"keycloak_id\", nullable = false, unique = true)\r\n    private String keycloakId;\r\n\r\n    @Column(nullable = false, unique = true)\r\n    private String email;\r\n\r\n    @Column(name = \"full_name\", nullable = false)\r\n    private String fullName;\r\n\r\n    private String phone;\r\n\r\n    @Column(name = \"profile_image_file_id\")\r\n    private Long profileImageFileId;\r\n\r\n    @Column(name = \"account_status\")\r\n    private String accountStatus;\r\n\r\n    @Column(name = \"is_active\")\r\n    private Boolean isActive;\r\n\r\n    @Column(name = \"last_login\")\r\n    private LocalDateTime lastLogin;\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/User.java b/src/main/java/com/universitymanagement/identity/entity/User.java
+--- a/src/main/java/com/universitymanagement/identity/entity/User.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/entity/User.java	(date 1783150187434)
+@@ -1,11 +1,15 @@
+ package com.universitymanagement.identity.entity;
+ 
++<<<<<<< HEAD
+ import com.universitymanagement.auditing.BasedEntity;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.Entity;
+ import jakarta.persistence.Id;
+ import jakarta.persistence.Table;
+ import lombok.AllArgsConstructor;
++=======
++import jakarta.persistence.*;
++>>>>>>> origin/main
+ import lombok.Getter;
+ import lombok.NoArgsConstructor;
+ import lombok.Setter;
+@@ -40,8 +44,8 @@
+     @Column(name = "profile_image_file_id")
+     private Long profileImageFileId;
+ 
+-    @Column(name = "account_status")
+-    private String accountStatus;
++    @Enumerated(EnumType.STRING)
++    private AccountStatus accountStatus;
+ 
+     @Column(name = "is_active")
+     private Boolean isActive;
+Index: src/main/java/com/universitymanagement/identity/entity/UserRole.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.entity;\r\n\r\nimport jakarta.persistence.*;\r\nimport lombok.Getter;\r\nimport lombok.Setter;\r\n\r\n\r\n@Entity\r\n@Table(name = \"user_roles\",\r\n        uniqueConstraints = @UniqueConstraint(\r\n                columnNames = {\"user_id\", \"role_id\"}))\r\n@Getter\r\n@Setter\r\npublic class UserRole {\r\n\r\n    @Id\r\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\r\n    private Long id;\r\n\r\n    @ManyToOne(fetch = FetchType.LAZY)\r\n    @JoinColumn(name = \"user_id\")\r\n    private User user;\r\n\r\n    @ManyToOne(fetch = FetchType.LAZY)\r\n    @JoinColumn(name = \"role_id\")\r\n    private Role role;\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/UserRole.java b/src/main/java/com/universitymanagement/identity/entity/UserRole.java
+--- a/src/main/java/com/universitymanagement/identity/entity/UserRole.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/entity/UserRole.java	(date 1783150187435)
+@@ -4,6 +4,7 @@
+ import lombok.Getter;
+ import lombok.Setter;
+ 
++<<<<<<< HEAD
+ 
+ @Entity
+ @Table(name = "user_roles",
+@@ -11,6 +12,12 @@
+                 columnNames = {"user_id", "role_id"}))
+ @Getter
+ @Setter
++=======
++@Getter
++@Setter
++@Entity
++@Table(name = "user_roles")
++>>>>>>> origin/main
+ public class UserRole {
+ 
+     @Id
+Index: src/main/java/com/universitymanagement/identity/controller/PermissionController.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/controller/PermissionController.java b/src/main/java/com/universitymanagement/identity/controller/PermissionController.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/controller/PermissionController.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,4 +0,0 @@
+-package com.universitymanagement.identity.controller;
+-
+-public class PermissionController {
+-}
+Index: src/main/java/com/universitymanagement/identity/dto/response/LogoutResponse.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/response/LogoutResponse.java b/src/main/java/com/universitymanagement/identity/dto/response/LogoutResponse.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/response/LogoutResponse.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,13 +0,0 @@
+-package com.universitymanagement.identity.dto.response;
+-
+-import lombok.*;
+-
+-
+-@Getter
+-@Setter
+-@Builder
+-public class LogoutResponse {
+-
+-    private String message;
+-
+-}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/dto/request/RegisterRequest.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/RegisterRequest.java b/src/main/java/com/universitymanagement/identity/dto/request/RegisterRequest.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/request/RegisterRequest.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,4 +0,0 @@
+-package com.universitymanagement.identity.dto.request;
+-
+-public record RegisterRequest() {
+-}
+Index: src/main/java/com/universitymanagement/identity/dto/request/RefreshTokenRequest.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/RefreshTokenRequest.java b/src/main/java/com/universitymanagement/identity/dto/request/RefreshTokenRequest.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/request/RefreshTokenRequest.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,15 +0,0 @@
+-package com.universitymanagement.identity.dto.request;
+-
+-import jakarta.validation.constraints.NotBlank;
+-import lombok.Getter;
+-import lombok.Setter;
+-
+-
+-public record RefreshTokenRequest(
+-        @NotBlank(message = "Refresh token is required")
+-        String refreshToken
+-) {
+-
+-
+-
+-}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/dto/response/LoginResponse.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/response/LoginResponse.java b/src/main/java/com/universitymanagement/identity/dto/response/LoginResponse.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/response/LoginResponse.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,15 +0,0 @@
+-package com.universitymanagement.identity.dto.response;
+-
+-import lombok.Builder;
+-import lombok.Getter;
+-import lombok.Setter;
+-
+-public record LoginResponse(
+-        String accessToken,
+-        String refreshToken,
+-        String tokenType,
+-        Long expiresIn
+-) {
+-
+-
+-}
+Index: src/main/java/com/universitymanagement/identity/dto/request/ChangePasswordRequest.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/ChangePasswordRequest.java b/src/main/java/com/universitymanagement/identity/dto/request/ChangePasswordRequest.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/request/ChangePasswordRequest.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,14 +0,0 @@
+-package com.universitymanagement.identity.dto.request;
+-
+-import jakarta.validation.constraints.NotBlank;
+-import jakarta.validation.constraints.Size;
+-
+-public record ChangePasswordRequest(
+-        @NotBlank(message = "Current password is required")
+-        String currentPassword,
+-
+-        @NotBlank(message = "New password is required")
+-        @Size(min = 8, message = "New password must be at least 8 characters")
+-        String newPassword
+-) {
+-}
+Index: src/main/java/com/universitymanagement/identity/dto/request/LoginRequest.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/LoginRequest.java b/src/main/java/com/universitymanagement/identity/dto/request/LoginRequest.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/dto/request/LoginRequest.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,23 +0,0 @@
+-package com.universitymanagement.identity.dto.request;
+-
+-import jakarta.validation.constraints.Email;
+-import jakarta.validation.constraints.NotBlank;
+-import jakarta.validation.constraints.Size;
+-import lombok.AllArgsConstructor;
+-import lombok.Getter;
+-import lombok.Setter;
+-import lombok.Singular;
+-
+-@Getter
+-@Setter
+-@AllArgsConstructor
+-public class LoginRequest {
+-
+-    @NotBlank(message = "Email is required")
+-    @Email(message = "Invalid email")
+-    private String email;
+-
+-    @NotBlank(message = "Password is required")
+-    @Size(min = 8, message = "Password must be at least 8 characters")
+-    private String password;
+-}
+Index: src/main/java/com/universitymanagement/identity/controller/RoleController.java
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/controller/RoleController.java b/src/main/java/com/universitymanagement/identity/controller/RoleController.java
+deleted file mode 100644
+--- a/src/main/java/com/universitymanagement/identity/controller/RoleController.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ /dev/null	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
+@@ -1,4 +0,0 @@
+-package com.universitymanagement.identity.controller;
+-
+-public class RoleController {
+-}
+Index: src/main/java/com/universitymanagement/identity/auth/mapper/AuthMapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/mapper/AuthMapper.java b/src/main/java/com/universitymanagement/identity/auth/mapper/AuthMapper.java
+new file mode 100644
+--- /dev/null	(date 1783150187432)
++++ b/src/main/java/com/universitymanagement/identity/auth/mapper/AuthMapper.java	(date 1783150187432)
+@@ -0,0 +1,14 @@
++package com.universitymanagement.identity.auth.mapper;
++
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++import com.universitymanagement.identity.auth.keycloak.dto.KeyCloakTokenResponse;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel = "spring")
++public interface AuthMapper {
++
++   LoginResponse toLoginResponse(KeyCloakTokenResponse response);
++   RefreshTokenResponse toRefreshTokenResponse(KeyCloakTokenResponse response);
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/mapper/RoleMapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/mapper/RoleMapper.java b/src/main/java/com/universitymanagement/identity/auth/mapper/RoleMapper.java
+new file mode 100644
+--- /dev/null	(date 1783150187433)
++++ b/src/main/java/com/universitymanagement/identity/auth/mapper/RoleMapper.java	(date 1783150187433)
+@@ -0,0 +1,11 @@
++package com.universitymanagement.identity.auth.mapper;
++
++import com.universitymanagement.identity.auth.dto.response.RoleResponse;
++import com.universitymanagement.identity.entity.Role;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel = "spring")
++public interface RoleMapper {
++
++    RoleResponse toResponse(Role role);
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/repository/RefreshTokenRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.repository;\r\n\r\nimport com.universitymanagement.identity.entity.RefreshToken;\r\nimport org.springframework.data.jpa.repository.JpaRepository;\r\n\r\npublic interface RefreshTokenRepository extends JpaRepository<RefreshToken, String> {\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/RefreshTokenRepository.java b/src/main/java/com/universitymanagement/identity/repository/RefreshTokenRepository.java
+--- a/src/main/java/com/universitymanagement/identity/repository/RefreshTokenRepository.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/repository/RefreshTokenRepository.java	(date 1783150187435)
+@@ -1,7 +1,11 @@
+ package com.universitymanagement.identity.repository;
+ 
++<<<<<<< HEAD
+ import com.universitymanagement.identity.entity.RefreshToken;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ 
+ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, String> {
++=======
++public interface RefreshTokenRepository {
++>>>>>>> origin/main
+ }
+Index: src/main/java/com/universitymanagement/identity/auth/mapper/PermissionMapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/mapper/PermissionMapper.java b/src/main/java/com/universitymanagement/identity/auth/mapper/PermissionMapper.java
+new file mode 100644
+--- /dev/null	(date 1783150187432)
++++ b/src/main/java/com/universitymanagement/identity/auth/mapper/PermissionMapper.java	(date 1783150187432)
+@@ -0,0 +1,11 @@
++package com.universitymanagement.identity.auth.mapper;
++
++import com.universitymanagement.identity.auth.dto.response.PermissionResponse;
++import com.universitymanagement.identity.entity.Permission;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel = "spring")
++public interface PermissionMapper {
++
++    PermissionResponse toResponse(Permission permission);
++}
+Index: src/main/java/com/universitymanagement/identity/auth/service/AuthService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/service/AuthService.java b/src/main/java/com/universitymanagement/identity/auth/service/AuthService.java
+new file mode 100644
+--- /dev/null	(date 1783150187433)
++++ b/src/main/java/com/universitymanagement/identity/auth/service/AuthService.java	(date 1783150187433)
+@@ -0,0 +1,24 @@
++package com.universitymanagement.identity.auth.service;
++
++import com.universitymanagement.identity.auth.dto.request.*;
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++import com.universitymanagement.identity.auth.dto.response.RegisterResponse;
++import com.universitymanagement.identity.auth.dto.response.UserProfileResponse;
++
++public interface AuthService {
++
++    RegisterResponse register(RegisterRequest request);
++
++    LoginResponse exchangeAuthorizationCode(String code, String codeVerifier);
++
++    RefreshTokenResponse refreshToken(RefreshTokenRequest request);
++
++    void logout(LogoutRequest request);
++
++    UserProfileResponse getProfile();
++
++    UserProfileResponse updateProfile(UpdateProfileRequest request);
++
++    void changePassword(ChangePasswordRequest request);
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/mapper/UserMapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/mapper/UserMapper.java b/src/main/java/com/universitymanagement/identity/auth/mapper/UserMapper.java
+new file mode 100644
+--- /dev/null	(date 1783150187433)
++++ b/src/main/java/com/universitymanagement/identity/auth/mapper/UserMapper.java	(date 1783150187433)
+@@ -0,0 +1,25 @@
++package com.universitymanagement.identity.auth.mapper;
++
++import com.universitymanagement.identity.auth.dto.request.RegisterRequest;
++import com.universitymanagement.identity.auth.dto.response.RegisterResponse;
++import com.universitymanagement.identity.auth.dto.response.UserProfileResponse;
++import com.universitymanagement.identity.entity.User;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel = "spring")
++public interface UserMapper {
++
++    // Convert from RegisterRequest to User Entity
++    User toEntity(RegisterRequest request);
++
++
++    //Convert from User Entity to RegisterResponse
++
++    RegisterResponse toRegisterResponse(User user);
++
++
++    // Convert UserEntity to UserProfileResponse
++    UserProfileResponse toResponse(User user);
++
++
++}
+Index: src/main/java/com/universitymanagement/identity/auth/service/AuthServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/service/AuthServiceImpl.java b/src/main/java/com/universitymanagement/identity/auth/service/AuthServiceImpl.java
+new file mode 100644
+--- /dev/null	(date 1783150187433)
++++ b/src/main/java/com/universitymanagement/identity/auth/service/AuthServiceImpl.java	(date 1783150187433)
+@@ -0,0 +1,108 @@
++package com.universitymanagement.identity.auth.service;
++
++import com.universitymanagement.identity.auth.dto.request.*;
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++import com.universitymanagement.identity.auth.dto.response.RegisterResponse;
++import com.universitymanagement.identity.auth.dto.response.UserProfileResponse;
++import com.universitymanagement.identity.auth.mapper.AuthMapper;
++import com.universitymanagement.identity.auth.mapper.UserMapper;
++import com.universitymanagement.identity.entity.AccountStatus;
++import com.universitymanagement.identity.entity.User;
++import com.universitymanagement.exception.DuplicateResourceException;
++import com.universitymanagement.identity.auth.keycloak.KeycloakAdminService;
++//import com.universitymanagement.identity.keycloak.KeycloakTokenService;
++import com.universitymanagement.identity.auth.keycloak.KeycloakTokenService;
++import com.universitymanagement.identity.repository.UserRepository;
++import org.springframework.stereotype.Service;
++
++@Service
++public class AuthServiceImpl implements AuthService {
++
++    private final UserRepository userRepository;
++    private final AuthMapper authMapper;
++    private final KeycloakAdminService keycloakAdminService;
++    private final KeycloakTokenService keycloakTokenService;
++    private final UserMapper userMapper;
++
++    public AuthServiceImpl(UserRepository userRepository, AuthMapper authMapper, KeycloakAdminService keycloakAdminService, KeycloakTokenService keycloakTokenService, UserMapper userMapper) {
++        this.userRepository = userRepository;
++        this.authMapper = authMapper;
++        this.keycloakAdminService = keycloakAdminService;
++        this.keycloakTokenService = keycloakTokenService;
++        this.userMapper = userMapper;
++    }
++
++
++    @Override
++    public RegisterResponse register(RegisterRequest request) {
++        // Step 1. Validate business rules
++        if(!request.getPassword().equals(request.getConfirmPassword())) {
++            throw new IllegalArgumentException("Password not match");
++        }
++
++        // Step 2. Check duplicate email
++
++        if(userRepository.existsByEmail(request.getEmail())) {
++            throw new DuplicateResourceException("Email already exists.");
++        }
++
++        // Step 3. Create Keycloak user
++        String keycloakUserId = keycloakAdminService.createUser(request);
++
++        // Step 4. Assign role defualt role
++        keycloakAdminService.assignRole(keycloakUserId, "STUDENT");
++
++
++        // Step 5. Save local database
++
++        User user  = userMapper.toEntity(request);
++
++        // 6. Set fields not present in request
++        user.setKeycloakId(keycloakUserId);
++        user.setAccountStatus(AccountStatus.valueOf("ACTIVE"));
++        user.setIsActive(true);
++
++        // 7. Save
++        User savedUser = userRepository.save(user);
++
++        // 8. Return response
++        return userMapper.toRegisterResponse(savedUser);
++    }
++
++    @Override
++    public LoginResponse exchangeAuthorizationCode(String code, String codeVerifier) {
++        return keycloakTokenService.exchangeAuthorizationCode(code, codeVerifier);
++    }
++
++    @Override
++    public LoginResponse login(LoginRequest request) {
++
++        return k;
++    }
++
++    @Override
++    public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
++        return null;
++    }
++
++    @Override
++    public void logout(LogoutRequest request) {
++
++    }
++
++    @Override
++    public UserProfileResponse getProfile() {
++        return null;
++    }
++
++    @Override
++    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
++        return null;
++    }
++
++    @Override
++    public void changePassword(ChangePasswordRequest request) {
++
++    }
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminServiceImpl.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminServiceImpl.java
+new file mode 100644
+--- /dev/null	(date 1783150187430)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminServiceImpl.java	(date 1783150187430)
+@@ -0,0 +1,91 @@
++package com.universitymanagement.identity.auth.keycloak;
++
++import com.universitymanagement.exception.KeycloakOperationException;
++import com.universitymanagement.exception.KeycloakRoleNotFoundException;
++import com.universitymanagement.exception.KeycloakUserNotFoundException;
++import com.universitymanagement.identity.auth.dto.request.RegisterRequest;
++import com.universitymanagement.identity.auth.keycloak.config.KeycloakProperties;
++import jakarta.ws.rs.core.Response;
++import lombok.RequiredArgsConstructor;
++import org.keycloak.admin.client.CreatedResponseUtil;
++import org.keycloak.admin.client.Keycloak;
++import org.keycloak.admin.client.resource.RealmResource;
++import org.keycloak.admin.client.resource.RolesResource;
++import org.keycloak.admin.client.resource.UserResource;
++import org.keycloak.admin.client.resource.UsersResource;
++import org.keycloak.representations.idm.CredentialRepresentation;
++import org.keycloak.representations.idm.RoleRepresentation;
++import org.keycloak.representations.idm.UserRepresentation;
++import org.springframework.stereotype.Service;
++
++import java.util.List;
++
++@Service
++@RequiredArgsConstructor
++public class KeycloakAdminServiceImpl  implements KeycloakAdminService{
++
++    private final Keycloak keycloak;
++    private final KeycloakProperties properties;
++
++    private RealmResource realm() {
++        return keycloak.realm(properties.getRealm());
++    }
++
++    private UsersResource users() {
++        return realm().users();
++    }
++
++    private UserResource user(String userId) {
++        return users().get(userId);
++    }
++
++    private RolesResource roles() {
++        return realm().roles();
++    }
++
++
++    @Override
++    public String createUser(RegisterRequest request) {
++        UserRepresentation user = new UserRepresentation();
++        user.setUsername(request.getFullName());
++        user.setEmail(request.getEmail());
++        user.setEnabled(true);
++        user.setEmailVerified(false);
++
++        CredentialRepresentation credential = new CredentialRepresentation();
++        credential.setType(CredentialRepresentation.PASSWORD);
++        credential.setValue(request.getPassword());
++        credential.setTemporary(false);
++        user.setCredentials(List.of(credential));
++
++        try (Response response = users().create(user)) {
++            if (response.getStatus() != 201) {
++                String body = response.readEntity(String.class);
++                throw new KeycloakUserNotFoundException(
++                        "Failed to create user, status=" + response.getStatus() + ", body=" + body
++                );
++            }
++            return CreatedResponseUtil.getCreatedId(response);
++        }
++    }
++
++    @Override
++    public void assignRole(String userId, String roleName) {
++        RoleRepresentation role = roles().get(roleName).toRepresentation();
++        if (role == null) {
++            throw new KeycloakRoleNotFoundException("Role not found: " + roleName);
++        }
++        user(userId).roles().realmLevel().add(List.of(role));
++    }
++
++    @Override
++    public void disableUser(String userId) {
++        UserResource userResource = user(userId);
++        UserRepresentation representation = userResource.toRepresentation();
++        if (representation == null) {
++            throw new KeycloakOperationException("User not found: " + userId);
++        }
++        representation.setEnabled(false);
++        userResource.update(representation);
++    }
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminService.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminService.java
+new file mode 100644
+--- /dev/null	(date 1783150187430)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakAdminService.java	(date 1783150187430)
+@@ -0,0 +1,16 @@
++package com.universitymanagement.identity.auth.keycloak;
++
++
++import com.universitymanagement.identity.auth.dto.request.RegisterRequest;
++
++
++public interface KeycloakAdminService {
++
++    //    This is your business/service layer
++    String createUser(RegisterRequest request);
++
++    void assignRole(String userId, String roleName);
++
++    void disableUser(String userId);
++
++}
+Index: src/main/java/com/universitymanagement/docker-compose.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/docker-compose.yml b/src/main/java/com/universitymanagement/docker-compose.yml
+new file mode 100644
+--- /dev/null	(date 1783150187411)
++++ b/src/main/java/com/universitymanagement/docker-compose.yml	(date 1783150187411)
+@@ -0,0 +1,52 @@
++
++services:
++
++  postgres:
++    image: postgres:17.6
++    container_name: ums-postgres
++
++    ports:
++      - "5433:5433"
++
++    volumes:
++      - ums_postgres_data:/var/lib/postgresql/data
++
++    environment:
++      POSTGRES_DB: ums_identity_db
++      POSTGRES_USER: postgres
++      POSTGRES_PASSWORD: admin
++
++    healthcheck:
++      test: ["CMD-SHELL", "pg_isready -U postgres -d ums_identity_db"]
++      interval: 10s
++      timeout: 5s
++      retries: 5
++      start_period: 20s
++
++  keycloak:
++    image: quay.io/keycloak/keycloak:26.6.1
++    container_name: ums-keycloak
++
++    ports:
++      - "8088:8080"
++
++    environment:
++      KEYCLOAK_ADMIN: admin
++      KEYCLOAK_ADMIN_PASSWORD: admin
++
++      KC_DB: postgres
++      KC_DB_URL_HOST: postgres
++      KC_DB_URL_DATABASE: ums_identity_db
++      KC_DB_USERNAME: postgres
++      KC_DB_PASSWORD: admin
++      KC_DB_SCHEMA: public
++
++    command:
++      - start-dev
++
++    depends_on:
++      postgres:
++        condition: service_healthy
++
++volumes:
++  ums_postgres_data:
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/security/SecurityConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/security/SecurityConfig.java b/src/main/java/com/universitymanagement/security/SecurityConfig.java
+new file mode 100644
+--- /dev/null	(date 1783150187437)
++++ b/src/main/java/com/universitymanagement/security/SecurityConfig.java	(date 1783150187437)
+@@ -0,0 +1,29 @@
++package com.universitymanagement.security;
++
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.security.config.Customizer;
++import org.springframework.security.config.annotation.web.builders.HttpSecurity;
++import org.springframework.security.web.SecurityFilterChain;
++
++@Configuration
++public class SecurityConfig {
++
++    @Bean
++    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
++
++        http
++                .csrf(csrf -> csrf.disable())
++                .authorizeHttpRequests(auth -> auth
++                        .requestMatchers("/api/v1/auth/register").permitAll()
++                        .requestMatchers("/api/v1/auth/login").permitAll()
++                        .anyRequest().authenticated()
++                )
++                .oauth2ResourceServer(oauth ->
++                        oauth.jwt(Customizer.withDefaults())
++                );
++
++        return http.build();
++
++    }
++}
+Index: src/main/java/com/universitymanagement/minio/MinioConfig/MinioConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/minio/MinioConfig/MinioConfig.java b/src/main/java/com/universitymanagement/minio/MinioConfig/MinioConfig.java
+new file mode 100644
+--- /dev/null	(date 1783150187436)
++++ b/src/main/java/com/universitymanagement/minio/MinioConfig/MinioConfig.java	(date 1783150187436)
+@@ -0,0 +1,26 @@
++package com.universitymanagement.minio.MinioConfig;
++
++import io.minio.MinioClient;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++
++@Configuration
++public class MinioConfig {
++
++    private final MinioProperties properties;
++
++    public MinioConfig(MinioProperties properties) {
++        this.properties = properties;
++    }
++
++    @Bean
++    public MinioClient minioClient() {
++
++        return MinioClient.builder()
++                .endpoint(properties.getEndpoint())
++                .credentials(properties.getAccessKey(),
++                        properties.getSecretKey())
++                .build();
++    }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/minio/MinioConfig/MinioProperties.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/minio/MinioConfig/MinioProperties.java b/src/main/java/com/universitymanagement/minio/MinioConfig/MinioProperties.java
+new file mode 100644
+--- /dev/null	(date 1783150187437)
++++ b/src/main/java/com/universitymanagement/minio/MinioConfig/MinioProperties.java	(date 1783150187437)
+@@ -0,0 +1,19 @@
++package com.universitymanagement.minio.MinioConfig;
++
++import lombok.Getter;
++import lombok.Setter;
++import org.springframework.boot.context.properties.ConfigurationProperties;
++import org.springframework.stereotype.Component;
++
++@Component
++@ConfigurationProperties(prefix = "minio")
++@Getter
++@Setter
++public class MinioProperties {
++
++    private String endpoint;
++    private String accessKey;
++    private String secretKey;
++    private String bucket;
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateRoleRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateRoleRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateRoleRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187427)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateRoleRequest.java	(date 1783150187427)
+@@ -0,0 +1,13 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.NotBlank;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++public class UpdateRoleRequest {
++
++    @NotBlank
++    private String refreshToken;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateProfileRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateProfileRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateProfileRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187426)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateProfileRequest.java	(date 1783150187426)
+@@ -0,0 +1,22 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.*;
++import lombok.AllArgsConstructor;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++public class UpdateProfileRequest {
++    @NotBlank
++    @Size(max = 150)
++    private String fullName;
++
++    @Email
++    private String email;
++
++    @Pattern(
++            regexp = "^\\+?[0-9]{8,15}$"
++    )
++    private String phone;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/response/PermissionResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/response/PermissionResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/PermissionResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187427)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/PermissionResponse.java	(date 1783150187427)
+@@ -0,0 +1,15 @@
++package com.universitymanagement.identity.auth.dto.response;
++
++import lombok.*;
++
++@Getter
++@Setter
++@Builder
++@AllArgsConstructor
++@NoArgsConstructor
++public class PermissionResponse {
++    private  Long id;
++    private String permissionName;
++    private String description;
++
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/response/LoginResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/response/LoginResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/LoginResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187427)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/LoginResponse.java	(date 1783150187427)
+@@ -0,0 +1,33 @@
++package com.universitymanagement.identity.auth.dto.response;
++
++import lombok.*;
++
++<<<<<<< HEAD:src/main/java/com/universitymanagement/identity/dto/response/LoginResponse.java
++public record LoginResponse(
++        String accessToken,
++        String refreshToken,
++        String tokenType,
++        Long expiresIn
++) {
++
++
++}
++=======
++@Getter
++@Setter
++@Builder
++@NoArgsConstructor
++@AllArgsConstructor
++public class LoginResponse {
++
++    private String accessToken;
++
++    private String refreshToken;
++
++    private String tokenType;
++
++    private Long expiresIn;
++
++    private String scope;
++}
++>>>>>>> origin/main:src/main/java/com/universitymanagement/identity/auth/dto/response/LoginResponse.java
+Index: src/main/java/com/universitymanagement/identity/auth/dto/response/RegisterResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/response/RegisterResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/RegisterResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187428)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/RegisterResponse.java	(date 1783150187428)
+@@ -0,0 +1,28 @@
++package com.universitymanagement.identity.auth.dto.response;
++
++import lombok.*;
++
++import java.time.LocalDateTime;
++import java.util.UUID;
++
++@Getter
++@Setter
++@Builder
++@NoArgsConstructor
++@AllArgsConstructor
++public class RegisterResponse {
++
++    private UUID id;
++
++    private String keycloakId;
++
++    private String email;
++
++    private String fullName;
++
++    private Boolean isActive;
++
++    private String accountStatus;
++
++    private LocalDateTime createdAt;
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/dto/response/RefreshTokenResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/response/RefreshTokenResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/RefreshTokenResponse.java
+rename from src/main/java/com/universitymanagement/identity/dto/response/RefreshTokenResponse.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/response/RefreshTokenResponse.java
+--- a/src/main/java/com/universitymanagement/identity/dto/response/RefreshTokenResponse.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/RefreshTokenResponse.java	(date 1783150187428)
+@@ -1,4 +1,4 @@
+-package com.universitymanagement.identity.dto.response;
++package com.universitymanagement.identity.auth.dto.response;
+ 
+ 
+ import lombok.Builder;
+Index: src/main/java/com/universitymanagement/identity/repository/RoleRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.identity.repository;\r\n\r\nimport com.universitymanagement.identity.entity.Role;\r\nimport org.springframework.data.jpa.repository.JpaRepository;\r\n\r\npublic interface RoleRepository extends JpaRepository<Role, Long> {\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/RoleRepository.java b/src/main/java/com/universitymanagement/identity/repository/RoleRepository.java
+--- a/src/main/java/com/universitymanagement/identity/repository/RoleRepository.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/repository/RoleRepository.java	(date 1783150187435)
+@@ -3,5 +3,13 @@
+ import com.universitymanagement.identity.entity.Role;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ 
++<<<<<<< HEAD
+ public interface RoleRepository extends JpaRepository<Role, Long> {
++=======
++import java.util.Optional;
++
++public interface RoleRepository extends JpaRepository<Role, Long> {
++
++    Optional<Role> findByName(String name);
++>>>>>>> origin/main
+ }
+Index: src/main/java/com/universitymanagement/identity/auth/dto/response/RoleResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/response/RoleResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/RoleResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187429)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/RoleResponse.java	(date 1783150187429)
+@@ -0,0 +1,13 @@
++package com.universitymanagement.identity.auth.dto.response;
++
++import lombok.*;
++
++@Getter
++@Setter
++@Builder
++@AllArgsConstructor
++@NoArgsConstructor
++public class RoleResponse {
++    private Long Id;
++    private String roleName;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/dto/KeyCloakTokenResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/dto/KeyCloakTokenResponse.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/dto/KeyCloakTokenResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187432)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/dto/KeyCloakTokenResponse.java	(date 1783150187432)
+@@ -0,0 +1,33 @@
++package com.universitymanagement.identity.auth.keycloak.dto;
++
++import com.fasterxml.jackson.annotation.JsonProperty;
++
++public class KeyCloakTokenResponse {
++
++    @JsonProperty("access_token")
++    private String accessToken;
++
++    @JsonProperty("refresh_token")
++    private String refreshToken;
++
++    @JsonProperty("expires_in")
++    private Long expiresIn;
++
++    @JsonProperty("refresh_expires_in")
++    private Long refreshExpiresIn;
++
++    @JsonProperty("token_type")
++    private String tokenType;
++
++    @JsonProperty("id_token")
++    private String idToken;
++
++    @JsonProperty("not-before-policy")
++    private Integer notBeforePolicy;
++
++    @JsonProperty("session_state")
++    private String sessionState;
++
++    @JsonProperty("scope")
++    private String scope;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/response/UserProfileResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/response/UserProfileResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/UserProfileResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187430)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/response/UserProfileResponse.java	(date 1783150187430)
+@@ -0,0 +1,19 @@
++package com.universitymanagement.identity.auth.dto.response;
++
++import lombok.*;
++
++import java.util.UUID;
++
++@Getter
++@Setter
++@NoArgsConstructor
++@AllArgsConstructor
++public class UserProfileResponse {
++
++    private UUID id;
++    private String keycloakId;
++    private String email;
++    private String fullName;
++    private String phone;
++    private Boolean isActive;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClientImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClientImpl.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClientImpl.java
+new file mode 100644
+--- /dev/null	(date 1783150187431)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClientImpl.java	(date 1783150187431)
+@@ -0,0 +1,28 @@
++package com.universitymanagement.identity.auth.keycloak.client;
++
++import org.keycloak.representations.idm.UserRepresentation;
++import org.springframework.stereotype.Service;
++
++
++@Service
++public class KeycloakClientImpl implements KeycloakClient{
++    @Override
++    public String createUser(UserRepresentation user) {
++        return "";
++    }
++
++    @Override
++    public void deleteUser(String userId) {
++
++    }
++
++    @Override
++    public void assignRealmRole(String userId, String roleName) {
++
++    }
++
++    @Override
++    public UserRepresentation findUser(String username) {
++        return null;
++    }
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClient.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClient.java
+new file mode 100644
+--- /dev/null	(date 1783150187431)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/client/KeycloakClient.java	(date 1783150187431)
+@@ -0,0 +1,18 @@
++package com.universitymanagement.identity.auth.keycloak.client;
++
++
++import org.keycloak.representations.idm.UserRepresentation;
++
++public interface KeycloakClient {
++
++    // KeycloakClientRealmResource Response (UsersResource, UserRepresentation, Response,RoleRepresentation),
++
++    String createUser(UserRepresentation user);
++
++    void deleteUser(String userId);
++
++    void assignRealmRole(String userId, String roleName);
++
++    UserRepresentation findUser(String username);
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakProperties.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakProperties.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakProperties.java
+new file mode 100644
+--- /dev/null	(date 1783150187432)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakProperties.java	(date 1783150187432)
+@@ -0,0 +1,23 @@
++package com.universitymanagement.identity.auth.keycloak.config;
++
++import lombok.Getter;
++import lombok.Setter;
++import org.springframework.boot.context.properties.ConfigurationProperties;
++
++@ConfigurationProperties(prefix = "keycloak")
++@Getter
++@Setter
++public class KeycloakProperties {
++
++    private String serverUrl;
++
++    private String realm;
++
++    // Token API
++    private String clientId;
++
++    private String clientSecret;
++
++    private String redirectUri;
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakConfig.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakConfig.java
+new file mode 100644
+--- /dev/null	(date 1783150187431)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/KeycloakConfig.java	(date 1783150187431)
+@@ -0,0 +1,27 @@
++package com.universitymanagement.identity.auth.keycloak.config;
++
++import org.keycloak.OAuth2Constants;
++import org.keycloak.admin.client.Keycloak;
++import org.keycloak.admin.client.KeycloakBuilder;
++import org.springframework.boot.context.properties.EnableConfigurationProperties;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++
++@Configuration
++@EnableConfigurationProperties(KeycloakProperties.class)
++public class KeycloakConfig {
++
++    @Bean
++    public Keycloak keycloak(KeycloakProperties properties) {
++
++        return KeycloakBuilder.builder()
++                .serverUrl(properties.getServerUrl())
++                .realm(properties.getRealm())
++                .clientId(properties.getClientId())
++                .clientSecret(properties.getClientSecret())
++                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
++                .build();
++    }
++
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenServiceImpl.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenServiceImpl.java
+new file mode 100644
+--- /dev/null	(date 1783150187430)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenServiceImpl.java	(date 1783150187430)
+@@ -0,0 +1,110 @@
++package com.universitymanagement.identity.auth.keycloak;
++
++import com.universitymanagement.exception.InvalidAuthorizationCodeException;
++import com.universitymanagement.exception.InvalidRefreshTokenException;
++import com.universitymanagement.exception.KeycloakUnavailableException;
++import com.universitymanagement.identity.auth.dto.request.LogoutRequest;
++import com.universitymanagement.identity.auth.dto.request.RefreshTokenRequest;
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++import com.universitymanagement.identity.auth.mapper.AuthMapper;
++import com.universitymanagement.identity.auth.keycloak.config.KeycloakProperties;
++import com.universitymanagement.identity.auth.keycloak.dto.KeyCloakTokenResponse;
++import org.springframework.http.HttpStatusCode;
++import org.springframework.http.MediaType;
++import org.springframework.util.LinkedMultiValueMap;
++import org.springframework.util.MultiValueMap;
++import org.springframework.web.client.RestClient;
++import lombok.RequiredArgsConstructor;
++import org.springframework.stereotype.Service;
++
++
++@Service
++@RequiredArgsConstructor
++public class KeycloakTokenServiceImpl implements KeycloakTokenService{
++
++    private final RestClient client;
++    private final KeycloakProperties properties;
++    private final AuthMapper authMapper;
++
++    @Override
++    public LoginResponse exchangeAuthorizationCode(String code, String codeVerifier) {
++        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
++        form.add("grant_type", "authorization_code");
++        form.add("client_id", properties.getClientId());
++        form.add("code", code);
++        form.add("redirect_uri", properties.getRedirectUri());
++        form.add("code_verifier", codeVerifier);
++
++        if(properties.getClientSecret() != null) {
++            form.add("client_secret", properties.getClientSecret());
++        }
++
++        KeyCloakTokenResponse  tokenResponse  = client.post()
++                .uri(properties.getServerUrl())
++                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
++                .body(form)
++                .retrieve()
++                .onStatus(HttpStatusCode::is4xxClientError, (req , res) ->  {
++                    try {
++                        throw  new InvalidAuthorizationCodeException("Fail to exchange authorization code");
++                    } catch (InvalidAuthorizationCodeException e) {
++//                        throw new RuntimeException(e);
++                    }
++
++                })
++                .onStatus(HttpStatusCode::is5xxServerError , (req , res) -> {
++        throw new KeycloakUnavailableException("Keycloak server error");
++        })
++        .body(KeyCloakTokenResponse.class);
++
++        return authMapper.toLoginResponse(tokenResponse);
++    }
++
++    @Override
++    public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
++        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
++        form.add("grant_type", "refresh_token");
++        form.add("client_id", properties.getClientId());
++        form.add("refresh_token", request.getRefreshToken());
++        if (properties.getClientSecret() != null) {
++            form.add("client_secret", properties.getClientSecret());
++        }
++
++        KeyCloakTokenResponse tokenResponse = client.post()
++                .uri(properties.getServerUrl())
++                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
++                .body(form)
++                .retrieve()
++                .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
++                    throw new InvalidRefreshTokenException("Refresh token invalid or expired");
++                })
++                .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
++                    throw new KeycloakUnavailableException("Keycloak server error");
++                })
++                .body(KeyCloakTokenResponse.class);
++
++        return authMapper.toRefreshTokenResponse(tokenResponse);
++    }
++
++    @Override
++    public void logout(LogoutRequest request) {
++        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
++        form.add("client_id", properties.getClientId());
++        form.add("refresh_token", request.getRefreshToken());
++
++        if(properties.getClientSecret() != null) {
++            form.add("client_secret" , properties.getClientSecret());
++        }
++        client.post()
++                .uri(properties.getRedirectUri())
++                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
++                .body(form)
++                .retrieve()
++                .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
++                    throw new InvalidRefreshTokenException("Failed to logout, invalid token");
++                })
++                .toBodilessEntity();
++
++    }
++}
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenService.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenService.java
+new file mode 100644
+--- /dev/null	(date 1783150187430)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/KeycloakTokenService.java	(date 1783150187430)
+@@ -0,0 +1,21 @@
++package com.universitymanagement.identity.auth.keycloak;
++
++import com.universitymanagement.identity.auth.dto.request.LoginRequest;
++import com.universitymanagement.identity.auth.dto.request.LogoutRequest;
++import com.universitymanagement.identity.auth.dto.request.RefreshTokenRequest;
++import com.universitymanagement.identity.auth.dto.request.RegisterRequest;
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++
++public interface KeycloakTokenService {
++
++    LoginResponse exchangeAuthorizationCode(
++            String code,
++            String codeVerifier);
++
++    RefreshTokenResponse refreshToken(
++            RefreshTokenRequest request);
++
++    void logout(LogoutRequest request);
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/controller/AuthController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/controller/AuthController.java b/src/main/java/com/universitymanagement/identity/auth/controller/AuthController.java
+new file mode 100644
+--- /dev/null	(date 1783150187419)
++++ b/src/main/java/com/universitymanagement/identity/auth/controller/AuthController.java	(date 1783150187419)
+@@ -0,0 +1,66 @@
++package com.universitymanagement.identity.auth.controller;
++
++import com.universitymanagement.identity.auth.dto.request.*;
++import com.universitymanagement.identity.auth.dto.response.LoginResponse;
++import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
++import com.universitymanagement.identity.auth.dto.response.RegisterResponse;
++import com.universitymanagement.identity.auth.dto.response.UserProfileResponse;
++import com.universitymanagement.identity.auth.service.AuthService;
++import jakarta.validation.Valid;
++import lombok.RequiredArgsConstructor;
++import org.springframework.web.bind.annotation.*;
++
++@RestController
++@RequestMapping("/api/v1/auth")
++@RequiredArgsConstructor
++public class AuthController {
++
++    private final AuthService authService;
++
++    @PostMapping("/register")
++    public RegisterResponse register(
++            @Valid @RequestBody RegisterRequest request
++    ) {
++        return authService.register(request);
++    }
++
++    @PostMapping("/login")
++    public LoginResponse login(
++            @Valid @RequestBody LoginRequest request
++    ) {
++        return authService.login(request);
++    }
++
++    @PostMapping("/refresh-token")
++    public RefreshTokenResponse refreshToken(
++            @Valid @RequestBody RefreshTokenRequest request
++    ) {
++        return authService.refreshToken(request);
++    }
++
++    @PostMapping("/logout")
++    public void logout(
++            @Valid @RequestBody LogoutRequest request
++    ) {
++        authService.logout(request);
++    }
++
++    @GetMapping("/profile")
++    public UserProfileResponse getProfile() {
++        return authService.getProfile();
++    }
++
++    @PutMapping("/profile")
++    public UserProfileResponse updateProfile(
++            @Valid @RequestBody UpdateProfileRequest request
++    ) {
++        return authService.updateProfile(request);
++    }
++
++    @PutMapping("/change-password")
++    public void changePassword(
++            @Valid @RequestBody ChangePasswordRequest request
++    ) {
++        authService.changePassword(request);
++    }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/controller/RoleController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/controller/RoleController.java b/src/main/java/com/universitymanagement/identity/auth/controller/RoleController.java
+new file mode 100644
+--- /dev/null	(date 1783150187420)
++++ b/src/main/java/com/universitymanagement/identity/auth/controller/RoleController.java	(date 1783150187420)
+@@ -0,0 +1,4 @@
++package com.universitymanagement.identity.auth.controller;
++
++public class RoleController {
++}
+Index: src/main/java/com/universitymanagement/identity/auth/controller/PermissionController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/controller/PermissionController.java b/src/main/java/com/universitymanagement/identity/auth/controller/PermissionController.java
+new file mode 100644
+--- /dev/null	(date 1783150187420)
++++ b/src/main/java/com/universitymanagement/identity/auth/controller/PermissionController.java	(date 1783150187420)
+@@ -0,0 +1,4 @@
++package com.universitymanagement.identity.auth.controller;
++
++public class PermissionController {
++}
+Index: src/main/java/com/universitymanagement/identity/auth/controller/UserController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/controller/UserController.java b/src/main/java/com/universitymanagement/identity/auth/controller/UserController.java
+new file mode 100644
+--- /dev/null	(date 1783150187422)
++++ b/src/main/java/com/universitymanagement/identity/auth/controller/UserController.java	(date 1783150187422)
+@@ -0,0 +1,4 @@
++package com.universitymanagement.identity.auth.controller;
++
++public class UserController {
++}
+Index: src/main/java/com/universitymanagement/identity/auth/controller/RolePermissionController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/controller/RolePermissionController.java b/src/main/java/com/universitymanagement/identity/auth/controller/RolePermissionController.java
+new file mode 100644
+--- /dev/null	(date 1783150187420)
++++ b/src/main/java/com/universitymanagement/identity/auth/controller/RolePermissionController.java	(date 1783150187420)
+@@ -0,0 +1,4 @@
++package com.universitymanagement.identity.auth.controller;
++
++public class RolePermissionController {
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/ChangePasswordRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/ChangePasswordRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/ChangePasswordRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187422)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/ChangePasswordRequest.java	(date 1783150187422)
+@@ -0,0 +1,38 @@
++<<<<<<< HEAD:src/main/java/com/universitymanagement/identity/dto/request/ChangePasswordRequest.java
++package com.universitymanagement.identity.dto.request;
++
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++
++public record ChangePasswordRequest(
++        @NotBlank(message = "Current password is required")
++        String currentPassword,
++
++        @NotBlank(message = "New password is required")
++        @Size(min = 8, message = "New password must be at least 8 characters")
++        String newPassword
++) {
++}
++=======
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++public class ChangePasswordRequest {
++
++    @NotBlank
++    private String currentPassword;
++
++    @NotBlank
++    @Size(min = 8)
++    private String newPassword;
++
++    @NotBlank
++    private String confirmPassword;
++}
++>>>>>>> origin/main:src/main/java/com/universitymanagement/identity/auth/dto/request/ChangePasswordRequest.java
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/AssignRoleRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/AssignRoleRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/AssignRoleRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187422)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/AssignRoleRequest.java	(date 1783150187422)
+@@ -0,0 +1,17 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.NotNull;
++import lombok.Getter;
++import lombok.Setter;
++
++import java.util.UUID;
++
++@Getter
++@Setter
++public class AssignRoleRequest  {
++    @NotNull
++    private UUID userId;
++
++    @NotNull
++    private UUID roleId;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/CreateRoleRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/CreateRoleRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/CreateRoleRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187422)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/CreateRoleRequest.java	(date 1783150187422)
+@@ -0,0 +1,19 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.Email;
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.NotNull;
++import jakarta.validation.constraints.Size;
++import lombok.AllArgsConstructor;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++@AllArgsConstructor
++public class CreateRoleRequest {
++
++    @NotNull
++    @Size(max = 50)
++    private String roleName;
++}
+Index: src/main/java/com/universitymanagement/identity/dto/request/LogoutRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/LogoutRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/LogoutRequest.java
+rename from src/main/java/com/universitymanagement/identity/dto/request/LogoutRequest.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/request/LogoutRequest.java
+--- a/src/main/java/com/universitymanagement/identity/dto/request/LogoutRequest.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/LogoutRequest.java	(date 1783150187426)
+@@ -1,4 +1,4 @@
+-package com.universitymanagement.identity.dto.request;
++package com.universitymanagement.identity.auth.dto.request;
+ 
+ import lombok.Getter;
+ import lombok.Setter;
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/LoginRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/LoginRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/LoginRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187423)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/LoginRequest.java	(date 1783150187423)
+@@ -0,0 +1,20 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.*;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++public class LoginRequest {
++
++    @NotBlank(message = "Email is required")
++    @Email(message = "Invalid email format")
++    private String email;
++
++    @Size(
++            min = 8,
++            message = "Password must be between 8 and 100 characters"
++    )
++    private String password;
++}
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/RegisterRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/RegisterRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/RegisterRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187426)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/RegisterRequest.java	(date 1783150187426)
+@@ -0,0 +1,36 @@
++<<<<<<< HEAD:src/main/java/com/universitymanagement/identity/dto/request/RegisterRequest.java
++package com.universitymanagement.identity.dto.request;
++
++public record RegisterRequest() {
++}
++=======
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.*;
++import lombok.Getter;
++import lombok.Setter;
++
++@Getter
++@Setter
++public class RegisterRequest {
++
++    @NotBlank
++    private String fullName;
++
++    @NotBlank
++    @Email
++    private String email;
++
++    @Pattern(
++            regexp = "^\\+?[0-9]{8,15}$"
++    )
++    private String phone;
++
++    @NotBlank
++    @Size(min = 8)
++    private String password;
++
++    @NotBlank
++    private String confirmPassword;
++}
++>>>>>>> origin/main:src/main/java/com/universitymanagement/identity/auth/dto/request/RegisterRequest.java
+Index: src/main/java/com/universitymanagement/minio/MinioServiceImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.minio;\r\n\r\n\r\nimport io.minio.*;\r\nimport io.minio.messages.Item;\r\nimport lombok.RequiredArgsConstructor;\r\nimport org.springframework.beans.factory.annotation.Value;\r\nimport org.springframework.stereotype.Service;\r\nimport org.springframework.web.multipart.MultipartFile;\r\n\r\nimport java.util.ArrayList;\r\nimport java.util.List;\r\nimport java.util.UUID;\r\n\r\n@Service\r\n@RequiredArgsConstructor\r\npublic class MinioServiceImpl implements MinioService {\r\n    private final MinioClient minioClient;\r\n\r\n    @Value(\"${minio.bucket}\")\r\n    private String bucket;\r\n\r\n    @Override\r\n    public String getPreviewUrl(String objectName) {\r\n        try {\r\n            return minioClient.getPresignedObjectUrl(\r\n                    GetPresignedObjectUrlArgs.builder()\r\n                            .method(Http.Method.GET)\r\n                            .bucket(bucket)\r\n                            .object(objectName)\r\n                            .expiry(60 * 60)\r\n                            .build()\r\n            );\r\n        } catch (Exception e) {\r\n            throw new RuntimeException(e);\r\n        }\r\n    }\r\n\r\n\r\n    @Override\r\n    public String uploadFile(MultipartFile file) {\r\n        try {\r\n            String fileName = UUID.randomUUID() + \"-\" + file.getOriginalFilename();\r\n\r\n            minioClient.putObject(\r\n                    PutObjectArgs.builder()\r\n                            .bucket(bucket)\r\n                            .object(fileName)\r\n                            .stream(file.getInputStream(), file.getSize(), -1L)\r\n                            .contentType(file.getContentType())\r\n                            .build()\r\n            );\r\n\r\n            return fileName;\r\n\r\n        } catch (Exception e) {\r\n            throw new RuntimeException(\"Upload failed\", e);\r\n        }\r\n    }\r\n\r\n    @Override\r\n    public List<String> getAllFileByMinio() {\r\n        List<String> files = new ArrayList<>();\r\n\r\n        Iterable<Result<Item>> results = minioClient.listObjects(\r\n                ListObjectsArgs.builder()\r\n                        .bucket(\"products\")\r\n                        .build()\r\n        );\r\n\r\n        for (Result<Item> result : results){\r\n            try{\r\n                Item item = result.get();\r\n                files.add(item.objectName());\r\n            }catch (Exception e){\r\n                throw new RuntimeException(e);\r\n            }\r\n        }\r\n        return files;\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/minio/MinioServiceImpl.java b/src/main/java/com/universitymanagement/minio/MinioServiceImpl.java
+--- a/src/main/java/com/universitymanagement/minio/MinioServiceImpl.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/minio/MinioServiceImpl.java	(date 1783150187437)
+@@ -1,5 +1,6 @@
+ package com.universitymanagement.minio;
+ 
++<<<<<<< HEAD
+ 
+ import io.minio.*;
+ import io.minio.messages.Item;
+@@ -8,12 +9,24 @@
+ import org.springframework.stereotype.Service;
+ import org.springframework.web.multipart.MultipartFile;
+ 
++=======
++import com.universitymanagement.minio.MinioConfig.MinioProperties;
++import io.minio.*;
++import io.minio.http.Method;
++import io.minio.messages.Item;
++import lombok.RequiredArgsConstructor;
++import org.springframework.stereotype.Service;
++import org.springframework.web.multipart.MultipartFile;
++
++import java.io.IOException;
++>>>>>>> origin/main
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.UUID;
+ 
+ @Service
+ @RequiredArgsConstructor
++<<<<<<< HEAD
+ public class MinioServiceImpl implements MinioService {
+     private final MinioClient minioClient;
+ 
+@@ -31,11 +44,32 @@
+                             .expiry(60 * 60)
+                             .build()
+             );
++=======
++public class MinioServiceImpl implements MinioService{
++
++    private final MinioClient minioClient;
++    private final MinioProperties properties;
++
++    @Override
++    public String getPreviewUrl(String objectName) {
++
++        try {
++
++            return minioClient.getPresignedObjectUrl(
++                    GetPresignedObjectUrlArgs.builder()
++                            .method(Method.GET)
++                            .bucket(properties.getBucket())
++                            .object(objectName)
++                            .expiry(60 * 60)
++                            .build());
++
++>>>>>>> origin/main
+         } catch (Exception e) {
+             throw new RuntimeException(e);
+         }
+     }
+ 
++<<<<<<< HEAD
+ 
+     @Override
+     public String uploadFile(MultipartFile file) {
+@@ -47,6 +81,26 @@
+                             .bucket(bucket)
+                             .object(fileName)
+                             .stream(file.getInputStream(), file.getSize(), -1L)
++=======
++    @Override
++    public String uploadFile(MultipartFile file) {
++
++        try {
++
++            String fileName = UUID.randomUUID()
++                    + "-"
++                    + file.getOriginalFilename();
++
++            minioClient.putObject(
++                    PutObjectArgs.builder()
++                            .bucket(properties.getBucket())
++                            .object(fileName)
++                            .stream(
++                                    file.getInputStream(),
++                                    file.getSize(),
++                                    -1
++                            )
++>>>>>>> origin/main
+                             .contentType(file.getContentType())
+                             .build()
+             );
+@@ -54,11 +108,16 @@
+             return fileName;
+ 
+         } catch (Exception e) {
++<<<<<<< HEAD
+             throw new RuntimeException("Upload failed", e);
++=======
++            throw new RuntimeException("Failed to upload file", e);
++>>>>>>> origin/main
+         }
+     }
+ 
+     @Override
++<<<<<<< HEAD
+     public List<String> getAllFileByMinio() {
+         List<String> files = new ArrayList<>();
+ 
+@@ -76,6 +135,28 @@
+                 throw new RuntimeException(e);
+             }
+         }
++=======
++    public List<String> getAllFIleByMinio() {
++
++        List<String> files = new ArrayList<>();
++
++        Iterable<Result<Item>> results =
++                minioClient.listObjects(
++                        ListObjectsArgs.builder()
++                                .bucket(properties.getBucket())
++                                .build());
++
++        for (Result<Item> result : results) {
++
++            try {
++                files.add(result.get().objectName());
++
++            } catch (Exception e) {
++                throw new RuntimeException(e);
++            }
++        }
++
++>>>>>>> origin/main
+         return files;
+     }
+ }
+Index: src/main/java/com/universitymanagement/minio/MinioService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.universitymanagement.minio;\r\n\r\nimport org.springframework.web.multipart.MultipartFile;\r\n\r\nimport java.util.List;\r\n\r\npublic interface MinioService {\r\n    String getPreviewUrl(String objectName);\r\n    String uploadFile(MultipartFile file);\r\n    List<String> getAllFileByMinio();\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/minio/MinioService.java b/src/main/java/com/universitymanagement/minio/MinioService.java
+--- a/src/main/java/com/universitymanagement/minio/MinioService.java	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/src/main/java/com/universitymanagement/minio/MinioService.java	(date 1783150187437)
+@@ -6,6 +6,13 @@
+ 
+ public interface MinioService {
+     String getPreviewUrl(String objectName);
++<<<<<<< HEAD
+     String uploadFile(MultipartFile file);
+     List<String> getAllFileByMinio();
++=======
++
++    String uploadFile(MultipartFile file);
++
++    List<String> getAllFIleByMinio();
++>>>>>>> origin/main
+ }
+Index: src/main/java/com/universitymanagement/identity/auth/dto/request/RefreshTokenRequest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/dto/request/RefreshTokenRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/RefreshTokenRequest.java
+new file mode 100644
+--- /dev/null	(date 1783150187426)
++++ b/src/main/java/com/universitymanagement/identity/auth/dto/request/RefreshTokenRequest.java	(date 1783150187426)
+@@ -0,0 +1,20 @@
++package com.universitymanagement.identity.auth.dto.request;
++
++import jakarta.validation.constraints.NotBlank;
++import lombok.Getter;
++import lombok.Setter;
++
++
++<<<<<<< HEAD:src/main/java/com/universitymanagement/identity/dto/request/RefreshTokenRequest.java
++public record RefreshTokenRequest(
++        @NotBlank(message = "Refresh token is required")
++        String refreshToken
++) {
++
++
++
++=======
++    @NotBlank
++    private String refreshToken;
++>>>>>>> origin/main:src/main/java/com/universitymanagement/identity/auth/dto/request/RefreshTokenRequest.java
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/InvalidAuthorizationCodeException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/InvalidAuthorizationCodeException.java b/src/main/java/com/universitymanagement/exception/InvalidAuthorizationCodeException.java
+new file mode 100644
+--- /dev/null	(date 1783150187418)
++++ b/src/main/java/com/universitymanagement/exception/InvalidAuthorizationCodeException.java	(date 1783150187418)
+@@ -0,0 +1,12 @@
++package com.universitymanagement.exception;
++
++public class InvalidAuthorizationCodeException extends RuntimeException{
++
++    public  InvalidAuthorizationCodeException(String message) {
++        super(message);
++    }
++
++    public  InvalidAuthorizationCodeException(String message, Throwable cause) {
++        super(message, cause);
++    }
++}
+Index: src/main/java/com/universitymanagement/exception/ErrorCodes.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/ErrorCodes.java b/src/main/java/com/universitymanagement/exception/ErrorCodes.java
+new file mode 100644
+--- /dev/null	(date 1783150187412)
++++ b/src/main/java/com/universitymanagement/exception/ErrorCodes.java	(date 1783150187412)
+@@ -0,0 +1,15 @@
++package com.universitymanagement.exception;
++
++public final class ErrorCodes {
++    private ErrorCodes() {}
++
++    private static final String INVALID_AUTHORIZATION_CODE = "AUTH-001";
++    private static final String INVALID_REFRESH_TOKEN = "AUTH-002";
++    private static final String KEYCLOAK_USER_NOT_FOUND = "KC-404";
++    private static final String KEYCLOAK_ROLE_NOT_FOUND = "KC-405";
++    private static final String KEYCLOAK_OPERATION_FAILED = "KC-500";
++    public static final String KEYCLOAK_UNAVAILABLE = "KC-503";
++    public static final String INTERNAL_SERVER_ERROR = "SYS-500";
++
++}
++
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/Mapper/KeycloakMapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/Mapper/KeycloakMapper.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/Mapper/KeycloakMapper.java
+new file mode 100644
+--- /dev/null	(date 1783150187431)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/Mapper/KeycloakMapper.java	(date 1783150187431)
+@@ -0,0 +1,12 @@
++package com.universitymanagement.identity.auth.keycloak.Mapper;
++
++import com.universitymanagement.identity.auth.dto.request.RegisterRequest;
++import org.keycloak.representations.idm.UserRepresentation;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel="spring")
++public interface KeycloakMapper {
++
++    UserRepresentation toUser(RegisterRequest request);
++
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/auth/keycloak/config/RestClientConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/auth/keycloak/config/RestClientConfig.java b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/RestClientConfig.java
+new file mode 100644
+--- /dev/null	(date 1783150187432)
++++ b/src/main/java/com/universitymanagement/identity/auth/keycloak/config/RestClientConfig.java	(date 1783150187432)
+@@ -0,0 +1,22 @@
++package com.universitymanagement.identity.auth.keycloak.config;
++
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.web.client.RestClient;
++
++@Configuration
++public class RestClientConfig  {
++
++    @Bean
++    public RestClient restClient(RestClient.Builder builder, KeycloakProperties properties){
++
++        return builder
++                .baseUrl(properties.getServerUrl())
++                .build();
++    }
++
++}
++
++// restClient.post()
++//    .uri("/realms/{realm}/protocol/openid-connect/token",
++//         properties.getRealm())
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/entity/AuditableEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/AuditableEntity.java b/src/main/java/com/universitymanagement/identity/entity/AuditableEntity.java
+new file mode 100644
+--- /dev/null	(date 1783150187434)
++++ b/src/main/java/com/universitymanagement/identity/entity/AuditableEntity.java	(date 1783150187434)
+@@ -0,0 +1,19 @@
++package com.universitymanagement.identity.entity;
++
++import jakarta.persistence.Column;
++import jakarta.persistence.MappedSuperclass;
++import lombok.Getter;
++import lombok.Setter;
++
++import java.util.UUID;
++
++@Getter
++@Setter
++@MappedSuperclass
++public abstract class AuditableEntity extends BaseEntity{
++    @Column(name = "deleted_at")
++    private UUID deletedAt;
++
++    @Column(name = "deleted_by")
++    private UUID deletedBy;
++}
+Index: src/main/java/com/universitymanagement/identity/entity/AccountStatus.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/entity/AccountStatus.java b/src/main/java/com/universitymanagement/identity/entity/AccountStatus.java
+new file mode 100644
+--- /dev/null	(date 1783150187433)
++++ b/src/main/java/com/universitymanagement/identity/entity/AccountStatus.java	(date 1783150187433)
+@@ -0,0 +1,8 @@
++package com.universitymanagement.identity.entity;
++
++public enum AccountStatus{
++        ACTIVE,
++        INACTIVE,
++        LOCKED,
++        SUSPENDED
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/identity/repository/TeacherRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/TeacherRepository.java b/src/main/java/com/universitymanagement/identity/repository/TeacherRepository.java
+new file mode 100644
+--- /dev/null	(date 1783150187436)
++++ b/src/main/java/com/universitymanagement/identity/repository/TeacherRepository.java	(date 1783150187436)
+@@ -0,0 +1,11 @@
++package com.universitymanagement.identity.repository;
++
++import com.universitymanagement.identity.entity.Role;
++import org.springframework.data.jpa.repository.JpaRepository;
++
++import java.util.Optional;
++
++public interface TeacherRepository extends JpaRepository<Role, Long> {
++
++    Optional<Role> findByName(String name);
++}
+Index: src/main/java/com/universitymanagement/identity/repository/UserRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/UserRepository.java b/src/main/java/com/universitymanagement/identity/repository/UserRepository.java
+new file mode 100644
+--- /dev/null	(date 1783150187436)
++++ b/src/main/java/com/universitymanagement/identity/repository/UserRepository.java	(date 1783150187436)
+@@ -0,0 +1,16 @@
++package com.universitymanagement.identity.repository;
++
++import com.universitymanagement.identity.entity.User;
++import org.springframework.data.jpa.repository.JpaRepository;
++
++import java.util.Optional;
++import java.util.UUID;
++
++public interface UserRepository extends JpaRepository<User, UUID> {
++    Optional<User> findByEmail(String email);
++
++    Optional<User> findByKeycloakId(String keycloakId);
++
++    boolean existsByEmail(String email);
++
++}
+Index: src/main/java/com/universitymanagement/identity/repository/StudentRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/StudentRepository.java b/src/main/java/com/universitymanagement/identity/repository/StudentRepository.java
+new file mode 100644
+--- /dev/null	(date 1783150187436)
++++ b/src/main/java/com/universitymanagement/identity/repository/StudentRepository.java	(date 1783150187436)
+@@ -0,0 +1,4 @@
++package com.universitymanagement.identity.repository;
++
++public interface StudentRepository {
++}
+Index: src/main/java/com/universitymanagement/identity/repository/AdminRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/identity/repository/AdminRepository.java b/src/main/java/com/universitymanagement/identity/repository/AdminRepository.java
+new file mode 100644
+--- /dev/null	(date 1783150187435)
++++ b/src/main/java/com/universitymanagement/identity/repository/AdminRepository.java	(date 1783150187435)
+@@ -0,0 +1,11 @@
++package com.universitymanagement.identity.repository;
++
++import com.universitymanagement.identity.entity.Role;
++import org.springframework.data.jpa.repository.JpaRepository;
++
++import java.util.Optional;
++
++public interface AdminRepository extends JpaRepository<Role, Long> {
++
++    Optional<Role> findByName(String name);
++}
+Index: src/main/java/com/universitymanagement/exception/ErrorResponse.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/ErrorResponse.java b/src/main/java/com/universitymanagement/exception/ErrorResponse.java
+new file mode 100644
+--- /dev/null	(date 1783150187412)
++++ b/src/main/java/com/universitymanagement/exception/ErrorResponse.java	(date 1783150187412)
+@@ -0,0 +1,19 @@
++package com.universitymanagement.exception;
++
++import lombok.AllArgsConstructor;
++import lombok.Builder;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++
++import java.time.LocalDateTime;
++
++@Builder
++@NoArgsConstructor
++@AllArgsConstructor
++public class ErrorResponse {
++
++    private LocalDateTime timestamp;
++    private int status;
++    private String error;
++    private String message;
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/KeycloakUserNotFoundException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/KeycloakUserNotFoundException.java b/src/main/java/com/universitymanagement/exception/KeycloakUserNotFoundException.java
+new file mode 100644
+--- /dev/null	(date 1783150187419)
++++ b/src/main/java/com/universitymanagement/exception/KeycloakUserNotFoundException.java	(date 1783150187419)
+@@ -0,0 +1,5 @@
++package com.universitymanagement.exception;
++
++public class KeycloakUserNotFoundException extends RuntimeException {
++    public KeycloakUserNotFoundException(String message) { super(message); }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/KeycloakRoleNotFoundException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/KeycloakRoleNotFoundException.java b/src/main/java/com/universitymanagement/exception/KeycloakRoleNotFoundException.java
+new file mode 100644
+--- /dev/null	(date 1783150187419)
++++ b/src/main/java/com/universitymanagement/exception/KeycloakRoleNotFoundException.java	(date 1783150187419)
+@@ -0,0 +1,5 @@
++package com.universitymanagement.exception;
++
++public class KeycloakRoleNotFoundException extends RuntimeException {
++    public KeycloakRoleNotFoundException(String message) { super(message); }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/KeycloakOperationException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/KeycloakOperationException.java b/src/main/java/com/universitymanagement/exception/KeycloakOperationException.java
+new file mode 100644
+--- /dev/null	(date 1783150187418)
++++ b/src/main/java/com/universitymanagement/exception/KeycloakOperationException.java	(date 1783150187418)
+@@ -0,0 +1,5 @@
++package com.universitymanagement.exception;
++
++public class KeycloakOperationException extends RuntimeException {
++    public KeycloakOperationException(String message) { super(message); }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/DuplicateResourceException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/DuplicateResourceException.java b/src/main/java/com/universitymanagement/exception/DuplicateResourceException.java
+new file mode 100644
+--- /dev/null	(date 1783150187411)
++++ b/src/main/java/com/universitymanagement/exception/DuplicateResourceException.java	(date 1783150187411)
+@@ -0,0 +1,7 @@
++package com.universitymanagement.exception;
++
++public class DuplicateResourceException extends RuntimeException {
++    public DuplicateResourceException(String message) {
++        super(message);
++    }
++}
+\ No newline at end of file
+Index: src/main/java/com/universitymanagement/exception/InvalidRefreshTokenException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/InvalidRefreshTokenException.java b/src/main/java/com/universitymanagement/exception/InvalidRefreshTokenException.java
+new file mode 100644
+--- /dev/null	(date 1783150187418)
++++ b/src/main/java/com/universitymanagement/exception/InvalidRefreshTokenException.java	(date 1783150187418)
+@@ -0,0 +1,8 @@
++package com.universitymanagement.exception;
++
++public class InvalidRefreshTokenException extends RuntimeException{
++
++    public InvalidRefreshTokenException(String message) {
++        super(message);
++    }
++}
+Index: src/main/java/com/universitymanagement/exception/KeycloakUnavailableException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/KeycloakUnavailableException.java b/src/main/java/com/universitymanagement/exception/KeycloakUnavailableException.java
+new file mode 100644
+--- /dev/null	(date 1783150187419)
++++ b/src/main/java/com/universitymanagement/exception/KeycloakUnavailableException.java	(date 1783150187419)
+@@ -0,0 +1,12 @@
++package com.universitymanagement.exception;
++
++public class KeycloakUnavailableException extends RuntimeException{
++
++    public KeycloakUnavailableException(String message) {
++        super(message);
++    }
++
++    public KeycloakUnavailableException(String message, Throwable cause) {
++        super(message, cause);
++    }
++}
+Index: src/main/java/com/universitymanagement/exception/GlobalExceptionHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/universitymanagement/exception/GlobalExceptionHandler.java b/src/main/java/com/universitymanagement/exception/GlobalExceptionHandler.java
+new file mode 100644
+--- /dev/null	(date 1783150187418)
++++ b/src/main/java/com/universitymanagement/exception/GlobalExceptionHandler.java	(date 1783150187418)
+@@ -0,0 +1,161 @@
++package com.universitymanagement.exception;
++
++import jakarta.servlet.http.HttpServletRequest;
++
++import lombok.extern.slf4j.Slf4j;
++import org.springframework.http.HttpStatus;
++import org.springframework.http.ProblemDetail;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.ExceptionHandler;
++import org.springframework.web.bind.annotation.RestControllerAdvice;
++
++import java.time.Instant;
++
++@Slf4j
++@RestControllerAdvice
++public class GlobalExceptionHandler {
++
++    // =========================
++    // Authentication Exceptions
++    // =========================
++
++    @ExceptionHandler(InvalidAuthorizationCodeException.class)
++    public ResponseEntity<ProblemDetail> handleInvalidAuthorizationCode(
++            InvalidAuthorizationCodeException ex,
++            HttpServletRequest request) {
++
++        log.warn("Invalid authorization code: {}", ex.getMessage());
++
++        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
++                .body(buildProblemDetail(
++                        HttpStatus.UNAUTHORIZED,
++                        "Invalid Authorization Code",
++                        ex.getMessage(),
++                        "AUTH-001",
++                        request));
++    }
++
++    @ExceptionHandler(InvalidRefreshTokenException.class)
++    public ResponseEntity<ProblemDetail> handleInvalidRefreshToken(
++            InvalidRefreshTokenException ex,
++            HttpServletRequest request) {
++
++        log.warn("Invalid refresh token: {}", ex.getMessage());
++
++        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
++                .body(buildProblemDetail(
++                        HttpStatus.UNAUTHORIZED,
++                        "Invalid Refresh Token",
++                        ex.getMessage(),
++                        "AUTH-002",
++                        request));
++    }
++
++    // =========================
++    // Keycloak Exceptions
++    // =========================
++
++    @ExceptionHandler(KeycloakUnavailableException.class)
++    public ResponseEntity<ProblemDetail> handleKeycloakUnavailable(
++            KeycloakUnavailableException ex,
++            HttpServletRequest request) {
++
++        log.error("Keycloak unavailable", ex);
++
++        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
++                .body(buildProblemDetail(
++                        HttpStatus.SERVICE_UNAVAILABLE,
++                        "Keycloak Unavailable",
++                        ex.getMessage(),
++                        "KC-503",
++                        request));
++    }
++
++    @ExceptionHandler(KeycloakUserNotFoundException.class)
++    public ResponseEntity<ProblemDetail> handleUserNotFound(
++            KeycloakUserNotFoundException ex,
++            HttpServletRequest request) {
++
++        log.warn("Keycloak user not found: {}", ex.getMessage());
++
++        return ResponseEntity.status(HttpStatus.NOT_FOUND)
++                .body(buildProblemDetail(
++                        HttpStatus.NOT_FOUND,
++                        "User Not Found",
++                        ex.getMessage(),
++                        "KC-404",
++                        request));
++    }
++
++    @ExceptionHandler(KeycloakRoleNotFoundException.class)
++    public ResponseEntity<ProblemDetail> handleRoleNotFound(
++            KeycloakRoleNotFoundException ex,
++            HttpServletRequest request) {
++
++        log.warn("Keycloak role not found: {}", ex.getMessage());
++
++        return ResponseEntity.status(HttpStatus.NOT_FOUND)
++                .body(buildProblemDetail(
++                        HttpStatus.NOT_FOUND,
++                        "Role Not Found",
++                        ex.getMessage(),
++                        "KC-405",
++                        request));
++    }
++
++    @ExceptionHandler(KeycloakOperationException.class)
++    public ResponseEntity<ProblemDetail> handleKeycloakOperation(
++            KeycloakOperationException ex,
++            HttpServletRequest request) {
++
++        log.error("Keycloak operation failed", ex);
++
++        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
++                .body(buildProblemDetail(
++                        HttpStatus.BAD_GATEWAY,
++                        "Keycloak Operation Failed",
++                        ex.getMessage(),
++                        "KC-500",
++                        request));
++    }
++
++    // =========================
++    // Generic Exception
++    // =========================
++
++    @ExceptionHandler(Exception.class)
++    public ResponseEntity<ProblemDetail> handleException(
++            Exception ex,
++            HttpServletRequest request) {
++
++        log.error("Unexpected exception", ex);
++
++        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
++                .body(buildProblemDetail(
++                        HttpStatus.INTERNAL_SERVER_ERROR,
++                        "Internal Server Error",
++                        "An unexpected error occurred.",
++                        "SYS-500",
++                        request));
++    }
++
++
++    private ProblemDetail buildProblemDetail(
++            HttpStatus status,
++            String title,
++            String detail,
++            String errorCode,
++            HttpServletRequest request) {
++
++        ProblemDetail problem = ProblemDetail.forStatus(status);
++
++        problem.setTitle(title);
++        problem.setDetail(detail);
++
++        problem.setProperty("errorCode", errorCode);
++        problem.setProperty("timestamp", Instant.now());
++        problem.setProperty("path", request.getRequestURI());
++
++        return problem;
++    }
++}
+\ No newline at end of file
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n\tid 'java'\r\n\tid 'org.springframework.boot' version '3.5.9'\r\n\tid 'io.spring.dependency-management' version '1.1.7'\r\n}\r\n\r\ngroup = 'com.universitymanagement'\r\nversion = '0.0.1-SNAPSHOT'\r\n\r\njava {\r\n\ttoolchain {\r\n\t\tlanguageVersion = JavaLanguageVersion.of(25)\r\n\t}\r\n}\r\n\r\nrepositories {\r\n\tmavenCentral()\r\n}\r\n\r\ndependencies {\r\n\timplementation(\"io.minio:minio:9.0.3\")\r\n\timplementation 'io.jsonwebtoken:jjwt-api:0.11.5'\r\n\truntimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'\r\n\truntimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'\r\n\timplementation 'org.keycloak:keycloak-admin-client:26.0.9'\r\n\timplementation 'org.springframework.boot:spring-boot-starter-data-jpa'\r\n\timplementation 'org.springframework.boot:spring-boot-starter-web'\r\n\timplementation 'org.springframework.boot:spring-boot-starter-security'\r\n\timplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'\r\n\r\n\timplementation 'org.mapstruct:mapstruct:1.6.3'\r\n\timplementation 'org.springframework.boot:spring-boot-starter-validation'\r\n\tannotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'\r\n\tcompileOnly 'org.projectlombok:lombok'\r\n\tdevelopmentOnly 'org.springframework.boot:spring-boot-devtools'\r\n\tannotationProcessor 'org.projectlombok:lombok'\r\n\ttestImplementation 'org.springframework.boot:spring-boot-starter-test'\r\n\truntimeOnly 'org.postgresql:postgresql'\r\n\ttestCompileOnly 'org.projectlombok:lombok'\r\n\ttestRuntimeOnly 'org.junit.platform:junit-platform-launcher'\r\n\ttestAnnotationProcessor 'org.projectlombok:lombok'\r\n\r\n}\r\n\r\ntasks.named('test') {\r\n\tuseJUnitPlatform()\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	(revision e44a1fa805d2f61d9a416fd704738a376cc8d2c9)
++++ b/build.gradle	(date 1783150187411)
+@@ -9,7 +9,7 @@
+ 
+ java {
+ 	toolchain {
+-		languageVersion = JavaLanguageVersion.of(25)
++		languageVersion = JavaLanguageVersion.of(21)
+ 	}
+ }
+ 
+@@ -18,16 +18,8 @@
+ }
+ 
+ dependencies {
+-	implementation("io.minio:minio:9.0.3")
+-	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+-	implementation 'org.keycloak:keycloak-admin-client:26.0.9'
+ 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+ 	implementation 'org.springframework.boot:spring-boot-starter-web'
+-	implementation 'org.springframework.boot:spring-boot-starter-security'
+-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+-
+ 	implementation 'org.mapstruct:mapstruct:1.6.3'
+ 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+ 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+@@ -35,11 +27,9 @@
+ 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+ 	annotationProcessor 'org.projectlombok:lombok'
+ 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+-	runtimeOnly 'org.postgresql:postgresql'
+ 	testCompileOnly 'org.projectlombok:lombok'
+ 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+ 	testAnnotationProcessor 'org.projectlombok:lombok'
+-
+ }
+ 
+ tasks.named('test') {
+diff --git a/src/main/java/com/universitymanagement/identity/dto/response/CreateUserResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/CreateUserResponse.java
+rename from src/main/java/com/universitymanagement/identity/dto/response/CreateUserResponse.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/response/CreateUserResponse.java
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/UpdateUserRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateUserRequest.java
+rename from src/main/java/com/universitymanagement/identity/dto/request/UpdateUserRequest.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/request/UpdateUserRequest.java
+diff --git a/src/main/java/com/universitymanagement/identity/dto/response/TokenResponse.java b/src/main/java/com/universitymanagement/identity/auth/dto/response/TokenResponse.java
+rename from src/main/java/com/universitymanagement/identity/dto/response/TokenResponse.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/response/TokenResponse.java
+diff --git a/src/main/java/com/universitymanagement/identity/dto/request/CreateUserRequest.java b/src/main/java/com/universitymanagement/identity/auth/dto/request/CreateUserRequest.java
+rename from src/main/java/com/universitymanagement/identity/dto/request/CreateUserRequest.java
+rename to src/main/java/com/universitymanagement/identity/auth/dto/request/CreateUserRequest.java
