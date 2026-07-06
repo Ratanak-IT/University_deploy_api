@@ -5,6 +5,7 @@ import com.universitymanagement.identity.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
@@ -13,7 +14,7 @@ import java.util.UUID;
 
 @Setter
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "teachers")
 public class Teacher {
@@ -38,8 +39,4 @@ public class Teacher {
     private String employmentStatus = "active";
 
     private LocalDateTime createdAt;
-
-    public Teacher() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

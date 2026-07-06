@@ -17,7 +17,12 @@ import com.universitymanagement.identity.auth.keycloak.KeycloakAdminService;
 import com.universitymanagement.identity.auth.keycloak.KeycloakTokenService;
 import com.universitymanagement.identity.repository.RefreshTokenRepository;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.identity.util.RoleCodeGenerator;
+import com.universitymanagement.student.entity.Student;
+import com.universitymanagement.student.repository.StudentRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,12 +34,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Optional;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -43,58 +50,56 @@ public class AuthServiceImpl implements AuthService {
     private final KeycloakTokenService keycloakTokenService;
     private final UserMapper userMapper;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final StudentRepository studentRepository;
+    private final RoleCodeGenerator roleCodeGenerator;
 
-    public AuthServiceImpl(UserRepository userRepository, AuthMapper authMapper, KeycloakAdminService keycloakAdminService, KeycloakTokenService keycloakTokenService, UserMapper userMapper, RefreshTokenRepository refreshTokenRepository) {
-        this.userRepository = userRepository;
-        this.authMapper = authMapper;
-        this.keycloakAdminService = keycloakAdminService;
-        this.keycloakTokenService = keycloakTokenService;
-        this.userMapper = userMapper;
-        this.refreshTokenRepository = refreshTokenRepository;
-    }
 
 
     @Override
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         // Step 1. Validate business rules
         if(!request.getPassword().equals(request.getConfirmPassword())) {
             throw new IllegalArgumentException("Password not match");
         }
 
-        // Step 2. Check duplicate email
-
         if(userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists.");
         }
-        // Step 3. Create Keycloak user
+
         String keycloakUserId = keycloakAdminService.createUser(request);
         log.info("Keycloak user created successfully. id={}", keycloakUserId);
 
-        // Step 4. Assign role defualt role
         keycloakAdminService.assignRole(keycloakUserId, "STUDENT");
         log.info("Role assigned successfully.");
 
         log.debug("Mapping request to User entity...");
 
-        // Step 5. Save local database
+        User user = userMapper.toEntity(request);
 
-        User user  = userMapper.toEntity(request);
-
-        // 6. Set fields not present in request
         user.setKeycloakId(keycloakUserId);
         user.setAccountStatus(String.valueOf(AccountStatus.valueOf("ACTIVE")));
         user.setIsActive(true);
-
-
-
-        // 7. Save
         User savedUser = userRepository.save(user);
-
         log.info("User saved successfully. id={}", savedUser.getId());
 
+        Student student = new Student();
+        student.setUser(savedUser);
+        student.setStudentCode(roleCodeGenerator.generate("STU"));
+        student.setEnrollmentDate(LocalDate.now());
+        student.setAcademicYear(currentAcademicYear());
+        student.setYearLevel(1);
+        student.setSemester(1);
+        student.setGraduationStatus("enrolled");
+        studentRepository.save(student);
+        log.info("Student profile created. studentCode={}", student.getStudentCode());
 
-        // 8. Return response
         return userMapper.toRegisterResponse(savedUser);
+    }
+
+    private String currentAcademicYear() {
+        int currentYear = java.time.Year.now().getValue();
+        return currentYear + "-" + (currentYear + 1);
     }
 
     @Override

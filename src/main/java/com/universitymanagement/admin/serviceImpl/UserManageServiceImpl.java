@@ -5,7 +5,9 @@ import com.universitymanagement.admin.dto.request.UpdateStatusRequest;
 import com.universitymanagement.admin.dto.response.LoginHistoryResponse;
 import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.admin.dto.response.UserSummaryResponse;
+import com.universitymanagement.admin.entity.Admin;
 import com.universitymanagement.admin.mapper.AdminUserMapper;
+import com.universitymanagement.admin.repository.AdminRepository;
 import com.universitymanagement.admin.service.UserManageService;
 import com.universitymanagement.identity.auth.dto.request.CreateUserRequest;
 import com.universitymanagement.identity.auth.dto.request.UpdateUserRequest;
@@ -17,6 +19,12 @@ import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.DuplicateResourceException;
 import com.universitymanagement.identity.repository.RefreshTokenRepository;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.identity.util.RoleCodeGenerator;
+import com.universitymanagement.student.entity.Student;
+import com.universitymanagement.student.repository.StudentRepository;
+import com.universitymanagement.teacher.entity.Teacher;
+import com.universitymanagement.teacher.repository.TeacherRepository;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
@@ -32,7 +40,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +53,10 @@ public class UserManageServiceImpl implements UserManageService {
     private final KeycloakClient keycloakClient;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final StudentRepository studentRepository;
+    private final TeacherRepository teacherRepository;
+    private final AdminRepository adminRepository;
+    private final RoleCodeGenerator roleCodeGenerator;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -76,6 +91,7 @@ public class UserManageServiceImpl implements UserManageService {
     }
 
     @Override
+    @Transactional
     public CreateUserResponse createUser(CreateUserRequest request) {
         if (!request.password().equals(request.confirmPassword())) {
             throw new IllegalArgumentException("Password not match");
@@ -89,6 +105,10 @@ public class UserManageServiceImpl implements UserManageService {
         kcUser.setEmail(request.email());
         kcUser.setFirstName(request.firstName());
         kcUser.setLastName(request.lastName());
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("gender", List.of(request.gender().getGender()));
+        kcUser.setAttributes(attributes);
+
         kcUser.setEnabled(true);
         kcUser.setEmailVerified(true);
 
@@ -112,6 +132,9 @@ public class UserManageServiceImpl implements UserManageService {
 
         User savedUser = userRepository.save(user);
 
+        // Create the role-specific profile row based on the assigned role
+        createRoleProfile(savedUser, request);
+
         return new CreateUserResponse(
                 savedUser.getId(),
                 keycloakId,
@@ -120,9 +143,46 @@ public class UserManageServiceImpl implements UserManageService {
                 request.lastName(),
                 request.phoneNumber(),
                 request.dateOfBirth(),
+                request.gender(),
                 request.role(),
                 true
         );
+    }
+
+    private void createRoleProfile(User user, CreateUserRequest request) {
+        switch (request.role()) {
+            case STUDENT -> {
+                Student student = new Student();
+                student.setUser(user);
+                student.setStudentCode(roleCodeGenerator.generate("STU"));
+                student.setDob(request.dateOfBirth());
+                student.setEnrollmentDate(LocalDate.now());
+                student.setAcademicYear(currentAcademicYear());
+                student.setYearLevel(1);
+                student.setSemester(1);
+                student.setGraduationStatus("enrolled");
+                studentRepository.save(student);
+            }
+            case TEACHER -> {
+                Teacher teacher = new Teacher();
+                teacher.setUser(user);
+                teacher.setTeacherCode(roleCodeGenerator.generate("TCH"));
+                teacher.setHireDate(LocalDate.now());
+                teacher.setEmploymentStatus("active");
+                teacherRepository.save(teacher);
+            }
+            case ADMIN -> {
+                Admin admin = new Admin();
+                admin.setUser(user);
+                admin.setAdminCode(roleCodeGenerator.generate("ADM"));
+                adminRepository.save(admin);
+            }
+        }
+    }
+
+    private String currentAcademicYear() {
+        int currentYear = java.time.Year.now().getValue();
+        return currentYear + "-" + (currentYear + 1);
     }
 
     @Override

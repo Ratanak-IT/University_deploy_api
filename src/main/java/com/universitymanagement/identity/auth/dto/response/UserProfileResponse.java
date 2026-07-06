@@ -1,14 +1,15 @@
 package com.universitymanagement.identity.auth.dto.response;
 
+import com.universitymanagement.admin.dto.GenderOption;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+
 public class UserProfileResponse {
 
     private UUID id;
@@ -16,5 +17,7 @@ public class UserProfileResponse {
     private String email;
     private String fullName;
     private String phone;
+    private LocalDate dateOfBirth;
+    private GenderOption gender;
     private Boolean isActive;
 }

@@ -1,10 +1,12 @@
 package com.universitymanagement.identity.entity;
 
+import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.auditing.BasedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +44,8 @@ public class User extends BasedEntity {
 
     @Column(name = "account_status")
     private String accountStatus;
+
+    GenderOption gender;
 
     @Column(name = "is_active")
     private Boolean isActive;

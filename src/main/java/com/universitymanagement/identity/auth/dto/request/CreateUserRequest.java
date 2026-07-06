@@ -1,5 +1,6 @@
 package com.universitymanagement.identity.auth.dto.request;
 
+import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.identity.enums.RoleName;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -29,6 +30,9 @@ public record CreateUserRequest(
         LocalDate dateOfBirth,
 
         String phoneNumber,
+        @NotNull(message = "Gender cannot be null")
+        GenderOption gender,
+
 
         @NotNull
         RoleName role

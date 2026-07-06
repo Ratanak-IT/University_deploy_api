@@ -1,5 +1,6 @@
 package com.universitymanagement.identity.auth.dto.response;
 
+import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.identity.enums.RoleName;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ public record CreateUserResponse(
         String lastName,
         String phoneNumber,
         LocalDate dateOfBirth,
+        GenderOption gender,
         RoleName role,
         boolean enabled
 ) {
