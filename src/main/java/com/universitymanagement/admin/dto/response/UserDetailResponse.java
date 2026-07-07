@@ -1,6 +1,7 @@
 package com.universitymanagement.admin.dto.response;
 
 import java.util.List;
+import java.util.Map;
 
 public record UserDetailResponse(
         String id,
@@ -11,6 +12,7 @@ public record UserDetailResponse(
         boolean enabled,
         boolean emailVerified,
         Long createdTimestamp,
-        List<String> roles
+        List<String> roles,
+        Map<String, Object> roleDetails
 ) {
 }

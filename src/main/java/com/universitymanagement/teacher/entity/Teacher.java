@@ -22,21 +22,16 @@ public class Teacher {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID teacherId;
 
-    // IMPORTANT: each teacher is ONE user
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", unique = true)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
 
-    @Column(name = "teacher_code", unique = true, nullable = false)
+    @Column(name = "teacher_code", unique = true)
     private String teacherCode;
 
-    private String department;
-    private String position;
     private String specialization;
 
     private LocalDate hireDate;
 
-    private String employmentStatus = "active";
-
-    private LocalDateTime createdAt;
+    private String employmentStatus;
 }

@@ -3,6 +3,7 @@ package com.universitymanagement.admin.controller;
 
 import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.admin.dto.request.UpdateStatusRequest;
+import com.universitymanagement.admin.dto.response.AdminDetailResponse;
 import com.universitymanagement.admin.dto.response.LoginHistoryResponse;
 import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.admin.dto.response.UserSummaryResponse;
@@ -33,10 +34,18 @@ public class AdminController {
         return userManageService.findAllUsers(page, size);
     }
 
+
+
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/{userId}")
     public UserDetailResponse getUserDetails(@PathVariable String userId) {
         return userManageService.findUserById(userId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/admin/{userId}")
+    public AdminDetailResponse getAdminDetails(@PathVariable String userId) {
+        return userManageService.findAdminById(userId);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
@@ -80,7 +89,7 @@ public class AdminController {
     public List<LoginHistoryResponse> getLoginHistory(@PathVariable String userId) {
         return userManageService.getLoginHistory(userId);
     }
- //
+
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PatchMapping("/{userId}/soft-delete")
     public void softDeleteUser(@PathVariable String userId) {

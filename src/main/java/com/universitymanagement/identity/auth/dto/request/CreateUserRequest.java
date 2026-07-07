@@ -2,10 +2,7 @@ package com.universitymanagement.identity.auth.dto.request;
 
 import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.identity.enums.RoleName;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 
@@ -27,12 +24,15 @@ public record CreateUserRequest(
         @NotBlank
         String lastName,
 
+        @NotBlank(message = "Phone number is required")
+        @Pattern(regexp = "^\\+?[0-9]{8,15}$")
+        String phoneNumber,
+
+        @NotNull(message = "Date of birth cannot be null")
         LocalDate dateOfBirth,
 
-        String phoneNumber,
         @NotNull(message = "Gender cannot be null")
         GenderOption gender,
-
 
         @NotNull
         RoleName role

@@ -7,13 +7,14 @@ import com.universitymanagement.identity.entity.RefreshToken;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-06T23:49:18+0700",
+    date = "2026-07-07T11:47:08+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -75,8 +76,9 @@ public class AdminUserMapperImpl implements AdminUserMapper {
         createdTimestamp = userRepresentation.getCreatedTimestamp();
 
         List<String> roles = null;
+        Map<String, Object> roleDetails = null;
 
-        UserDetailResponse userDetailResponse = new UserDetailResponse( id, username, email, firstName, lastName, enabled, emailVerified, createdTimestamp, roles );
+        UserDetailResponse userDetailResponse = new UserDetailResponse( id, username, email, firstName, lastName, enabled, emailVerified, createdTimestamp, roles, roleDetails );
 
         return userDetailResponse;
     }
@@ -115,7 +117,9 @@ public class AdminUserMapperImpl implements AdminUserMapper {
             roles1 = new ArrayList<String>( list );
         }
 
-        UserDetailResponse userDetailResponse = new UserDetailResponse( id, username, email, firstName, lastName, enabled, emailVerified, createdTimestamp, roles1 );
+        Map<String, Object> roleDetails = null;
+
+        UserDetailResponse userDetailResponse = new UserDetailResponse( id, username, email, firstName, lastName, enabled, emailVerified, createdTimestamp, roles1, roleDetails );
 
         return userDetailResponse;
     }

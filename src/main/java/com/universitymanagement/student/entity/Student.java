@@ -2,6 +2,7 @@ package com.universitymanagement.student.entity;
 
 
 import com.universitymanagement.identity.entity.User;
+import com.universitymanagement.program.entity.Program;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Setter
 @Getter
@@ -19,37 +21,36 @@ import java.time.LocalDateTime;
 @Table(name = "students")
 public class Student {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long studentId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "student_id")
+    private UUID studentId;
 
-    // IMPORTANT: each student is ONE user
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id", unique = true)
     private User user;
 
     @Column(name = "student_code", unique = true, nullable = false)
     private String studentCode;
 
-//    @ManyToOne
-//    @JoinColumn(name = "program_id")
-//    private Program program;
-
+    @Column(name = "academic_year")
     private String academicYear;
+
+    @Column(name = "year_level")
     private Integer yearLevel;
+
     private Integer semester;
 
-    private LocalDate dob;
-    private String gender;
 
-    private String fatherPhone;
-    private String motherPhone;
-
-    @Column(columnDefinition = "TEXT")
-    private String address;
-
+    @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
 
+    @Column(name = "graduation_status")
     private String graduationStatus = "enrolled";
+
+    @Column(name = "graduation_date")
     private LocalDate graduationDate;
+
+    @ManyToOne
+    private Program program;
 
 }

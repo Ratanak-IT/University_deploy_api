@@ -1,34 +1,34 @@
 
 volumes:
-  ite-postgres-db-vol:
-  ite-keycloak-vol:
+  university-postgres-db-vol:
+  university-keycloak-vol:
 
 networks:
-  ite-net:
-    external: true
+  university-net:
+    external: false
 
 services:
-  ite-postgres-db:
+  university-postgres-db:
     image: postgres:18.4
-    container_name: ite-postgres-db
+    container_name: university-postgres-db
     ports:
       - "1688:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ite-postgres-db-vol:/var/lib/postgresql/18/docker
+      - university-postgres-db-vol:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
-      - ite-net
+      - university-net
     restart: unless-stopped
-  ite-keycloak:
+  university-keycloak:
     image: quay.io/keycloak/keycloak:26.6.4
-    container_name: ite-keycloak
+    container_name: university-keycloak
     environment:
       # Database Configuration
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://ite-postgres-db:5432/keycloak_db
+      KC_DB_URL: jdbc:postgresql://university-postgres-db:5432/univerysity_keycloak_db
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
@@ -55,13 +55,13 @@ services:
     command: start               # use in production mode
 #    command: start-dev                        # use in development mode
     ports:
-      - "127.0.0.1:9999:8080"
+      - "9999:8080"
     volumes:
-      - ite-keycloak-vol:/opt/keycloak/data
+      - university-keycloak-vol:/opt/keycloak/data
       - ./keycloak/themes:/opt/keycloak/themes
       - ./keycloak/conf:/opt/keycloak/conf
     networks:
-      - ite-net
+      - university-net
     depends_on:
-      - ite-postgres-db
+      - university-postgres-db
     restart: unless-stopped

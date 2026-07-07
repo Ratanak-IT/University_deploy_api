@@ -1,5 +1,7 @@
 package com.universitymanagement.identity.auth.service;
 
+import com.universitymanagement.admin.dto.response.UserDetailResponse;
+import com.universitymanagement.admin.service.UserManageService;
 import com.universitymanagement.identity.auth.dto.request.*;
 import com.universitymanagement.identity.auth.dto.response.LoginResponse;
 import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
@@ -10,6 +12,7 @@ import com.universitymanagement.identity.auth.mapper.UserMapper;
 import com.universitymanagement.identity.entity.AccountStatus;
 import com.universitymanagement.identity.entity.RefreshToken;
 import com.universitymanagement.identity.entity.User;
+import com.universitymanagement.identity.enums.RoleName;
 import com.universitymanagement.identity.exception.DuplicateResourceException;
 import com.universitymanagement.identity.exception.InvalidCredentialsException;
 import com.universitymanagement.identity.exception.UserNotFoundException;
@@ -25,6 +28,7 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -49,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private final KeycloakAdminService keycloakAdminService;
     private final KeycloakTokenService keycloakTokenService;
     private final UserMapper userMapper;
+    private final UserManageService userManageService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final StudentRepository studentRepository;
     private final RoleCodeGenerator roleCodeGenerator;
@@ -149,7 +154,27 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserProfileResponse getProfile() {
-        return userMapper.toResponse(getCurrentUser());
+        User user = getCurrentUser();
+        UserProfileResponse response = userMapper.toResponse(user);
+        response.setRole(resolveCurrentRole());
+        return response;
+    }
+    private RoleName resolveCurrentRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> a.startsWith("ROLE_"))
+                .map(a -> a.substring(5))
+                .map(role -> {
+                    try {
+                        return RoleName.valueOf(role);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(r -> r != null)
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -165,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
 
         user.setFullName(request.getFullName());
         if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
+            user.setPhoneNumber(request.getPhone());
         }
         if (emailChanged) {
             user.setEmail(request.getEmail());
@@ -297,5 +322,11 @@ public class AuthServiceImpl implements AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Unable to hash token", e);
         }
+    }
+
+    @Override
+    public UserDetailResponse getMyDetails() {
+        User user = getCurrentUser();
+        return userManageService.findUserById(user.getKeycloakId());
     }
 }

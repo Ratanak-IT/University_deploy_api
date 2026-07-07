@@ -1,5 +1,6 @@
 package com.universitymanagement.identity.auth.controller;
 
+import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.identity.auth.dto.request.*;
 import com.universitymanagement.identity.auth.dto.response.LoginResponse;
 import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
@@ -9,6 +10,7 @@ import com.universitymanagement.identity.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -47,6 +49,12 @@ public class AuthController {
             @Valid @RequestBody LogoutRequest request
     ) {
         authService.logout(request);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/me/details")
+    public UserDetailResponse getMyDetails() {
+        return authService.getMyDetails();
     }
 
     @GetMapping("/me")

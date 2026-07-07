@@ -2,16 +2,15 @@ package com.universitymanagement.identity.entity;
 
 import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.auditing.BasedEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,8 +21,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity(name = "IdentityUser")
 @Table(name = "users")
-
 public class User extends BasedEntity {
+
     @Id
     @Column(name = "user_id")
     private UUID id;
@@ -37,7 +36,18 @@ public class User extends BasedEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    private String phone;
+    @Column(nullable = false, length = 20)
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private GenderOption gender;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(columnDefinition = "TEXT")
+    private String address;
 
     @Column(name = "profile_image_file_id")
     private Long profileImageFileId;
@@ -45,12 +55,9 @@ public class User extends BasedEntity {
     @Column(name = "account_status")
     private String accountStatus;
 
-    GenderOption gender;
-
     @Column(name = "is_active")
     private Boolean isActive;
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
-
 }

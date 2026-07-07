@@ -2,6 +2,7 @@ package com.universitymanagement.admin.serviceImpl;
 
 import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.admin.dto.request.UpdateStatusRequest;
+import com.universitymanagement.admin.dto.response.AdminDetailResponse;
 import com.universitymanagement.admin.dto.response.LoginHistoryResponse;
 import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.admin.dto.response.UserSummaryResponse;
@@ -106,7 +107,17 @@ public class UserManageServiceImpl implements UserManageService {
         kcUser.setFirstName(request.firstName());
         kcUser.setLastName(request.lastName());
         Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put("gender", List.of(request.gender().getGender()));
+
+        if (request.phoneNumber() != null) {
+            attributes.put("phone", List.of(request.phoneNumber()));
+        }
+        if (request.dateOfBirth() != null) {
+            attributes.put("dateOfBirth", List.of(request.dateOfBirth().toString()));
+        }
+        if (request.gender() != null) {
+            attributes.put("gender", List.of(request.gender().getGender()));
+        }
+
         kcUser.setAttributes(attributes);
 
         kcUser.setEnabled(true);
@@ -125,14 +136,13 @@ public class UserManageServiceImpl implements UserManageService {
         user.setId(java.util.UUID.randomUUID());
         user.setKeycloakId(keycloakId);
         user.setEmail(request.email());
+        user.setDateOfBirth(request.dateOfBirth());
         user.setFullName((request.firstName() + " " + request.lastName()).trim());
-        user.setPhone(request.phoneNumber());
+        user.setPhoneNumber(request.phoneNumber());
+        user.setGender(request.gender());
         user.setAccountStatus(AccountStatus.ACTIVE.name());
         user.setIsActive(true);
-
         User savedUser = userRepository.save(user);
-
-        // Create the role-specific profile row based on the assigned role
         createRoleProfile(savedUser, request);
 
         return new CreateUserResponse(
@@ -155,7 +165,6 @@ public class UserManageServiceImpl implements UserManageService {
                 Student student = new Student();
                 student.setUser(user);
                 student.setStudentCode(roleCodeGenerator.generate("STU"));
-                student.setDob(request.dateOfBirth());
                 student.setEnrollmentDate(LocalDate.now());
                 student.setAcademicYear(currentAcademicYear());
                 student.setYearLevel(1);
@@ -183,6 +192,31 @@ public class UserManageServiceImpl implements UserManageService {
     private String currentAcademicYear() {
         int currentYear = java.time.Year.now().getValue();
         return currentYear + "-" + (currentYear + 1);
+    }
+
+    @Override
+    public AdminDetailResponse findAdminById(String id) {
+        UserRepresentation kcUser = requireKeycloakUser(id);
+        List<String> roles = fetchRealmRoles(id);
+
+        User user = userRepository.findByKeycloakId(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found in local DB: " + id));
+
+        Admin admin = adminRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin profile not found for user: " + id));
+
+        return new AdminDetailResponse(
+                kcUser.getId(),
+                kcUser.getUsername(),
+                kcUser.getEmail(),
+                kcUser.getFirstName(),
+                kcUser.getLastName(),
+                Boolean.TRUE.equals(kcUser.isEnabled()),
+                roles,
+                admin.getAdminCode(),
+                admin.getPosition(),
+                admin.getDepartment()
+        );
     }
 
     @Override
@@ -214,7 +248,7 @@ public class UserManageServiceImpl implements UserManageService {
                 }
             }
             if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
-                user.setPhone(request.phoneNumber());
+                user.setPhoneNumber(request.phoneNumber());
             }
             userRepository.save(user);
         });

@@ -1,6 +1,7 @@
 package com.universitymanagement.identity.auth.dto.response;
 
 import com.universitymanagement.admin.dto.GenderOption;
+import com.universitymanagement.identity.enums.RoleName;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -16,8 +17,9 @@ public class UserProfileResponse {
     private String keycloakId;
     private String email;
     private String fullName;
-    private String phone;
+    private String phoneNumber;
     private LocalDate dateOfBirth;
     private GenderOption gender;
+    private RoleName role;
     private Boolean isActive;
 }

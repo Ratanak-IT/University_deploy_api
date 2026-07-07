@@ -1,6 +1,7 @@
 
 package com.universitymanagement.identity.auth.dto.request;
 
+import com.universitymanagement.admin.dto.GenderOption;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,10 +23,11 @@ public class RegisterRequest {
     @Email
     private String email;
 
-    @Pattern(
-            regexp = "^\\+?[0-9]{8,15}$"
-    )
-    private String phone;
+    @Pattern(regexp = "^\\+?[0-9]{8,15}$")
+    private String phoneNumber;
+
+    @NotNull(message = "Gender is required")
+    private GenderOption gender;
 
     @NotBlank
     @Size(min = 8)

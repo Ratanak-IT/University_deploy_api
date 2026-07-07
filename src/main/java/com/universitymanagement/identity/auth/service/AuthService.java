@@ -1,5 +1,6 @@
 package com.universitymanagement.identity.auth.service;
 
+import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.identity.auth.dto.request.*;
 import com.universitymanagement.identity.auth.dto.response.LoginResponse;
 import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
@@ -19,7 +20,7 @@ public interface AuthService {
     void logout(LogoutRequest request);
 
     UserProfileResponse getProfile();
-
+    UserDetailResponse getMyDetails();
     UserProfileResponse updateProfile(UpdateProfileRequest request);
 
     void changePassword(ChangePasswordRequest request);

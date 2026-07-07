@@ -2,6 +2,7 @@ package com.universitymanagement.admin.service;
 
 import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.admin.dto.request.UpdateStatusRequest;
+import com.universitymanagement.admin.dto.response.AdminDetailResponse;
 import com.universitymanagement.admin.dto.response.LoginHistoryResponse;
 import com.universitymanagement.admin.dto.response.UserDetailResponse;
 import com.universitymanagement.admin.dto.response.UserSummaryResponse;
@@ -28,6 +29,8 @@ public interface UserManageService {
     List<LoginHistoryResponse> getLoginHistory(String id);
 
     void deleteUser(String id);
+
+    AdminDetailResponse findAdminById(String id);
 
     void softDeleteUser(String id);
 
