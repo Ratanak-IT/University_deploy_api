@@ -1,0 +1,38 @@
+package com.universitymanagement.classroom.mapper;
+
+import com.universitymanagement.classroom.dto.request.ClassroomRequest;
+import com.universitymanagement.classroom.dto.response.ClassroomResponse;
+import com.universitymanagement.classroom.entity.Classroom;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = "org.mapstruct.ap.MappingProcessor",
+    date = "2026-07-08T23:25:17+0700",
+    comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
+)
+@Component
+public class ClassroomMapperImpl implements ClassroomMapper {
+
+    @Override
+    public ClassroomResponse toResponse(Classroom classroom) {
+        if ( classroom == null ) {
+            return null;
+        }
+
+        ClassroomResponse classroomResponse = new ClassroomResponse();
+
+        return classroomResponse;
+    }
+
+    @Override
+    public Classroom toEntity(ClassroomRequest classroomRequest) {
+        if ( classroomRequest == null ) {
+            return null;
+        }
+
+        Classroom classroom = new Classroom();
+
+        return classroom;
+    }
+}

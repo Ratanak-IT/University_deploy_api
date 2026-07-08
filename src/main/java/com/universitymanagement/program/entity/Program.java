@@ -1,5 +1,7 @@
 package com.universitymanagement.program.entity;
 
+import com.universitymanagement.auditing.BasedEntity;
+import com.universitymanagement.curriculum.entity.Curriculum;
 import com.universitymanagement.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,17 +16,21 @@ import java.util.UUID;
 @Setter
 @Getter
 @NoArgsConstructor
-public class Program {
+public class Program extends BasedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    private String name;
+    @Column(nullable = false, length = 150)
+    private String programName;
+    @Column(length = 50)
     private String degreeLevel;
-    private String durationYear;
+    private Integer durationYears;
 
     @OneToMany(mappedBy = "program")
-    private List<Student> student;
+    private List<Student> students;
+
+    @OneToMany(mappedBy = "program")
+    private List<Curriculum> curriculum;
 
 }

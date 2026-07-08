@@ -15,12 +15,13 @@ public class BaseConfig implements AuditorAware<String> {
         Authentication authentication = SecurityContextHolder
                 .getContext()
                 .getAuthentication();
-        if (authentication != null){
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-            if (jwt != null){
-                String username = jwt.getClaimAsString("preferred_username");
-                return Optional.ofNullable(username);
-            }
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof Jwt jwt
+        ){
+            return Optional.ofNullable(
+                    jwt.getClaimAsString("preferred_username")
+            );
         }
         return Optional.of("Admin");
     }

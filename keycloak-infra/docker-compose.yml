@@ -1,67 +1,89 @@
-
-volumes:
-  university-postgres-db-vol:
-  university-keycloak-vol:
-
-networks:
-  university-net:
-    external: false
-
-services:
-  university-postgres-db:
-    image: postgres:18.4
-    container_name: university-postgres-db
-    ports:
-      - "1688:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - university-postgres-db-vol:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - university-net
-    restart: unless-stopped
-  university-keycloak:
-    image: quay.io/keycloak/keycloak:26.6.4
-    container_name: university-keycloak
-    environment:
-      # Database Configuration
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://university-postgres-db:5432/univerysity_keycloak_db
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-
-      # Admin User
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-
-      # Production Settings
-      KC_HOSTNAME: ${KC_HOSTNAME}
-      KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT}
-      KC_HOSTNAME_STRICT: false               # set to true if HTTPS
-      KC_HOSTNAME_STRICT_HTTPS: false         # set to true if HTTPS
-      KC_HOSTNAME_URL: http://${KC_HOSTNAME}:${KC_HOSTNAME_PORT}
-      KC_HOSTNAME_ADMIN_URL: http://${KC_HOSTNAME}:${KC_HOSTNAME_PORT}
-      KC_PROXY: edge
-      KC_HTTP_ENABLED: true
-      #KC_HTTPS_PORT: 443
-      KC_PROXY_HEADERS: xforwarded
-      KC_CACHE: ispn
-      KC_LOG_LEVEL: INFO
-      KC_METRICS_ENABLED: true
-      KC_HEALTH_ENABLED: true
-      JAVA_OPTS_APPEND: "-Xms512m -Xmx2048m"
-    command: start               # use in production mode
-#    command: start-dev                        # use in development mode
-    ports:
-      - "9999:8080"
-    volumes:
-      - university-keycloak-vol:/opt/keycloak/data
-      - ./keycloak/themes:/opt/keycloak/themes
-      - ./keycloak/conf:/opt/keycloak/conf
-    networks:
-      - university-net
-    depends_on:
-      - university-postgres-db
-    restart: unless-stopped
+  version: '3.8'
+  
+  volumes:
+    university-postgres-db-vol:
+    university-keycloak-vol:
+    npm-data:
+    npm-letsencrypt:
+  
+  networks:
+    university-net:
+      driver: bridge
+  
+  services:
+    # 1. Database Postgres
+    university-postgres-db:
+      image: postgres:16-alpine # ប្រើ alpine version ដើម្បីស្រាលម៉ាស៊ីន AWS Free Tier
+      container_name: university-postgres-db
+      ports:
+        - "1688:5432"
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: postgres     # database ដើមសម្រាប់ដំបូងបង្អស់
+      volumes:
+        - university-postgres-db-vol:/var/lib/postgresql/data
+        - ./init-scripts:/docker-entrypoint-initdb.d # បញ្ចូល init script បង្កើត DB របស់អ្នក
+      networks:
+        - university-net
+      restart: unless-stopped
+  
+    # 2. Keycloak (ទាញទិន្នន័យពី .env)
+    university-keycloak:
+      image: quay.io/keycloak/keycloak:26.6.4
+      container_name: university-keycloak
+      environment:
+        # Database Configuration
+        KC_DB: postgres
+        KC_DB_URL: jdbc:postgresql://university-postgres-db:5432/univerysity_keycloak_db
+        KC_DB_USERNAME: ${POSTGRES_USER}
+        KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+  
+        # Admin User
+        KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+        KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+  
+        # Production Settings
+        KC_HOSTNAME: ${KC_HOSTNAME}
+        KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT}
+        KC_HOSTNAME_STRICT: true                # បើក true សម្រាប់ HTTPS ផលិតកម្ម
+        KC_HOSTNAME_STRICT_HTTPS: true          # បើក true សម្រាប់ HTTPS ផលិតកម្ម
+        KC_PROXY_HEADERS: xforwarded
+        KC_HTTP_ENABLED: true
+        
+        # ការកំណត់បន្ថែមសម្រាប់ Proxy និង Cache
+        KC_PROXY: edge
+        KC_CACHE: ispn
+        KC_LOG_LEVEL: INFO
+        KC_METRICS_ENABLED: true
+        KC_HEALTH_ENABLED: true
+  
+        JAVA_OPTS_APPEND: "-Xms128m -Xmx512m"
+  
+      command: start
+      ports:
+        - "9999:8080"
+      volumes:
+        - university-keycloak-vol:/opt/keycloak/data
+        - ./keycloak/themes:/opt/keycloak/themes
+        - ./keycloak/conf:/opt/keycloak/conf
+      networks:
+        - university-net
+      depends_on:
+        - university-postgres-db
+      restart: unless-stopped
+  
+    # 3. Nginx Proxy Manager (សម្រាប់ធ្វើ HTTPS / SSL ទៅកាន់ Subdomain របស់ Namecheap)
+    nginx-proxy-manager:
+      image: 'jc21/nginx-proxy-manager:latest'
+      container_name: nginx-proxy-manager
+      restart: unless-stopped
+      ports:
+        - '80:80'
+        - '443:443'
+        - '81:81'
+      volumes:
+        - npm-data:/data
+        - npm-letsencrypt:/etc/letsencrypt
+      networks:
+        - university-net
