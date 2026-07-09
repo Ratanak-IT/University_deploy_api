@@ -6,10 +6,6 @@ import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
-import com.universitymanagement.identity.entity.User;
-import com.universitymanagement.program.entity.Program;
-import com.universitymanagement.subject.entity.Subject;
-import com.universitymanagement.teacher.entity.Teacher;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-10T00:38:42+0700",
+    date = "2026-07-09T13:28:16+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -30,14 +26,6 @@ public class ClassroomMapperImpl implements ClassroomMapper {
             return null;
         }
 
-        UUID teacherId = null;
-        String teacherName = null;
-        UUID subjectId = null;
-        String subjectName = null;
-        UUID programId = null;
-        String programName = null;
-        LocalDateTime updatedAt = null;
-        String updatedBy = null;
         UUID classroomId = null;
         String className = null;
         String classCode = null;
@@ -51,14 +39,6 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         LocalDateTime createdAt = null;
         String createdBy = null;
 
-        teacherId = classroomTeacherTeacherId( classroom );
-        teacherName = classroomTeacherUserFullName( classroom );
-        subjectId = classroomSubjectSubjectId( classroom );
-        subjectName = classroomSubjectSubjectName( classroom );
-        programId = classroomProgramId( classroom );
-        programName = classroomProgramProgramName( classroom );
-        updatedAt = classroom.getLastUpdateAt();
-        updatedBy = classroom.getLastUpdatedBy();
         classroomId = classroom.getClassroomId();
         className = classroom.getClassName();
         classCode = classroom.getClassCode();
@@ -71,6 +51,15 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         endDate = classroom.getEndDate();
         createdAt = classroom.getCreatedAt();
         createdBy = classroom.getCreatedBy();
+
+        UUID teacherId = null;
+        String teacherName = null;
+        UUID subjectId = null;
+        String subjectName = null;
+        UUID programId = null;
+        String programName = null;
+        LocalDateTime updatedAt = null;
+        String updatedBy = null;
 
         ClassroomResponse classroomResponse = new ClassroomResponse( classroomId, className, classCode, teacherId, teacherName, subjectId, subjectName, programId, programName, academicYear, semester, yearLevel, inviteCode, room, startDate, endDate, createdAt, updatedAt, createdBy, updatedBy );
 
@@ -128,57 +117,5 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         classroom.setRoom( request.room() );
         classroom.setStartDate( request.startDate() );
         classroom.setEndDate( request.endDate() );
-    }
-
-    private UUID classroomTeacherTeacherId(Classroom classroom) {
-        Teacher teacher = classroom.getTeacher();
-        if ( teacher == null ) {
-            return null;
-        }
-        return teacher.getTeacherId();
-    }
-
-    private String classroomTeacherUserFullName(Classroom classroom) {
-        Teacher teacher = classroom.getTeacher();
-        if ( teacher == null ) {
-            return null;
-        }
-        User user = teacher.getUser();
-        if ( user == null ) {
-            return null;
-        }
-        return user.getFullName();
-    }
-
-    private UUID classroomSubjectSubjectId(Classroom classroom) {
-        Subject subject = classroom.getSubject();
-        if ( subject == null ) {
-            return null;
-        }
-        return subject.getSubjectId();
-    }
-
-    private String classroomSubjectSubjectName(Classroom classroom) {
-        Subject subject = classroom.getSubject();
-        if ( subject == null ) {
-            return null;
-        }
-        return subject.getSubjectName();
-    }
-
-    private UUID classroomProgramId(Classroom classroom) {
-        Program program = classroom.getProgram();
-        if ( program == null ) {
-            return null;
-        }
-        return program.getId();
-    }
-
-    private String classroomProgramProgramName(Classroom classroom) {
-        Program program = classroom.getProgram();
-        if ( program == null ) {
-            return null;
-        }
-        return program.getProgramName();
     }
 }

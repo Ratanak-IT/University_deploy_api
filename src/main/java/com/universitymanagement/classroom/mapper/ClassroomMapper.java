@@ -7,11 +7,19 @@ import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface ClassroomMapper {
-
+    @Mapping(target = "teacherId", source = "teacher.teacherId")
+    @Mapping(target = "teacherName", source = "teacher.user.fullName")
+    @Mapping(target = "subjectId", source = "subject.subjectId")
+    @Mapping(target = "subjectName", source = "subject.subjectName")
+    @Mapping(target = "programId", source = "program.id")
+    @Mapping(target = "programName", source = "program.programName")
+    @Mapping(target = "updatedAt", source = "lastUpdateAt")
+    @Mapping(target = "updatedBy", source = "lastUpdatedBy")
     ClassroomResponse toResponse(Classroom classroom);
     Classroom toEntity(ClassroomCreateRequest classroomCreateRequest);
     ClassroomStudentResponse toStudentResponse(ClassroomStudent classroomStudent);
