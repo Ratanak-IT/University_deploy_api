@@ -1,6 +1,7 @@
 package com.universitymanagement.student.entity;
 
 
+import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.program.entity.Program;
 import jakarta.persistence.*;
@@ -11,6 +12,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Setter
@@ -49,6 +51,9 @@ public class Student {
 
     @Column(name = "graduation_date")
     private LocalDate graduationDate;
+
+    @OneToMany(mappedBy = "student")
+    private List<ClassroomStudent> classroomStudents;
 
     @ManyToOne
     private Program program;

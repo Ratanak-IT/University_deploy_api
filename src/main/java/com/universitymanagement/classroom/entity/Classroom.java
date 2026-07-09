@@ -2,14 +2,16 @@ package com.universitymanagement.classroom.entity;
 
 import com.universitymanagement.auditing.BasedEntity;
 import com.universitymanagement.program.entity.Program;
+import com.universitymanagement.subject.entity.Subject;
 import com.universitymanagement.teacher.entity.Teacher;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.security.auth.Subject;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -21,46 +23,49 @@ public class Classroom extends BasedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "classroom_id", nullable = false, updatable = false)
     private UUID classroomId;
 
-    @Column(name = "class_name", nullable = false, length = 150)
+    @Column(nullable = false)
     private String className;
 
-    @Column(name = "class_code", nullable = false, unique = true, length = 50)
+    @Column(unique = true, nullable = false)
     private String classCode;
 
-    @ManyToOne
-    @JoinColumn(name = "teacher_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teacher_id")
     private Teacher teacher;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "subject_id", nullable = false)
-//    private Subject subject;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
 
-    @Column(name = "academic_year", nullable = false, length = 20)
     private String academicYear;
 
-    @Column(name = "semester", nullable = false)
     private Integer semester;
 
-    @Column(name = "year_level", nullable = false)
     private Integer yearLevel;
 
-    @Column(name = "invite_code", length = 20)
+    @Column(unique = true)
     private String inviteCode;
 
-    @Column(name = "room", length = 50)
     private String room;
 
-    @Column(name = "start_date")
     private LocalDate startDate;
 
-    @Column(name = "end_date")
     private LocalDate endDate;
+
+    @Column(nullable = false)
+    private Boolean isDeleted = false;
+
+    @OneToMany(
+            mappedBy = "classroom",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ClassroomStudent> students = new ArrayList<>();
 
 }
