@@ -12,7 +12,7 @@ public record TeacherDetailResponse(
         boolean enabled,
         List<String> roles,
         String teacherCode,
-        String department,
+        List<TeacherDepartmentResponse> departments,
         String position,
         String specialization,
         LocalDate hireDate,

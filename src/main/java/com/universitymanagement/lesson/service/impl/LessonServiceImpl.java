@@ -7,8 +7,11 @@ import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.UserNotFoundException;
 import com.universitymanagement.identity.repository.UserRepository;
 import com.universitymanagement.lesson.dto.request.LessonRequest;
+import com.universitymanagement.lesson.dto.response.FileStreamResult;
+import com.universitymanagement.lesson.dto.response.LessonFileResponse;
 import com.universitymanagement.lesson.dto.response.LessonResponse;
 import com.universitymanagement.lesson.entity.Lesson;
+import com.universitymanagement.lesson.entity.LessonFile;
 import com.universitymanagement.lesson.repository.LessonRepository;
 import com.universitymanagement.lesson.service.LessonService;
 import com.universitymanagement.minio.MinioService;
@@ -45,24 +48,39 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @Transactional
-    public LessonResponse createLesson(UUID classroomId, LessonRequest request, MultipartFile file) {
+    public LessonResponse createLesson(UUID classroomId, LessonRequest request, List<MultipartFile> files) {
         Classroom classroom = findClassroom(classroomId);
         requireTeacherOwnsClassroom(classroom);
 
         Lesson lesson = new Lesson();
         lesson.setClassroom(classroom);
-        applyRequest(lesson, request, file);
+        applyRequest(lesson, request, files);
 
         return toResponse(lessonRepository.save(lesson));
+    }
+    @Override
+    public FileStreamResult getLessonFilePreview(UUID lessonId, UUID fileId) {
+        Lesson lesson = findLesson(lessonId);
+        requireMemberOrAdmin(lesson.getClassroom());   // JWT + membership check!
+
+        LessonFile file = lesson.getFiles().stream()
+                .filter(f -> f.getFileId().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "File not found in this lesson"));
+
+        return new FileStreamResult(
+                minioService.getLessonObject(file.getFileObjectName()),
+                file.getFileOriginalName());
     }
 
     @Override
     @Transactional
-    public LessonResponse updateLesson(UUID lessonId, LessonRequest request, MultipartFile file) {
+    public LessonResponse updateLesson(UUID lessonId, LessonRequest request, List<MultipartFile> files) {
         Lesson lesson = findLesson(lessonId);
         requireTeacherOwnsClassroom(lesson.getClassroom());
 
-        applyRequest(lesson, request, file);
+        applyRequest(lesson, request, files);
 
         return toResponse(lessonRepository.save(lesson));
     }
@@ -89,36 +107,61 @@ public class LessonServiceImpl implements LessonService {
     }
 
 
-    private void applyRequest(Lesson lesson, LessonRequest request, MultipartFile file) {
+    private void applyRequest(Lesson lesson, LessonRequest request, List<MultipartFile> files) {
         lesson.setTitle(request.title());
         lesson.setContent(request.content());
         lesson.setVideoLink(request.videoLink());
         lesson.setAllowDownload(Boolean.TRUE.equals(request.allowDownload()));
 
-        if (file != null && !file.isEmpty()) {
-            String objectName = minioService.uploadFile(file);
-            lesson.setFileObjectName(objectName);
-            lesson.setFileOriginalName(file.getOriginalFilename());
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                String objectName = minioService.uploadLessonFile(file);
+                LessonFile lessonFile = new LessonFile();
+                lessonFile.setLesson(lesson);
+                lessonFile.setFileObjectName(objectName);
+                lessonFile.setFileOriginalName(file.getOriginalFilename());
+
+                lesson.getFiles().add(lessonFile);
+            }
         }
     }
 
     private LessonResponse toResponse(Lesson lesson) {
-        String fileUrl = lesson.getFileObjectName() != null
-                ? minioService.getPreviewUrl(lesson.getFileObjectName())
-                : null;
+        List<LessonFileResponse> files = lesson.getFiles().stream()
+                .map(f -> new LessonFileResponse(
+                        f.getFileId(),
+                        f.getFileOriginalName(),
+                        minioService.getPreviewUrl(f.getFileObjectName())
+                ))
+                .toList();
 
         return new LessonResponse(
                 lesson.getLessonId(),
                 lesson.getClassroom().getClassroomId(),
                 lesson.getTitle(),
                 lesson.getContent(),
-                lesson.getFileOriginalName(),
-                fileUrl,
+                files,
                 lesson.getVideoLink(),
                 lesson.getAllowDownload(),
                 lesson.getCreatedAt(),
                 lesson.getCreatedBy()
         );
+    }
+
+    @Override
+    @Transactional
+    public LessonResponse removeLessonFile(UUID lessonId, UUID fileId) {
+        Lesson lesson = findLesson(lessonId);
+        requireTeacherOwnsClassroom(lesson.getClassroom());
+        boolean removed = lesson.getFiles().removeIf(f -> f.getFileId().equals(fileId));
+        if (!removed) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "File not found in this lesson");
+        }
+        return toResponse(lessonRepository.save(lesson));
     }
 
     private Lesson findLesson(UUID lessonId) {
@@ -133,7 +176,6 @@ public class LessonServiceImpl implements LessonService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found"));
     }
 
-    /** Only the assigned teacher of this classroom may create/edit lessons. */
     private void requireTeacherOwnsClassroom(Classroom classroom) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = getCurrentUser(auth);
@@ -149,7 +191,6 @@ public class LessonServiceImpl implements LessonService {
         }
     }
 
-    /** ADMIN, the classroom's teacher, or an enrolled student may view lessons. */
     private void requireMemberOrAdmin(Classroom classroom) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (hasRole(auth, "ADMIN")) {

@@ -23,16 +23,12 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
 
-    /**
-     * Teacher creates an assignment: title, description, due date (deadline),
-     * max score + optional attachment.
-     */
     @PostMapping(
             value = "/classrooms/{classroomId}/assignments",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public AssignmentResponse createAssignment(
             @PathVariable UUID classroomId,
             @Valid @RequestPart("assignment") AssignmentRequest request,
@@ -41,21 +37,18 @@ public class AssignmentController {
         return assignmentService.createAssignment(classroomId, request, file);
     }
 
-    /** Everyone in the classroom (and admin) can see the assignment list. */
     @GetMapping("/classrooms/{classroomId}/assignments")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public List<AssignmentResponse> getAssignmentsByClassroom(@PathVariable UUID classroomId) {
         return assignmentService.getAssignmentsByClassroom(classroomId);
     }
 
-    /** Teacher views all student submissions for an assignment. */
     @GetMapping("/assignments/{assignmentId}/submissions")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public List<SubmissionResponse> getSubmissions(@PathVariable UUID assignmentId) {
         return assignmentService.getSubmissionsByAssignment(assignmentId);
     }
 
-    /** Student submits (or re-submits before grading). */
     @PostMapping(
             value = "/assignments/{assignmentId}/submissions",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -65,11 +58,11 @@ public class AssignmentController {
     public SubmissionResponse submitAssignment(
             @PathVariable UUID assignmentId,
             @RequestPart("file") MultipartFile file
+            //url
     ) {
         return assignmentService.submitAssignment(assignmentId, file);
     }
 
-    /** Teacher grades one submission. */
     @PatchMapping("/submissions/{submissionId}/grade")
     @PreAuthorize("hasRole('TEACHER')")
     public SubmissionResponse gradeSubmission(

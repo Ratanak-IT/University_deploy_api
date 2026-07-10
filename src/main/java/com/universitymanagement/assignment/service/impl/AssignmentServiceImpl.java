@@ -66,7 +66,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setCreatedByTeacher(teacher);
 
         if (file != null && !file.isEmpty()) {
-            assignment.setFileObjectName(minioService.uploadFile(file));
+            assignment.setFileObjectName(minioService.uploadLessonFile(file));
             assignment.setFileOriginalName(file.getOriginalFilename());
         }
 
@@ -147,7 +147,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        submission.setFileObjectName(minioService.uploadFile(file));
+        submission.setFileObjectName(minioService.uploadLessonFile(file));
         submission.setFileOriginalName(file.getOriginalFilename());
         submission.setSubmittedAt(now);
         submission.setStatus(now.isAfter(assignment.getDueDate())
@@ -199,9 +199,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         );
     }
 
-    // =========================================================
-    // Lookup + access-control helpers
-    // =========================================================
 
     private Assignment findAssignment(UUID assignmentId) {
         return assignmentRepository.findById(assignmentId)

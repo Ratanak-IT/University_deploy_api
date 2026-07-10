@@ -17,6 +17,7 @@ public record AssignmentRequest(
         @NotNull(message = "Due date is required")
         @Future(message = "Due date must be in the future")
         LocalDateTime dueDate,
+        //file and video
 
         Double maxScore,
 

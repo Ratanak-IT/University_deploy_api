@@ -7,6 +7,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface CurriculumMapper {
+
 CurriculumResponse toResponse(Curriculum curriculum);
 Curriculum toEntity(CurriculumRequest curriculumRequest);
 }

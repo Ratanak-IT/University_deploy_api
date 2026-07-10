@@ -1,8 +1,10 @@
 minio:
-  endpoint: http://localhost:9000
-  access-key: admin
-  secret-key: password123
-  bucket: file
+  endpoint: https://s3.careerpatch.site
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  bucket:
+    assets: university-assets
+    lessons: university-lessons
 
 spring:
   security:
@@ -27,6 +29,11 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8080/realms/university
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
 
   datasource:
     url: jdbc:postgresql://localhost:1681/university

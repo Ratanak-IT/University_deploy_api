@@ -30,9 +30,9 @@ public class LessonController {
     public LessonResponse createLesson(
             @PathVariable UUID classroomId,
             @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) MultipartFile file
+            @RequestPart(value = "file", required = false) List<MultipartFile> files
     ) {
-        return lessonService.createLesson(classroomId, request, file);
+        return lessonService.createLesson(classroomId, request, files);
     }
 
     @PutMapping(
@@ -43,9 +43,9 @@ public class LessonController {
     public LessonResponse updateLesson(
             @PathVariable UUID lessonId,
             @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) MultipartFile file
+            @RequestPart(value = "file", required = false) List<MultipartFile> files
     ) {
-        return lessonService.updateLesson(lessonId, request, file);
+        return lessonService.updateLesson(lessonId, request, files);
     }
 
     @DeleteMapping("/lessons/{lessonId}")
@@ -59,5 +59,15 @@ public class LessonController {
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public List<LessonResponse> getLessonsByClassroom(@PathVariable UUID classroomId) {
         return lessonService.getLessonsByClassroom(classroomId);
+    }
+
+
+    @DeleteMapping("/lessons/{lessonId}/files/{fileId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public LessonResponse removeLessonFile(
+            @PathVariable UUID lessonId,
+            @PathVariable UUID fileId
+    ) {
+        return lessonService.removeLessonFile(lessonId, fileId);
     }
 }

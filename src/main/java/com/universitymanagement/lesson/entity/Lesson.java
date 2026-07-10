@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,9 +32,12 @@ public class Lesson extends BasedEntity {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    private String fileObjectName;
-
-    private String fileOriginalName;
+    @OneToMany(
+            mappedBy = "lesson",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<LessonFile> files = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     private String videoLink;

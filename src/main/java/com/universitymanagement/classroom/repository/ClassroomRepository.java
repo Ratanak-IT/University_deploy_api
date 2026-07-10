@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface ClassroomRepository extends JpaRepository<Classroom, UUID> {
     List<Classroom> findByTeacher_TeacherIdAndIsDeletedFalse(UUID teacherId);
+    List<Classroom> findByTeacher_TeacherId(UUID teacherId);
     Page<Classroom> findByIsDeletedFalse(Pageable pageable);
     boolean existsByClassCode(String code);
     boolean existsByInviteCode(String code);
