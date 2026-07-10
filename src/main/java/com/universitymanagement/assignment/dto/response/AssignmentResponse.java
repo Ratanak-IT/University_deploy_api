@@ -1,6 +1,7 @@
 package com.universitymanagement.assignment.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record AssignmentResponse(
@@ -11,8 +12,7 @@ public record AssignmentResponse(
         LocalDateTime dueDate,
         Double maxScore,
         Double weight,
-        String fileOriginalName,
-        String fileUrl,
+        List<FileResponse> files,
         LocalDateTime createdAt,
         String createdBy
 ) {

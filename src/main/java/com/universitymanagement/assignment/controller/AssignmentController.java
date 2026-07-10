@@ -32,9 +32,9 @@ public class AssignmentController {
     public AssignmentResponse createAssignment(
             @PathVariable UUID classroomId,
             @Valid @RequestPart("assignment") AssignmentRequest request,
-            @RequestPart(value = "file", required = false) MultipartFile file
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
-        return assignmentService.createAssignment(classroomId, request, file);
+        return assignmentService.createAssignment(classroomId, request, files);
     }
 
     @GetMapping("/classrooms/{classroomId}/assignments")
@@ -57,10 +57,9 @@ public class AssignmentController {
     @PreAuthorize("hasRole('STUDENT')")
     public SubmissionResponse submitAssignment(
             @PathVariable UUID assignmentId,
-            @RequestPart("file") MultipartFile file
-            //url
+            @RequestPart("files") List<MultipartFile> files
     ) {
-        return assignmentService.submitAssignment(assignmentId, file);
+        return assignmentService.submitAssignment(assignmentId, files);
     }
 
     @PatchMapping("/submissions/{submissionId}/grade")

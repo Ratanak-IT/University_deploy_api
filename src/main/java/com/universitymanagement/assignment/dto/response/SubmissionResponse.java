@@ -3,6 +3,7 @@ package com.universitymanagement.assignment.dto.response;
 import com.universitymanagement.assignment.entity.SubmissionStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record SubmissionResponse(
@@ -11,8 +12,7 @@ public record SubmissionResponse(
         UUID studentId,
         String studentCode,
         String studentName,
-        String fileOriginalName,
-        String fileUrl,
+        List<FileResponse> files,
         LocalDateTime submittedAt,
         SubmissionStatus status,
         Double score,

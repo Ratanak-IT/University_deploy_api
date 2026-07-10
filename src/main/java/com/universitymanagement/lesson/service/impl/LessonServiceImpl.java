@@ -153,7 +153,7 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @Transactional
-    public LessonResponse removeLessonFile(UUID lessonId, UUID fileId) {
+    public void removeLessonFile(UUID lessonId, UUID fileId) {
         Lesson lesson = findLesson(lessonId);
         requireTeacherOwnsClassroom(lesson.getClassroom());
         boolean removed = lesson.getFiles().removeIf(f -> f.getFileId().equals(fileId));
@@ -161,7 +161,7 @@ public class LessonServiceImpl implements LessonService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "File not found in this lesson");
         }
-        return toResponse(lessonRepository.save(lesson));
+        toResponse(lessonRepository.save(lesson));
     }
 
     private Lesson findLesson(UUID lessonId) {

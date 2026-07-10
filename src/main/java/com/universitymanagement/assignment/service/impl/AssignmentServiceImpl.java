@@ -3,9 +3,12 @@ package com.universitymanagement.assignment.service.impl;
 import com.universitymanagement.assignment.dto.request.AssignmentRequest;
 import com.universitymanagement.assignment.dto.request.GradeSubmissionRequest;
 import com.universitymanagement.assignment.dto.response.AssignmentResponse;
+import com.universitymanagement.assignment.dto.response.FileResponse;
 import com.universitymanagement.assignment.dto.response.SubmissionResponse;
 import com.universitymanagement.assignment.entity.Assignment;
+import com.universitymanagement.assignment.entity.AssignmentFile;
 import com.universitymanagement.assignment.entity.Submission;
+import com.universitymanagement.assignment.entity.SubmissionFile;
 import com.universitymanagement.assignment.entity.SubmissionStatus;
 import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
@@ -22,6 +25,9 @@ import com.universitymanagement.student.repository.StudentRepository;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -52,7 +58,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     @Transactional
-    public AssignmentResponse createAssignment(UUID classroomId, AssignmentRequest request, MultipartFile file) {
+    public AssignmentResponse createAssignment(UUID classroomId, AssignmentRequest request, List<MultipartFile> files) {
         Classroom classroom = findClassroom(classroomId);
         Teacher teacher = requireTeacherOwnsClassroom(classroom);
 
@@ -65,9 +71,16 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setWeight(request.weight());
         assignment.setCreatedByTeacher(teacher);
 
-        if (file != null && !file.isEmpty()) {
-            assignment.setFileObjectName(minioService.uploadLessonFile(file));
-            assignment.setFileOriginalName(file.getOriginalFilename());
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) continue;
+
+                AssignmentFile af = new AssignmentFile();
+                af.setAssignment(assignment);
+                af.setFileObjectName(minioService.uploadLessonFile(file));
+                af.setFileOriginalName(file.getOriginalFilename());
+                assignment.getFiles().add(af);
+            }
         }
 
         return toAssignmentResponse(assignmentRepository.save(assignment));
@@ -124,9 +137,11 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     @Transactional
-    public SubmissionResponse submitAssignment(UUID assignmentId, MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submission file is required");
+    public SubmissionResponse submitAssignment(UUID assignmentId, List<MultipartFile> files) {
+        boolean hasFile = files != null && files.stream()
+                .anyMatch(f -> f != null && !f.isEmpty());
+        if (!hasFile) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one submission file is required");
         }
 
         Assignment assignment = findAssignment(assignmentId);
@@ -146,9 +161,19 @@ public class AssignmentServiceImpl implements AssignmentService {
                     "This submission has already been graded");
         }
 
+        // resubmission replaces all previous files (orphanRemoval deletes old rows)
+        submission.getFiles().clear();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) continue;
+
+            SubmissionFile sf = new SubmissionFile();
+            sf.setSubmission(submission);
+            sf.setFileObjectName(minioService.uploadLessonFile(file));
+            sf.setFileOriginalName(file.getOriginalFilename());
+            submission.getFiles().add(sf);
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        submission.setFileObjectName(minioService.uploadLessonFile(file));
-        submission.setFileOriginalName(file.getOriginalFilename());
         submission.setSubmittedAt(now);
         submission.setStatus(now.isAfter(assignment.getDueDate())
                 ? SubmissionStatus.LATE
@@ -159,9 +184,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
 
     private AssignmentResponse toAssignmentResponse(Assignment a) {
-        String fileUrl = a.getFileObjectName() != null
-                ? minioService.getPreviewUrl(a.getFileObjectName())
-                : null;
+        List<FileResponse> files = a.getFiles().stream()
+                .map(f -> new FileResponse(
+                        f.getFileId(),
+                        f.getFileOriginalName(),
+                        minioService.getPreviewUrl(f.getFileObjectName())
+                ))
+                .toList();
 
         return new AssignmentResponse(
                 a.getAssignmentId(),
@@ -171,17 +200,20 @@ public class AssignmentServiceImpl implements AssignmentService {
                 a.getDueDate(),
                 a.getMaxScore(),
                 a.getWeight(),
-                a.getFileOriginalName(),
-                fileUrl,
+                files,
                 a.getCreatedAt(),
                 a.getCreatedBy()
         );
     }
 
     private SubmissionResponse toSubmissionResponse(Submission s) {
-        String fileUrl = s.getFileObjectName() != null
-                ? minioService.getPreviewUrl(s.getFileObjectName())
-                : null;
+        List<FileResponse> files = s.getFiles().stream()
+                .map(f -> new FileResponse(
+                        f.getFileId(),
+                        f.getFileOriginalName(),
+                        minioService.getPreviewUrl(f.getFileObjectName())
+                ))
+                .toList();
 
         return new SubmissionResponse(
                 s.getSubmissionId(),
@@ -189,8 +221,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 s.getStudent().getStudentId(),
                 s.getStudent().getStudentCode(),
                 s.getStudent().getUser().getFullName(),
-                s.getFileOriginalName(),
-                fileUrl,
+                files,
                 s.getSubmittedAt(),
                 s.getStatus(),
                 s.getScore(),
@@ -296,5 +327,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
         return userRepository.findByKeycloakId(jwt.getSubject())
                 .orElseThrow(UserNotFoundException::new);
+    }
+
+    @Override
+    public Page<AssignmentResponse> getAllAssignments(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        return assignmentRepository.findAll(pageable).map(this::toAssignmentResponse);
     }
 }

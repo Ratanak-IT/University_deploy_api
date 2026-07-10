@@ -14,7 +14,7 @@ public interface LessonService {
 
     LessonResponse updateLesson(UUID lessonId, LessonRequest request, List<MultipartFile> files);
 
-    LessonResponse removeLessonFile(UUID lessonId, UUID fileId);
+    void removeLessonFile(UUID lessonId, UUID fileId);
 
     void deleteLesson(UUID lessonId);
 

@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -36,8 +38,13 @@ public class Submission extends BasedEntity {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    private String fileObjectName;
-    private String fileOriginalName;
+    // student submission files in MinIO
+    @OneToMany(
+            mappedBy = "submission",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SubmissionFile> files = new ArrayList<>();
 
     private LocalDateTime submittedAt;
 

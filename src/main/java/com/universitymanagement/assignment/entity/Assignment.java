@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -32,7 +34,6 @@ public class Assignment extends BasedEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // "dateline" -> due date/deadline
     @Column(nullable = false)
     private LocalDateTime dueDate;
 
@@ -40,9 +41,13 @@ public class Assignment extends BasedEntity {
 
     private Double weight;
 
-    // teacher attachment in MinIO
-    private String fileObjectName;
-    private String fileOriginalName;
+    // teacher attachments in MinIO
+    @OneToMany(
+            mappedBy = "assignment",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<AssignmentFile> files = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_teacher_id")

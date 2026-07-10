@@ -62,12 +62,13 @@ public class LessonController {
     }
 
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/lessons/{lessonId}/files/{fileId}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public LessonResponse removeLessonFile(
+    public void removeLessonFile(
             @PathVariable UUID lessonId,
             @PathVariable UUID fileId
     ) {
-        return lessonService.removeLessonFile(lessonId, fileId);
+        lessonService.removeLessonFile(lessonId, fileId);
     }
 }
