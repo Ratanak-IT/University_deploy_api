@@ -22,6 +22,13 @@ public interface ClassroomMapper {
     @Mapping(target = "updatedBy", source = "lastUpdatedBy")
     ClassroomResponse toResponse(Classroom classroom);
     Classroom toEntity(ClassroomCreateRequest classroomCreateRequest);
+    @Mapping(target = "studentId", source = "student.studentId")
+    @Mapping(target = "studentCode", source = "student.studentCode")
+    @Mapping(target = "fullName", source = "student.user.fullName")
+    @Mapping(target = "email", source = "student.user.email")
+    @Mapping(target = "yearLevel", source = "student.yearLevel")
+    @Mapping(target = "semester", source = "student.semester")
+    @Mapping(target = "joinedAt", source = "createdAt")
     ClassroomStudentResponse toStudentResponse(ClassroomStudent classroomStudent);
     void updateEntity(ClassroomUpdateRequest request, @MappingTarget Classroom classroom);
 }

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ClassroomMemberResponse(
-        UUID userId,
+        UUID teacherId,
 
         String fullname,
 

@@ -27,9 +27,16 @@ public class ClassroomController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Page<ClassroomResponse> getAllClassrooms(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UUID programId,
+            @RequestParam(required = false) Integer yearLevel,
+            @RequestParam(required = false) Integer semester,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        if (keyword != null || programId != null || yearLevel != null || semester != null) {
+            return classroomService.searchClassrooms(keyword, programId, yearLevel, semester, page, size);
+        }
         return classroomService.getAllClassrooms(page, size);
     }
 
@@ -66,7 +73,6 @@ public class ClassroomController {
         return classroomService.addTeacherToClassroom(classroomId, request);
     }
 
-    /** Teacher ទាំងអស់ក្នុង classroom. */
     @GetMapping("/{classroomId}/teachers")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public List<ClassroomMemberResponse> getTeachers(@PathVariable UUID classroomId) {
@@ -91,7 +97,6 @@ public class ClassroomController {
     ) {
         return classroomService.setLeadTeacher(classroomId, request);
     }
-
 
     @PostMapping("/{classroomId}/students")
     @ResponseStatus(HttpStatus.CREATED)

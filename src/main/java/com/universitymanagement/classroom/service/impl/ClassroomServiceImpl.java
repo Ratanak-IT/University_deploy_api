@@ -73,7 +73,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final UserRepository userRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static final String INVITE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
+    private static final String INVITE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     @Override
     public Page<ClassroomResponse> getAllClassrooms(int page, int size) {
@@ -81,6 +81,17 @@ public class ClassroomServiceImpl implements ClassroomService {
         return classroomRepository.findByIsDeletedFalse(pageable)
                 .map(classroomMapper::toResponse);
     }
+
+    @Override
+    public Page<ClassroomResponse> searchClassrooms(
+            String keyword, UUID programId, Integer yearLevel, Integer semester, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        String normalizedKeyword = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        return classroomRepository
+                .search(normalizedKeyword, programId, yearLevel, semester, pageable)
+                .map(classroomMapper::toResponse);
+    }
+
 
     @Override
     @Transactional
@@ -100,8 +111,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         classroom.setIsDeleted(false);
 
         Classroom saved = classroomRepository.save(classroom);
-
-        // lead teacher ក៏ជា member ដែរ ដើម្បីឱ្យ list teachers ពេញ
         upsertTeacherMember(saved, teacher);
 
         return classroomMapper.toResponse(saved);
@@ -131,10 +140,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         return classroomMapper.toResponse(classroomRepository.save(classroom));
     }
 
-    // =====================================================================
-    // Multi-teacher
-    // =====================================================================
-
     @Override
     @Transactional
     public ClassroomMemberResponse addTeacherToClassroom(UUID classroomId, AssignTeacherRequest request) {
@@ -142,7 +147,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         Teacher teacher = findTeacher(request.teacherId());
         User user = requireTeacherUser(teacher);
 
-        // ---- Duplicate guard ----
         boolean alreadyAssigned = classroomMemberRepository
                 .existsByClassroom_ClassroomIdAndUser_IdAndRoleAndStatus(
                         classroomId, user.getId(), ClassroomRole.TEACHER, MemberStatus.ACTIVE);
@@ -152,7 +156,6 @@ public class ClassroomServiceImpl implements ClassroomService {
 
         ClassroomMember member = upsertTeacherMember(classroom, teacher);
 
-        // classroom មិនទាន់មាន lead teacher -> teacher ដំបូងក្លាយជា lead
         if (classroom.getTeacher() == null) {
             classroom.setTeacher(teacher);
             classroomRepository.save(classroom);
@@ -190,7 +193,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         member.setStatus(MemberStatus.REMOVED);
         classroomMemberRepository.save(member);
 
-        // បើដក lead teacher ចេញ -> ជ្រើស teacher ដែលនៅសល់ជា lead ថ្មី
         boolean isLead = classroom.getTeacher() != null
                 && classroom.getTeacher().getTeacherId().equals(teacherId);
         if (isLead) {
@@ -216,10 +218,6 @@ public class ClassroomServiceImpl implements ClassroomService {
         classroom.setTeacher(teacher);
         return classroomMapper.toResponse(classroomRepository.save(classroom));
     }
-
-    // =====================================================================
-    // Students
-    // =====================================================================
 
     @Override
     @Transactional
@@ -289,7 +287,6 @@ public class ClassroomServiceImpl implements ClassroomService {
                     .orElseThrow(() -> new TeacherNotFoundException(
                             "Teacher profile not found for current user"));
 
-            // dedupe: lead teacher classrooms + member classrooms
             Map<UUID, Classroom> merged = new LinkedHashMap<>();
 
             classroomRepository
@@ -325,6 +322,7 @@ public class ClassroomServiceImpl implements ClassroomService {
         throw new ClassroomAccessDeniedException(
                 "Only teachers or students have their own classrooms");
     }
+
 
     private ClassroomMember upsertTeacherMember(Classroom classroom, Teacher teacher) {
         User user = requireTeacherUser(teacher);
@@ -386,7 +384,6 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .orElseThrow(() -> new TeacherNotFoundException(teacherId));
     }
 
-    /** Teacher អាចមើល classroom បើជា lead teacher ឬជា member ACTIVE. */
     private void checkTeacherOwnsClassroomIfTeacher(Classroom classroom) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (hasRole(authentication, "ADMIN")) {

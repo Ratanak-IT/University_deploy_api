@@ -12,6 +12,10 @@ import java.util.UUID;
 public interface ClassroomService {
     Page<ClassroomResponse> getAllClassrooms(int page, int size);
 
+    Page<ClassroomResponse> searchClassrooms(
+            String keyword, UUID programId, Integer yearLevel, Integer semester, int page, int size);
+
+
     ClassroomResponse createClassroom(ClassroomCreateRequest request);
 
     ClassroomResponse updateClassroom(UUID classroomId, ClassroomUpdateRequest request);
@@ -31,7 +35,6 @@ public interface ClassroomService {
     ClassroomMemberResponse addTeacherToClassroom(UUID classroomId, AssignTeacherRequest request);
 
     List<ClassroomMemberResponse> getTeachersInClassroom(UUID classroomId);
-
     void removeTeacherFromClassroom(UUID classroomId, UUID teacherId);
 
     ClassroomResponse setLeadTeacher(UUID classroomId, AssignTeacherRequest request);

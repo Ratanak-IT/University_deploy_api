@@ -8,6 +8,7 @@ import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.program.entity.Program;
+import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.subject.entity.Subject;
 import com.universitymanagement.teacher.entity.Teacher;
 import java.time.LocalDate;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-15T08:40:39+0700",
+    date = "2026-07-15T23:49:09+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -110,6 +111,14 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         Integer semester = null;
         LocalDateTime joinedAt = null;
 
+        studentId = classroomStudentStudentStudentId( classroomStudent );
+        studentCode = classroomStudentStudentStudentCode( classroomStudent );
+        fullName = classroomStudentStudentUserFullName( classroomStudent );
+        email = classroomStudentStudentUserEmail( classroomStudent );
+        yearLevel = classroomStudentStudentYearLevel( classroomStudent );
+        semester = classroomStudentStudentSemester( classroomStudent );
+        joinedAt = classroomStudent.getCreatedAt();
+
         ClassroomStudentResponse classroomStudentResponse = new ClassroomStudentResponse( studentId, studentCode, fullName, email, yearLevel, semester, joinedAt );
 
         return classroomStudentResponse;
@@ -180,5 +189,61 @@ public class ClassroomMapperImpl implements ClassroomMapper {
             return null;
         }
         return program.getProgramName();
+    }
+
+    private UUID classroomStudentStudentStudentId(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        return student.getStudentId();
+    }
+
+    private String classroomStudentStudentStudentCode(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        return student.getStudentCode();
+    }
+
+    private String classroomStudentStudentUserFullName(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        User user = student.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getFullName();
+    }
+
+    private String classroomStudentStudentUserEmail(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        User user = student.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getEmail();
+    }
+
+    private Integer classroomStudentStudentYearLevel(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        return student.getYearLevel();
+    }
+
+    private Integer classroomStudentStudentSemester(ClassroomStudent classroomStudent) {
+        Student student = classroomStudent.getStudent();
+        if ( student == null ) {
+            return null;
+        }
+        return student.getSemester();
     }
 }

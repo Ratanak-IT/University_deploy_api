@@ -1,5 +1,6 @@
 package com.universitymanagement.identity.exception;
 
+import com.universitymanagement.classroom.exception.*;
 import com.universitymanagement.curriculum.exception.CurriculumNotFoundException;
 import com.universitymanagement.curriculum.exception.DuplicateCurriculumException;
 import com.universitymanagement.department.exception.DepartmentNotFoundException;
@@ -8,9 +9,6 @@ import com.universitymanagement.program.exception.DuplicateProgramException;
 import com.universitymanagement.program.exception.ProgramNotFoundException;
 import com.universitymanagement.subject.exception.DuplicateSubjectException;
 import com.universitymanagement.subject.exception.SubjectNotFoundException;
-import com.universitymanagement.classroom.exception.ClassroomAccessDeniedException;
-import com.universitymanagement.classroom.exception.ClassroomNotFoundException;
-import com.universitymanagement.classroom.exception.StudentNotEnrolledException;
 import com.universitymanagement.student.exception.StudentNotFoundException;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -357,6 +355,38 @@ public class GlobalExceptionHandler {
                         "Duplicate Curriculum",
                         ex.getMessage(),
                         "CUR-409",
+                        request));
+    }
+
+    @ExceptionHandler(TeacherAlreadyAssignedException.class)
+    public ResponseEntity<ProblemDetail> handleTeacherAlreadyAssigned(
+            TeacherAlreadyAssignedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Teacher already assigned: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Teacher Already Assigned",
+                        ex.getMessage(),
+                        "CLS-409-TCH",
+                        request));
+    }
+
+    @ExceptionHandler(TeacherNotInClassroomException.class)
+    public ResponseEntity<ProblemDetail> handleTeacherNotInClassroom(
+            TeacherNotInClassroomException ex,
+            HttpServletRequest request) {
+
+        log.warn("Teacher not in classroom: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Teacher Not In Classroom",
+                        ex.getMessage(),
+                        "CLS-404-TCH",
                         request));
     }
 
