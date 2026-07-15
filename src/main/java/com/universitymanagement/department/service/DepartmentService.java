@@ -2,8 +2,10 @@ package com.universitymanagement.department.service;
 
 import com.universitymanagement.department.dto.request.DepartmentRequest;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
+import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface DepartmentService {
@@ -13,4 +15,6 @@ public interface DepartmentService {
     void delete(UUID departmentId);
     void softDelete(UUID departmentId);
     DepartmentResponse getDepartmentById(UUID departmentId);
+    Page<DepartmentResponse> getByStatus(int page, int size, Boolean isDeleted);
+    List<TeacherResponse> getTeachersByDepartment(UUID departmentId);
 }

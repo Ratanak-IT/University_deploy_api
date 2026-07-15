@@ -11,6 +11,7 @@ import com.universitymanagement.identity.auth.dto.response.RefreshTokenResponse;
 import com.universitymanagement.identity.auth.mapper.AuthMapper;
 import com.universitymanagement.identity.auth.keycloak.config.KeycloakProperties;
 import com.universitymanagement.identity.auth.keycloak.dto.KeyCloakTokenResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
@@ -19,8 +20,11 @@ import org.springframework.web.client.RestClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class KeycloakTokenServiceImpl implements KeycloakTokenService{
 
@@ -49,7 +53,9 @@ public class KeycloakTokenServiceImpl implements KeycloakTokenService{
                 .body(form)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-                    throw new InvalidCredentialsException("Invalid email or password");
+                    String body = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                    log.error("Keycloak token error: status={} body={}", res.getStatusCode(), body);
+                    throw new InvalidCredentialsException("Keycloak: " + body); // បង្ហាញបណ្ដោះអាសន្នដើម្បី debug
                 })
                 .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                     throw new KeycloakUnavailableException("Keycloak server error");

@@ -1,4 +1,11 @@
 package com.universitymanagement.student.dto.response;
 
-public record StudentResponse() {
+import java.util.UUID;
+
+public record StudentResponse(
+        UUID id,
+        String studentCode,
+        String email,
+        String department
+) {
 }

@@ -8,7 +8,8 @@ import java.util.UUID;
 public record DepartmentResponse(
         UUID departmentId,
         String departmentName,
+        String departmentCode,
+        boolean isDeleted,
         List<SubjectResponse> subjects
-
 ) {
 }

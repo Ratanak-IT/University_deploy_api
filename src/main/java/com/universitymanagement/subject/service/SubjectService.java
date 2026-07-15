@@ -14,4 +14,5 @@ public interface SubjectService {
     SubjectResponse updateSubject(UUID subjectId, SubjectRequest subjectRequest);
     void deleteSubject(UUID subjectId);
     void softDelete(UUID subjectId);
+    long countClassroomsBySubject(UUID subjectId);
 }

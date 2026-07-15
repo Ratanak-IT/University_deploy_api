@@ -2,6 +2,7 @@ package com.universitymanagement.teacher.controller;
 
 
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
+import com.universitymanagement.department.service.DepartmentService;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.teacher.dto.request.AssignClassroomRequest;
 import com.universitymanagement.teacher.dto.request.AssignSubjectRequest;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class TeacherController {
 
     private final TeacherService teacherService;
+    private final DepartmentService departmentService;
 
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ADMIN')")
@@ -92,6 +94,12 @@ public class TeacherController {
     public TeacherResponse unassignSubject(@PathVariable UUID teacherId,
                                            @PathVariable UUID subjectId) {
         return teacherService.unassignSubject(teacherId, subjectId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/{departmentId}/teachers")
+    public List<TeacherResponse> getTeachersByDepartment(@PathVariable UUID departmentId) {
+        return departmentService.getTeachersByDepartment(departmentId);
     }
 
     @ResponseStatus(HttpStatus.OK)

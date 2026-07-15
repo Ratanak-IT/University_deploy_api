@@ -23,7 +23,6 @@ public class Department extends BasedEntity {
     private UUID departmentId;
     @Column(nullable = false, length = 100)
     private String departmentName;
-    @Column(nullable = false)
     private Boolean isDeleted;
     private String departmentCode;
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)

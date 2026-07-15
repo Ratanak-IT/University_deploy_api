@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-10T20:49:58+0700",
+    date = "2026-07-14T10:22:59+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -27,13 +27,19 @@ public class DepartmentmapperImpl implements Departmentmapper {
 
         UUID departmentId = null;
         String departmentName = null;
+        String departmentCode = null;
+        boolean isDeleted = false;
         List<SubjectResponse> subjects = null;
 
         departmentId = department.getDepartmentId();
         departmentName = department.getDepartmentName();
+        departmentCode = department.getDepartmentCode();
+        if ( department.getIsDeleted() != null ) {
+            isDeleted = department.getIsDeleted();
+        }
         subjects = subjectListToSubjectResponseList( department.getSubjects() );
 
-        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, subjects );
+        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, departmentCode, isDeleted, subjects );
 
         return departmentResponse;
     }

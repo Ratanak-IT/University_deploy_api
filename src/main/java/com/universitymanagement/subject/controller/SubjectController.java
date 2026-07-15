@@ -5,7 +5,6 @@ import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.service.SubjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -39,13 +38,20 @@ public class SubjectController {
     public SubjectResponse updateSubject(@PathVariable UUID subjectId, @Valid @RequestBody SubjectRequest subjectRequest){
         return subjectService.updateSubject(subjectId, subjectRequest);
     }
+
     @DeleteMapping("/delete/{subjectId}")
     public void deleteSubject(@PathVariable UUID subjectId){
         subjectService.deleteSubject(subjectId);
     }
+
     @PatchMapping("/{subjectId}")
     public void softDelete(@PathVariable UUID subjectId){
         subjectService.softDelete(subjectId);
     }
 
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/{subjectId}/classrooms/count")
+    public long countClassroomsBySubject(@PathVariable UUID subjectId){
+        return subjectService.countClassroomsBySubject(subjectId);
+    }
 }

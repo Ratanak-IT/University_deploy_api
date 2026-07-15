@@ -3,12 +3,14 @@ package com.universitymanagement.department.controller;
 import com.universitymanagement.department.dto.request.DepartmentRequest;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.department.service.DepartmentService;
+import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -53,5 +55,19 @@ public class DepartmentController {
         return departmentService.getDepartmentById(departmentId);
     }
 
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/status")
+    public Page<DepartmentResponse> getByStatus(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size,
+            @RequestParam(required = false) Boolean isDeleted) {
+        return departmentService.getByStatus(page, size, isDeleted);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/{departmentId}/teachers")
+    public List<TeacherResponse> getTeachersByDepartment(@PathVariable UUID departmentId) {
+        return departmentService.getTeachersByDepartment(departmentId);
+    }
 
 }

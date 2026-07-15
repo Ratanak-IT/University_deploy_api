@@ -4,6 +4,7 @@ import com.universitymanagement.classroom.dto.request.AddStudentsRequest;
 import com.universitymanagement.classroom.dto.request.AssignTeacherRequest;
 import com.universitymanagement.classroom.dto.request.ClassroomCreateRequest;
 import com.universitymanagement.classroom.dto.request.ClassroomUpdateRequest;
+import com.universitymanagement.classroom.dto.response.ClassroomMemberResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
 import com.universitymanagement.classroom.service.ClassroomService;
@@ -48,21 +49,49 @@ public class ClassroomController {
         return classroomService.updateClassroom(classroomId, request);
     }
 
-    @PatchMapping("/{classroomId}/teacher")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ClassroomResponse assignTeacher(
-            @PathVariable UUID classroomId,
-            @Valid @RequestBody AssignTeacherRequest request
-    ) {
-        return classroomService.assignTeacher(classroomId, request);
-    }
-
     @PatchMapping("/{classroomId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteClassroom(@PathVariable UUID classroomId) {
         classroomService.softDelete(classroomId);
     }
+
+    @PostMapping("/{classroomId}/teachers")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ClassroomMemberResponse addTeacher(
+            @PathVariable UUID classroomId,
+            @Valid @RequestBody AssignTeacherRequest request
+    ) {
+        return classroomService.addTeacherToClassroom(classroomId, request);
+    }
+
+    /** Teacher ទាំងអស់ក្នុង classroom. */
+    @GetMapping("/{classroomId}/teachers")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public List<ClassroomMemberResponse> getTeachers(@PathVariable UUID classroomId) {
+        return classroomService.getTeachersInClassroom(classroomId);
+    }
+
+    @DeleteMapping("/{classroomId}/teachers/{teacherId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void removeTeacher(
+            @PathVariable UUID classroomId,
+            @PathVariable UUID teacherId
+    ) {
+        classroomService.removeTeacherFromClassroom(classroomId, teacherId);
+    }
+
+    @PatchMapping("/{classroomId}/lead-teacher")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ClassroomResponse setLeadTeacher(
+            @PathVariable UUID classroomId,
+            @Valid @RequestBody AssignTeacherRequest request
+    ) {
+        return classroomService.setLeadTeacher(classroomId, request);
+    }
+
 
     @PostMapping("/{classroomId}/students")
     @ResponseStatus(HttpStatus.CREATED)
@@ -84,7 +113,6 @@ public class ClassroomController {
         classroomService.removeStudentFromClassroom(classroomId, studentId);
     }
 
-
     @GetMapping("/{classroomId}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public ClassroomResponse getClassroomById(@PathVariable UUID classroomId) {
@@ -97,11 +125,9 @@ public class ClassroomController {
         return classroomService.getStudentsInClassroom(classroomId);
     }
 
-
     @GetMapping("/my-classrooms")
-    @PreAuthorize("hasAnyRole('TEACHER','STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER','STUDENT','ADMIN')")
     public List<ClassroomResponse> getMyClassrooms() {
         return classroomService.getMyClassrooms();
     }
-
 }

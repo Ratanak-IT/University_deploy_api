@@ -4,7 +4,6 @@ import com.universitymanagement.classroom.dto.request.*;
 import com.universitymanagement.classroom.dto.response.ClassroomMemberResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
-import com.universitymanagement.student.dto.response.StudentResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -17,8 +16,6 @@ public interface ClassroomService {
 
     ClassroomResponse updateClassroom(UUID classroomId, ClassroomUpdateRequest request);
 
-    ClassroomResponse assignTeacher(UUID classroomId, AssignTeacherRequest request);
-
     void softDelete(UUID classroomId);
 
     void addStudentsToClassroom(UUID classroomId, AddStudentsRequest request);
@@ -30,4 +27,12 @@ public interface ClassroomService {
     List<ClassroomStudentResponse> getStudentsInClassroom(UUID classroomId);
 
     List<ClassroomResponse> getMyClassrooms();
+
+    ClassroomMemberResponse addTeacherToClassroom(UUID classroomId, AssignTeacherRequest request);
+
+    List<ClassroomMemberResponse> getTeachersInClassroom(UUID classroomId);
+
+    void removeTeacherFromClassroom(UUID classroomId, UUID teacherId);
+
+    ClassroomResponse setLeadTeacher(UUID classroomId, AssignTeacherRequest request);
 }

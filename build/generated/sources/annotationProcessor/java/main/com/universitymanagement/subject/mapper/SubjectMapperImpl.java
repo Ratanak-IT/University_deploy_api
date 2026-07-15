@@ -1,5 +1,6 @@
 package com.universitymanagement.subject.mapper;
 
+import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.subject.dto.request.SubjectRequest;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-10T20:49:59+0700",
+    date = "2026-07-14T09:46:16+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -21,15 +22,15 @@ public class SubjectMapperImpl implements SubjectMapper {
             return null;
         }
 
+        UUID departmentId = null;
         String subjectCode = null;
         String subjectName = null;
         Double credit = null;
 
+        departmentId = subjectDepartmentDepartmentId( subject );
         subjectCode = subject.getSubjectCode();
         subjectName = subject.getSubjectName();
         credit = subject.getCredit();
-
-        UUID departmentId = null;
 
         SubjectResponse subjectResponse = new SubjectResponse( subjectCode, subjectName, credit, departmentId );
 
@@ -48,5 +49,13 @@ public class SubjectMapperImpl implements SubjectMapper {
         subject.setCredit( subjectRequest.credit() );
 
         return subject;
+    }
+
+    private UUID subjectDepartmentDepartmentId(Subject subject) {
+        Department department = subject.getDepartment();
+        if ( department == null ) {
+            return null;
+        }
+        return department.getDepartmentId();
     }
 }

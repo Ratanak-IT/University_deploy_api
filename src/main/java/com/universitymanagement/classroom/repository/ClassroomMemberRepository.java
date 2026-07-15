@@ -1,5 +1,7 @@
 package com.universitymanagement.classroom.repository;
 
+import com.universitymanagement.classroom.dto.ClassroomRole;
+import com.universitymanagement.classroom.dto.MemberStatus;
 import com.universitymanagement.classroom.entity.ClassroomMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,5 +13,12 @@ public interface ClassroomMemberRepository extends JpaRepository<ClassroomMember
     boolean existsByClassroom_ClassroomIdAndUser_Id(UUID classroomId, UUID userId);
     Optional<ClassroomMember> findByClassroom_ClassroomIdAndUser_Id(UUID classroomId, UUID userId);
     List<ClassroomMember> findByClassroom_ClassroomId(UUID classroomId);
+    List<ClassroomMember> findByUser_IdAndRoleAndStatus(
+            UUID userId, ClassroomRole role, MemberStatus status);
+    List<ClassroomMember> findByClassroom_ClassroomIdAndRoleAndStatus(
+            UUID classroomId, ClassroomRole role, MemberStatus status);
+    boolean existsByClassroom_ClassroomIdAndUser_IdAndRoleAndStatus(
+            UUID classroomId, UUID userId, ClassroomRole role, MemberStatus status);
+
 
 }

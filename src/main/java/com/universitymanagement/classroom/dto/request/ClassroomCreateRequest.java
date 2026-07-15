@@ -24,10 +24,11 @@ public record ClassroomCreateRequest(
 
         @Min(value = 1, message = "Semester must be 1 or 2")
         @Max(value = 2, message = "Semester must be 1 or 2")
+        @NotNull(message = "Semester is required")
         Integer semester,
 
         @Min(value = 1, message = "Year level must be between 1 and 4")
-        @Max(value = 4, message = "Year level must be between 1 and 4")
+        @Max(value = 5, message = "Year level must be between 1 and 5")
         Integer yearLevel,
 
         String room,

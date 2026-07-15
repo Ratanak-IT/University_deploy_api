@@ -210,6 +210,7 @@ public class TeacherServiceImpl implements TeacherService {
         return classroomMapper.toResponse(classroomRepository.save(classroom));
     }
 
+
     @Override
     public TeacherDetailResponse findTeacherByUserId(String id) {
         UserRepresentation kcUser = requireKeycloakUser(id);
