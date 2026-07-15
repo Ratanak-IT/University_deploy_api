@@ -156,8 +156,8 @@ public class SecurityConfig {
                                 jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
                 ).exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(authenticationEntryPoint())   // 401
-                        .accessDeniedHandler(accessDeniedHandler())             // 403
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
                 );
 
         return http.build();

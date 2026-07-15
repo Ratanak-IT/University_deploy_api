@@ -99,6 +99,7 @@ public class TeacherServiceImpl implements TeacherService {
         if (request.departmentIds() != null && !request.departmentIds().isEmpty()) {
             teacher.setDepartments(resolveDepartments(request.departmentIds()));
         }
+
         teacher.setPosition(request.position());
 
         return teacherMapper.toResponse(teacherRepository.save(teacher));

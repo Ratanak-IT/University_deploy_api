@@ -10,6 +10,7 @@ import com.universitymanagement.program.exception.ProgramNotFoundException;
 import com.universitymanagement.subject.exception.DuplicateSubjectException;
 import com.universitymanagement.subject.exception.SubjectNotFoundException;
 import com.universitymanagement.student.exception.StudentNotFoundException;
+import com.universitymanagement.teacher.exception.TeacherInactiveException;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -488,6 +489,22 @@ public class GlobalExceptionHandler {
                         status.getReasonPhrase(),
                         ex.getMessage(),
                         "IDN-" + status.value(),
+                        request));
+    }
+
+    @ExceptionHandler(TeacherInactiveException.class)
+    public ResponseEntity<ProblemDetail> handleTeacherInactive(
+            TeacherInactiveException ex,
+            HttpServletRequest request) {
+
+        log.warn("Teacher inactive: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Teacher Inactive",
+                        ex.getMessage(),
+                        "TCH-409",
                         request));
     }
 }

@@ -30,8 +30,8 @@ public class StudentUpdateRequest {
     @Past(message = "Date of birth must be in the past")
     private LocalDate dob;
 
-    @Size(max = 50)
-    private String gender;
+//    @Size(max = 50)
+//    private String gender;
 
     @Size(max = 30)
     private String fatherContact;

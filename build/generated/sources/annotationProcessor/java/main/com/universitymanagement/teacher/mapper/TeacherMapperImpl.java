@@ -2,6 +2,8 @@ package com.universitymanagement.teacher.mapper;
 
 import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.identity.entity.User;
+import com.universitymanagement.subject.dto.response.SubjectResponse;
+import com.universitymanagement.subject.entity.Subject;
 import com.universitymanagement.teacher.dto.response.TeacherDepartmentResponse;
 import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import com.universitymanagement.teacher.entity.Teacher;
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-14T09:46:16+0700",
+    date = "2026-07-16T00:52:47+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -37,6 +39,7 @@ public class TeacherMapperImpl implements TeacherMapper {
         String position = null;
         LocalDate hireDate = null;
         String employmentStatus = null;
+        List<SubjectResponse> subjects = null;
 
         fullName = teacherUserFullName( teacher );
         email = teacherUserEmail( teacher );
@@ -48,8 +51,9 @@ public class TeacherMapperImpl implements TeacherMapper {
         position = teacher.getPosition();
         hireDate = teacher.getHireDate();
         employmentStatus = teacher.getEmploymentStatus();
+        subjects = subjectSetToSubjectResponseList( teacher.getSubjects() );
 
-        TeacherResponse teacherResponse = new TeacherResponse( teacherId, teacherCode, fullName, email, phoneNumber, specialization, departments, position, hireDate, employmentStatus );
+        TeacherResponse teacherResponse = new TeacherResponse( teacherId, teacherCode, fullName, email, phoneNumber, specialization, departments, position, hireDate, employmentStatus, subjects );
 
         return teacherResponse;
     }
@@ -105,6 +109,39 @@ public class TeacherMapperImpl implements TeacherMapper {
         List<TeacherDepartmentResponse> list = new ArrayList<TeacherDepartmentResponse>( set.size() );
         for ( Department department : set ) {
             list.add( toDepartmentResponse( department ) );
+        }
+
+        return list;
+    }
+
+    protected SubjectResponse subjectToSubjectResponse(Subject subject) {
+        if ( subject == null ) {
+            return null;
+        }
+
+        String subjectCode = null;
+        String subjectName = null;
+        Double credit = null;
+
+        subjectCode = subject.getSubjectCode();
+        subjectName = subject.getSubjectName();
+        credit = subject.getCredit();
+
+        UUID departmentId = null;
+
+        SubjectResponse subjectResponse = new SubjectResponse( subjectCode, subjectName, credit, departmentId );
+
+        return subjectResponse;
+    }
+
+    protected List<SubjectResponse> subjectSetToSubjectResponseList(Set<Subject> set) {
+        if ( set == null ) {
+            return null;
+        }
+
+        List<SubjectResponse> list = new ArrayList<SubjectResponse>( set.size() );
+        for ( Subject subject : set ) {
+            list.add( subjectToSubjectResponse( subject ) );
         }
 
         return list;
