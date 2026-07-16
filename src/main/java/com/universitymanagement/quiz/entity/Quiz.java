@@ -23,9 +23,8 @@ public class Quiz extends BasedEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID quizId;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_id", nullable = false)
+    @JoinColumn(name = "classroom_id", nullable = true)
     private Classroom classroom;
 
     @Column(nullable = false, length = 200)
@@ -34,11 +33,8 @@ public class Quiz extends BasedEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    /** Time window in which students may start the quiz. */
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-
-    /** Duration in minutes once an attempt is started. */
     private Integer durationMinutes;
 
     @Column(nullable = false)

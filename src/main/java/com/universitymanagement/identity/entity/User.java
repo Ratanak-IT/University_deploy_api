@@ -49,11 +49,14 @@ public class User extends BasedEntity {
     @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "profile_image_file_id")
-    private Long profileImageFileId;
+    @Column(name = "avatar_object_name")
+    private String avatarObjectName;
 
     @Column(name = "account_status")
     private String accountStatus;
+
+    private String fatherContact;
+    private String motherContact;
 
     @Column(name = "is_active")
     private Boolean isActive;

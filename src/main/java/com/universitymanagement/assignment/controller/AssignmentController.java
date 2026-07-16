@@ -57,7 +57,7 @@ public class AssignmentController {
     @PreAuthorize("hasRole('STUDENT')")
     public SubmissionResponse submitAssignment(
             @PathVariable UUID assignmentId,
-            @RequestPart("files") List<MultipartFile> files
+                @RequestPart("files") List<MultipartFile> files
     ) {
         return assignmentService.submitAssignment(assignmentId, files);
     }

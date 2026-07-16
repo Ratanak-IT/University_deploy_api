@@ -2,7 +2,7 @@ package com.universitymanagement.certificate.entity;
 
 public enum CertificateType {
     ENROLLMENT_CONFIRMATION,
-    TRANSCRIPT,
+        TRANSCRIPT,
     DEGREE,
     COMPLETION
 }

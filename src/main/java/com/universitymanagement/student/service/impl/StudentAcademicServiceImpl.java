@@ -48,7 +48,6 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     private final AttendanceRepository attendanceRepository;
     private final MinioService minioService;
 
-    // Transcript / Grades / GPA
     @Override
     public TranscriptResponse getTranscript(UUID studentId) {
         Student student = accessGuard.requireSelfOrStaff(studentId);
@@ -138,8 +137,6 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 .toList();
     }
 
-    // Department / Subject
-
     @Override
     public List<DepartmentResponse> getDepartments(UUID studentId) {
         accessGuard.requireSelfOrStaff(studentId);
@@ -149,6 +146,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 .filter(Objects::nonNull)
                 .map(Subject::getDepartment)
                 .filter(Objects::nonNull)
+                .filter(d -> !Boolean.TRUE.equals(d.getIsDeleted()))
                 .collect(Collectors.toMap(Department::getDepartmentId, d -> d, (a, b) -> a))
                 .values()
                 .stream()
@@ -157,7 +155,14 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                         d.getDepartmentName(),
                         d.getDepartmentCode(),
                         d.getIsDeleted(),
-                        List.of()))
+                        d.getSubjects().stream()
+                                .filter(s -> !Boolean.TRUE.equals(s.getIsDeleted()))
+                                .map(s -> new SubjectResponse(
+                                        s.getSubjectCode(),
+                                        s.getSubjectName(),
+                                        s.getCredit(),
+                                        d.getDepartmentId()))
+                                .toList()))
                 .toList();
     }
 

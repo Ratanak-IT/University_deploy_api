@@ -45,6 +45,11 @@ public class Student {
 
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
+    private LocalDate dob;
+    private String address;
+    private String fatherContact;
+    private String motherContact;
+    private String gender;
 
     @Column(name = "graduation_status")
     private String graduationStatus = "enrolled";

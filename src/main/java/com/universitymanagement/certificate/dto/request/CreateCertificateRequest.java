@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public record CreateCertificateRequest(
         @NotNull(message = "Certificate type is required")
-        CertificateType certificateType,
+                CertificateType certificateType,
 
         @Size(max = 500)
         String reason

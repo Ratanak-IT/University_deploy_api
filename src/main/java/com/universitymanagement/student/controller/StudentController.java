@@ -49,13 +49,18 @@ public class StudentController {
         return studentService.getMyProfile();
     }
 
-    /** POST /students/me — update own profile. */
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('STUDENT')")
-    @PostMapping("/me")
+    @PatchMapping("/me")
     public StudentDetailResponse updateMyProfile(
             @Valid @RequestBody StudentUpdateProfileRequest request) {
         return studentService.updateMyProfile(request);
+    }
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('STUDENT')")
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public StudentDetailResponse uploadMyAvatar(@RequestPart("file") MultipartFile file) {
+        return studentService.uploadMyAvatar(file);
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -122,20 +127,6 @@ public class StudentController {
         return academicService.getAssignmentDetail(studentId, assignmentId);
     }
 
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('STUDENT')")
-    @PostMapping(
-            value = "/{studentId}/assignments/{assignmentId}/submit",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public SubmissionResponse submitAssignment(
-            @PathVariable UUID studentId,
-            @PathVariable UUID assignmentId,
-            @RequestPart("files") List<MultipartFile> files) {
-        accessGuard.requireSelf(studentId);
-        return assignmentService.submitAssignment(assignmentId, files);
-    }
-
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
     @GetMapping("/{studentId}/certificate-requests")
@@ -167,7 +158,6 @@ public class StudentController {
         return quizAttemptService.getQuizzesForStudent(studentId);
     }
 
-    /** Start a quiz attempt (Self only). Returns questions without correct answers. */
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/{studentId}/quizzes/{quizId}/attempts")
@@ -176,7 +166,6 @@ public class StudentController {
         return quizAttemptService.startAttempt(studentId, quizId);
     }
 
-    /** Submit answers for the attempt (Self only). Auto-graded. */
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('STUDENT')")
     @PutMapping("/{studentId}/quizzes/{quizId}/attempts/{attemptId}")
@@ -188,7 +177,6 @@ public class StudentController {
         return quizAttemptService.submitAttempt(studentId, quizId, attemptId, request);
     }
 
-    /** View score / result of an attempt (Self, Admin, Teacher). */
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
     @GetMapping("/{studentId}/quizzes/{quizId}/attempts/{attemptId}")

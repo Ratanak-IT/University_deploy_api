@@ -161,7 +161,6 @@ public class AssignmentServiceImpl implements AssignmentService {
                     "This submission has already been graded");
         }
 
-        // resubmission replaces all previous files (orphanRemoval deletes old rows)
         submission.getFiles().clear();
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) continue;

@@ -21,4 +21,6 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
             order by q.startAt desc
             """)
     List<Quiz> findAllForStudent(@Param("studentId") UUID studentId);
+
+    List<Quiz> findByCreatedByTeacher_TeacherIdAndIsDeletedFalseOrderByCreatedAtDesc(UUID teacherId);
 }

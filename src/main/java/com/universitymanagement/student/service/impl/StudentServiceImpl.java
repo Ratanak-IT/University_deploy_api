@@ -8,6 +8,7 @@ import com.universitymanagement.identity.auth.keycloak.client.KeycloakClient;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.enums.RoleName;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.program.entity.Program;
 import com.universitymanagement.program.repository.ProgramRepository;
 import com.universitymanagement.student.dto.request.CreateStudentRequest;
@@ -33,6 +34,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -51,6 +53,7 @@ public class StudentServiceImpl implements StudentService {
     private final UserManageService userManageService;
     private final StudentMapper studentMapper;
     private final StudentAccessGuard accessGuard;
+    private final MinioService minioService;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -123,6 +126,21 @@ public class StudentServiceImpl implements StudentService {
         if (request.getProgramId() != null) {
             student.setProgram(resolveProgram(request.getProgramId()));
         }
+        if (request.getMotherContact() != null) {
+            student.setMotherContact(request.getMotherContact());
+        }
+        if (request.getFatherContact() != null){
+            student.setFatherContact(request.getFatherContact());
+        }
+        if (request.getAddress() != null) {
+            student.setAddress(request.getAddress());
+        }
+        if (request.getDob() != null) {
+            student.setDob(request.getDob());
+        }
+        if (request.getGender() != null) {
+            student.setGender(request.getGender());
+        }
 
         if (user != null) {
             if (request.getDob() != null) {
@@ -141,8 +159,6 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public void deleteStudent(UUID studentId) {
         Student student = findStudent(studentId);
-
-        // Detach classroom enrollments first (FK constraint)
         classroomStudentRepository.deleteAll(
                 classroomStudentRepository.findByStudent_StudentId(studentId));
 
@@ -166,14 +182,17 @@ public class StudentServiceImpl implements StudentService {
     public StudentDetailResponse updateMyProfile(StudentUpdateProfileRequest request) {
         User user = accessGuard.getCurrentUser();
 
-        if (request.getDob() != null) {
-            user.setDateOfBirth(request.getDob());
+        if (request.address() != null) {
+            user.setAddress(request.address());
         }
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress());
+        if (request.phone() != null) {
+            user.setPhoneNumber(request.phone());
         }
-        if (request.getPhone() != null) {
-            user.setPhoneNumber(request.getPhone());
+        if (request.fatherContact() != null) {
+            user.setFatherContact(request.fatherContact());
+        }
+        if (request.motherContact() != null){
+            user.setMotherContact(request.motherContact());
         }
         userRepository.save(user);
 
@@ -207,6 +226,7 @@ public class StudentServiceImpl implements StudentService {
                 student.getSemester(),
                 user.getDateOfBirth(),
                 user.getGender() != null ? user.getGender().name() : null,
+                user.getAvatarObjectName() != null ? minioService.getPreviewUrl(user.getAvatarObjectName()) : null,
                 student.getGraduationStatus()
         );
     }
@@ -246,5 +266,14 @@ public class StudentServiceImpl implements StudentService {
         } catch (NotFoundException e) {
             return List.of();
         }
+    }
+
+    @Override
+    public StudentDetailResponse uploadMyAvatar(MultipartFile file) {
+        User user = accessGuard.getCurrentUser();
+        String objectName = minioService.uploadAsset(file);
+        user.setAvatarObjectName(minioService.getPublicUrl(objectName));
+        userRepository.save(user);
+        return findStudentById(user.getKeycloakId());
     }
 }
