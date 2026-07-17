@@ -8,6 +8,12 @@ import com.universitymanagement.quiz.dto.response.QuizAttemptResponse;
 import com.universitymanagement.quiz.dto.response.QuizQuestionResponse;
 import com.universitymanagement.quiz.dto.response.QuizResponse;
 import com.universitymanagement.quiz.entity.*;
+import com.universitymanagement.quiz.exception.QuizAttemptAlreadyFinalizedException;
+import com.universitymanagement.quiz.exception.QuizAttemptNotFoundException;
+import com.universitymanagement.quiz.exception.QuizMaxAttemptsReachedException;
+import com.universitymanagement.quiz.exception.QuizNotFoundException;
+import com.universitymanagement.quiz.exception.QuizWindowClosedException;
+import com.universitymanagement.quiz.exception.StudentNotEnrolledInQuizException;
 import com.universitymanagement.quiz.repository.QuizAttemptRepository;
 import com.universitymanagement.quiz.repository.QuizQuestionRepository;
 import com.universitymanagement.quiz.repository.QuizRepository;
@@ -16,9 +22,7 @@ import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.student.security.StudentAccessGuard;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -55,16 +59,15 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
         LocalDateTime now = LocalDateTime.now();
         if (quiz.getStartAt() != null && now.isBefore(quiz.getStartAt())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Quiz has not started yet");
+            throw new QuizWindowClosedException(quizId, "quiz has not started yet");
         }
         if (quiz.getEndAt() != null && now.isAfter(quiz.getEndAt())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Quiz window is already closed");
+            throw new QuizWindowClosedException(quizId, "quiz window is already closed");
         }
 
         long used = quizAttemptRepository.countByQuiz_QuizIdAndStudent_StudentId(quizId, studentId);
         if (quiz.getMaxAttempts() != null && used >= quiz.getMaxAttempts()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Maximum attempts reached (" + quiz.getMaxAttempts() + ")");
+            throw new QuizMaxAttemptsReachedException(quizId, quiz.getMaxAttempts());
         }
 
         QuizAttempt attempt = new QuizAttempt();
@@ -89,8 +92,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         QuizAttempt attempt = findAttempt(attemptId, quizId, studentId);
 
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Attempt is already " + attempt.getStatus());
+            throw new QuizAttemptAlreadyFinalizedException(attemptId, attempt.getStatus());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -138,15 +140,13 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     private Quiz findQuiz(UUID quizId) {
         return quizRepository.findById(quizId)
                 .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Quiz not found with id: " + quizId));
+                .orElseThrow(() -> new QuizNotFoundException(quizId));
     }
 
     private QuizAttempt findAttempt(UUID attemptId, UUID quizId, UUID studentId) {
         return quizAttemptRepository
                 .findByAttemptIdAndQuiz_QuizIdAndStudent_StudentId(attemptId, quizId, studentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Quiz attempt not found: " + attemptId));
+                .orElseThrow(() -> new QuizAttemptNotFoundException(attemptId));
     }
 
     private void requireEnrolled(Quiz quiz, UUID studentId) {
@@ -154,8 +154,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 .existsByClassroom_ClassroomIdAndStudent_StudentId(
                         quiz.getClassroom().getClassroomId(), studentId);
         if (!enrolled) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You are not enrolled in the classroom of this quiz");
+            throw new StudentNotEnrolledInQuizException(studentId, quiz.getQuizId());
         }
     }
 
@@ -238,7 +237,6 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 options = objectMapper.readValue(
                         question.getOptionsJson(), new TypeReference<List<String>>() {});
             } catch (Exception ignored) {
-                // keep empty list if JSON is malformed
             }
         }
         return new QuizQuestionResponse(

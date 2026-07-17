@@ -13,6 +13,9 @@ import com.universitymanagement.quiz.dto.request.CreateQuizRequest;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 import com.universitymanagement.quiz.entity.Quiz;
 import com.universitymanagement.quiz.entity.QuizQuestion;
+import com.universitymanagement.quiz.exception.QuizAccessDeniedException;
+import com.universitymanagement.quiz.exception.QuizClassroomNotFoundException;
+import com.universitymanagement.quiz.exception.QuizNotFoundException;
 import com.universitymanagement.quiz.repository.QuizRepository;
 import com.universitymanagement.quiz.service.QuizService;
 import com.universitymanagement.teacher.entity.Teacher;
@@ -72,8 +75,7 @@ public class QuizServiceImpl implements QuizService {
         Quiz quiz = findOwnedQuiz(quizId);
         Classroom classroom = classroomRepository.findById(request.classroomId())
                 .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Classroom not found with id: " + request.classroomId()));
+                .orElseThrow(() -> new QuizClassroomNotFoundException(request.classroomId()));
 
         quiz.setClassroom(classroom);
         return toManageResponse(quizRepository.save(quiz));
@@ -114,11 +116,11 @@ public class QuizServiceImpl implements QuizService {
                 .toList();
     }
 
+
     private Quiz findOwnedQuiz(UUID quizId) {
         Quiz quiz = quizRepository.findById(quizId)
                 .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Quiz not found with id: " + quizId));
+                .orElseThrow(() -> new QuizNotFoundException(quizId));
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (hasRole(authentication, "ADMIN")) {
@@ -128,8 +130,7 @@ public class QuizServiceImpl implements QuizService {
         boolean owns = quiz.getCreatedByTeacher() != null
                 && quiz.getCreatedByTeacher().getTeacherId().equals(teacher.getTeacherId());
         if (!owns) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You do not own this quiz");
+            throw new QuizAccessDeniedException(quizId);
         }
         return quiz;
     }

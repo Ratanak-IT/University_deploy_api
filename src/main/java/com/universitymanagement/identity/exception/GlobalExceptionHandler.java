@@ -507,4 +507,371 @@ public class GlobalExceptionHandler {
                         "TCH-409",
                         request));
     }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleQuizNotFound(
+            com.universitymanagement.quiz.exception.QuizNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Quiz Not Found",
+                        ex.getMessage(),
+                        "QUZ-404",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizAccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleQuizAccessDenied(
+            com.universitymanagement.quiz.exception.QuizAccessDeniedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz access denied: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Quiz Access Denied",
+                        ex.getMessage(),
+                        "QUZ-403",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizClassroomNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleQuizClassroomNotFound(
+            com.universitymanagement.quiz.exception.QuizClassroomNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Classroom not found for quiz assignment: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Classroom Not Found",
+                        ex.getMessage(),
+                        "QUZ-404-CLS",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizAttemptNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleQuizAttemptNotFound(
+            com.universitymanagement.quiz.exception.QuizAttemptNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz attempt not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Quiz Attempt Not Found",
+                        ex.getMessage(),
+                        "QUZ-404-ATT",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.StudentNotEnrolledInQuizException.class)
+    public ResponseEntity<ProblemDetail> handleStudentNotEnrolledInQuiz(
+            com.universitymanagement.quiz.exception.StudentNotEnrolledInQuizException ex,
+            HttpServletRequest request) {
+
+        log.warn("Student not enrolled in quiz classroom: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Not Enrolled In Quiz Classroom",
+                        ex.getMessage(),
+                        "QUZ-403-ENR",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizAttemptAlreadyFinalizedException.class)
+    public ResponseEntity<ProblemDetail> handleQuizAttemptAlreadyFinalized(
+            com.universitymanagement.quiz.exception.QuizAttemptAlreadyFinalizedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz attempt already finalized: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Quiz Attempt Already Finalized",
+                        ex.getMessage(),
+                        "QUZ-409-ATT",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizWindowClosedException.class)
+    public ResponseEntity<ProblemDetail> handleQuizWindowClosed(
+            com.universitymanagement.quiz.exception.QuizWindowClosedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz window closed: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Quiz Window Closed",
+                        ex.getMessage(),
+                        "QUZ-409-WIN",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.quiz.exception.QuizMaxAttemptsReachedException.class)
+    public ResponseEntity<ProblemDetail> handleQuizMaxAttemptsReached(
+            com.universitymanagement.quiz.exception.QuizMaxAttemptsReachedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Quiz max attempts reached: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Quiz Max Attempts Reached",
+                        ex.getMessage(),
+                        "QUZ-409-MAX",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.AssignmentNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAssignmentNotFound(
+            com.universitymanagement.assignment.exception.AssignmentNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Assignment not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Assignment Not Found",
+                        ex.getMessage(),
+                        "ASG-404",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.AssignmentClassroomNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAssignmentClassroomNotFound(
+            com.universitymanagement.assignment.exception.AssignmentClassroomNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Classroom not found (assignment context): {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Classroom Not Found",
+                        ex.getMessage(),
+                        "ASG-404-CLS",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.SubmissionNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleSubmissionNotFound(
+            com.universitymanagement.assignment.exception.SubmissionNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Submission not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Submission Not Found",
+                        ex.getMessage(),
+                        "ASG-404-SUB",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.TeacherProfileNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAssignmentTeacherProfileNotFound(
+            com.universitymanagement.assignment.exception.TeacherProfileNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Teacher profile not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Teacher Profile Not Found",
+                        ex.getMessage(),
+                        "ASG-403-TCHP",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.NotClassroomTeacherException.class)
+    public ResponseEntity<ProblemDetail> handleNotClassroomTeacher(
+            com.universitymanagement.assignment.exception.NotClassroomTeacherException ex,
+            HttpServletRequest request) {
+
+        log.warn("Not classroom teacher: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Not Classroom Teacher",
+                        ex.getMessage(),
+                        "ASG-403-TCH",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.StudentProfileNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAssignmentStudentProfileNotFound(
+            com.universitymanagement.assignment.exception.StudentProfileNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Student profile not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Student Profile Not Found",
+                        ex.getMessage(),
+                        "ASG-403-STDP",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.StudentNotEnrolledInAssignmentException.class)
+    public ResponseEntity<ProblemDetail> handleStudentNotEnrolledInAssignment(
+            com.universitymanagement.assignment.exception.StudentNotEnrolledInAssignmentException ex,
+            HttpServletRequest request) {
+
+        log.warn("Student not enrolled: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Not Enrolled In Classroom",
+                        ex.getMessage(),
+                        "ASG-403-ENR",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.ClassroomMemberAccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleClassroomMemberAccessDenied(
+            com.universitymanagement.assignment.exception.ClassroomMemberAccessDeniedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Classroom member access denied: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildProblemDetail(
+                        HttpStatus.FORBIDDEN,
+                        "Not A Classroom Member",
+                        ex.getMessage(),
+                        "ASG-403-MEM",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.SubmissionAlreadyGradedException.class)
+    public ResponseEntity<ProblemDetail> handleSubmissionAlreadyGraded(
+            com.universitymanagement.assignment.exception.SubmissionAlreadyGradedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Submission already graded: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Submission Already Graded",
+                        ex.getMessage(),
+                        "ASG-409-GRD",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.ScoreExceedsMaxException.class)
+    public ResponseEntity<ProblemDetail> handleScoreExceedsMax(
+            com.universitymanagement.assignment.exception.ScoreExceedsMaxException ex,
+            HttpServletRequest request) {
+
+        log.warn("Score exceeds max: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Score Exceeds Max Score",
+                        ex.getMessage(),
+                        "ASG-400-SCORE",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.MissingSubmissionFileException.class)
+    public ResponseEntity<ProblemDetail> handleMissingSubmissionFile(
+            com.universitymanagement.assignment.exception.MissingSubmissionFileException ex,
+            HttpServletRequest request) {
+
+        log.warn("Missing submission file: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Submission File Required",
+                        ex.getMessage(),
+                        "ASG-400-FILE",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.InvalidAssignmentPayloadException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidAssignmentPayload(
+            com.universitymanagement.assignment.exception.InvalidAssignmentPayloadException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid assignment payload: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid Assignment Payload",
+                        ex.getMessage(),
+                        "ASG-400-PAYLOAD",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.assignment.exception.ClassroomHasNoTeacherException.class)
+    public ResponseEntity<ProblemDetail> handleClassroomHasNoTeacher(
+            com.universitymanagement.assignment.exception.ClassroomHasNoTeacherException ex,
+            HttpServletRequest request) {
+
+        log.warn("Classroom has no teacher: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Classroom Has No Teacher",
+                        ex.getMessage(),
+                        "ASG-409-NOTCH",
+                        request));
+    }
+    @ExceptionHandler(com.universitymanagement.score.exception.InvalidExamScoreException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidExamScore(
+            com.universitymanagement.score.exception.InvalidExamScoreException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid exam score: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid Exam Score",
+                        ex.getMessage(),
+                        "SCR-400",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.score.exception.StudentNotInClassroomException.class)
+    public ResponseEntity<ProblemDetail> handleStudentNotInClassroom(
+            com.universitymanagement.score.exception.StudentNotInClassroomException ex,
+            HttpServletRequest request) {
+
+        log.warn("Student not in classroom: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Student Not In Classroom",
+                        ex.getMessage(),
+                        "SCR-400-ENR",
+                        request));
+    }
 }

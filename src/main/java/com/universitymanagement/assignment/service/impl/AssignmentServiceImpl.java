@@ -10,6 +10,9 @@ import com.universitymanagement.assignment.entity.AssignmentFile;
 import com.universitymanagement.assignment.entity.Submission;
 import com.universitymanagement.assignment.entity.SubmissionFile;
 import com.universitymanagement.assignment.entity.SubmissionStatus;
+import com.universitymanagement.assignment.exception.ClassroomHasNoTeacherException;
+import com.universitymanagement.assignment.exception.NotClassroomTeacherException;
+import com.universitymanagement.assignment.exception.TeacherProfileNotFoundException;
 import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
 import com.universitymanagement.assignment.service.AssignmentService;
@@ -244,16 +247,22 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     private Teacher requireTeacherOwnsClassroom(Classroom classroom) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (hasRole(auth, "ADMIN")) {
+            if (classroom.getTeacher() == null) {
+                throw new ClassroomHasNoTeacherException(classroom.getClassroomId());
+            }
+            return classroom.getTeacher();
+        }
+
         User user = getCurrentUser(auth);
         Teacher teacher = teacherRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "Teacher profile not found for current user"));
+                .orElseThrow(TeacherProfileNotFoundException::new);
 
         boolean owns = classroom.getTeacher() != null
                 && classroom.getTeacher().getTeacherId().equals(teacher.getTeacherId());
         if (!owns) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You are not the teacher of this classroom");
+            throw new NotClassroomTeacherException(classroom.getClassroomId());
         }
         return teacher;
     }

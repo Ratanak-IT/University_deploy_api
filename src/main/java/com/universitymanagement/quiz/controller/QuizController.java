@@ -21,7 +21,6 @@ public class QuizController {
 
     private final QuizService quizService;
 
-    /** Create a quiz as a draft (no classroom yet). Teacher only. */
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
@@ -29,7 +28,6 @@ public class QuizController {
         return quizService.createQuiz(request);
     }
 
-    /** Assign (publish) a draft quiz to a classroom. Owning teacher only. */
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{quizId}/assign-classroom")
@@ -38,7 +36,6 @@ public class QuizController {
         return quizService.assignToClassroom(quizId, request);
     }
 
-    /** Add a question to a quiz (draft or already published). Owning teacher only. */
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{quizId}/questions")
@@ -54,7 +51,6 @@ public class QuizController {
         return quizService.getQuiz(quizId);
     }
 
-    /** All quizzes (draft + published) created by the current teacher. */
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/mine")
