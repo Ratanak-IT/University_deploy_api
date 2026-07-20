@@ -1,5 +1,5 @@
 
-FROM gradle:8.12-jdk25-alpine AS build
+FROM gradle:jdk25-alpine AS build
 WORKDIR /app
 
 COPY gradle gradle
