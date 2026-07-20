@@ -1,9 +1,12 @@
 
-FROM gradle:jdk25-alpine AS build
+FROM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /app
 
 COPY gradle gradle
 COPY build.gradle settings.gradle gradlew ./
+
+RUN chmod +x gradlew
+
 RUN ./gradlew dependencies --no-daemon
 
 COPY src src
