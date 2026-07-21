@@ -133,22 +133,30 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/swagger-resources/**").permitAll()
-                        .requestMatchers("/webjars/**").permitAll()
+                        // Public Endpoints (Swagger & Authentication)
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/callback", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
-                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/departments/**")
-                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        .requestMatchers("/api/v1/departments/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/programs/**")
-                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                        .requestMatchers("/api/v1/programs/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/classrooms/**").authenticated()
-                        .requestMatchers("/api/v1/assignments/**", "/api/v1/submissions/**").authenticated()
 
+                        // Admin Only Operations
+                        .requestMatchers("/api/v1/users/**", "/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/students/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/teachers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**").hasRole("ADMIN")
+
+                        // Read-Only for All Roles / Write for Admin Only (Departments, Programs, Subjects, Curriculums)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**")
+                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        .requestMatchers("/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**")
+                        .hasRole("ADMIN")
+
+                        // Teacher & Admin Specific Operations
+                        .requestMatchers(HttpMethod.POST, "/api/v1/quizzes/**", "/api/v1/scores/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/quizzes/**", "/api/v1/scores/**").hasAnyRole("TEACHER", "ADMIN")
+
+                        // Authenticated Users (Classrooms, Assignments, Submissions, Certificates, Lessons)
+                        .requestMatchers("/api/v1/classrooms/**", "/api/v1/assignments/**", "/api/v1/submissions/**", "/api/v1/certificates/**", "/api/v1/lessons/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
