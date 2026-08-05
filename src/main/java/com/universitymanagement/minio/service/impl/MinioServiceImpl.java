@@ -73,6 +73,24 @@ public class MinioServiceImpl implements MinioService {
         }
     }
 
+    @Override
+    public String getAssetPreviewUrl(String objectName) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(assetsBucket)
+                            .object(objectName)
+                            .expiry(PREVIEW_EXPIRY_SECONDS)
+                            .extraQueryParams(Map.of(
+                                    "response-content-disposition", "inline"))
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate avatar preview URL", e);
+        }
+    }
+
 
     @Override
     public String getPublicUrl(String objectName) {

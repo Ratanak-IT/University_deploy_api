@@ -11,6 +11,7 @@ public interface MinioService {
     String getPublicUrl(String objectName);
     String getPreviewUrl(String objectName);
     String getDownloadUrl(String objectName, String originalFileName);
+    String getAssetPreviewUrl(String objectName);
     void deleteLessonFile(String objectName);
     void deleteAsset(String objectName);
     List<String> getAllFileByMinio();

@@ -23,7 +23,7 @@ public class Lesson extends BasedEntity {
     private UUID lessonId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_id", nullable = false)
+    @JoinColumn(name = "classroom_id", nullable = true)
     private Classroom classroom;
 
     @Column(nullable = false, length = 200)

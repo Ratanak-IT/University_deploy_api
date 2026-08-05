@@ -5,6 +5,7 @@ import java.util.List;
 
 public record StudentDetailResponse(
         String id,
+        String studentId,
         String username,
         String email,
         String firstName,

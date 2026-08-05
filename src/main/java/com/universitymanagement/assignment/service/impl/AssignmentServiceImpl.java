@@ -196,7 +196,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         return new AssignmentResponse(
                 a.getAssignmentId(),
-                a.getClassroom().getClassroomId(),
+                a.getClassroom() != null ? a.getClassroom().getClassroomId() : null,
                 a.getTitle(),
                 a.getDescription(),
                 a.getDueDate(),
@@ -342,5 +342,98 @@ public class AssignmentServiceImpl implements AssignmentService {
         Pageable pageable = PageRequest.of(page, size);
 
         return assignmentRepository.findAll(pageable).map(this::toAssignmentResponse);
+    }
+
+    @Override
+    @Transactional
+    public AssignmentResponse createSavedAssignment(AssignmentRequest request, List<MultipartFile> files) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = getCurrentUser(auth);
+        Teacher teacher = teacherRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Teacher profile not found for current user"));
+
+        Assignment assignment = new Assignment();
+        assignment.setClassroom(null);
+        assignment.setTitle(request.title());
+        assignment.setDescription(request.description());
+        assignment.setDueDate(null);
+        assignment.setMaxScore(request.maxScore());
+        assignment.setWeight(request.weight());
+        assignment.setCreatedByTeacher(teacher);
+
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) continue;
+                AssignmentFile af = new AssignmentFile();
+                af.setAssignment(assignment);
+                af.setFileObjectName(minioService.uploadLessonFile(file));
+                af.setFileOriginalName(file.getOriginalFilename());
+                assignment.getFiles().add(af);
+            }
+        }
+
+        return toAssignmentResponse(assignmentRepository.save(assignment));
+    }
+
+    @Override
+    public List<AssignmentResponse> getSavedAssignments() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        String username = jwt.getClaimAsString("preferred_username");
+        if (username == null) {
+            username = "Admin";
+        }
+        return assignmentRepository
+                .findByClassroomIsNullAndCreatedByAndIsDeletedFalseOrderByCreatedAtDesc(username)
+                .stream()
+                .map(this::toAssignmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public AssignmentResponse assignSavedAssignment(UUID assignmentId, UUID classroomId, LocalDateTime dueDate) {
+        Assignment saved = findAssignment(assignmentId);
+        if (saved.getClassroom() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This assignment is already assigned to a classroom");
+        }
+
+        Classroom classroom = findClassroom(classroomId);
+        requireTeacherOwnsClassroom(classroom);
+
+        if (dueDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Due date is required when assigning an assignment");
+        }
+
+        Assignment copied = new Assignment();
+        copied.setClassroom(classroom);
+        copied.setTitle(saved.getTitle());
+        copied.setDescription(saved.getDescription());
+        copied.setDueDate(dueDate);
+        copied.setMaxScore(saved.getMaxScore());
+        copied.setWeight(saved.getWeight());
+        copied.setCreatedByTeacher(saved.getCreatedByTeacher());
+
+        for (AssignmentFile file : saved.getFiles()) {
+            AssignmentFile copiedFile = new AssignmentFile();
+            copiedFile.setAssignment(copied);
+            copiedFile.setFileObjectName(file.getFileObjectName());
+            copiedFile.setFileOriginalName(file.getFileOriginalName());
+            copied.getFiles().add(copiedFile);
+        }
+
+        return toAssignmentResponse(assignmentRepository.save(copied));
+    }
+
+    @Override
+    public AssignmentResponse getAssignment(UUID assignmentId) {
+        Assignment assignment = findAssignment(assignmentId);
+        if (assignment.getClassroom() != null) {
+            requireMemberOrAdmin(assignment.getClassroom());
+        }
+        return toAssignmentResponse(assignment);
     }
 }

@@ -46,6 +46,38 @@ public class AssignmentController {
         return assignmentService.createAssignment(classroomId, request, files);
     }
 
+    @PostMapping(
+            value = "/assignments/saved",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse createSavedAssignment(
+            @RequestPart("assignment") String assignmentJson,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
+    ) {
+        AssignmentRequest request = parseAndValidate(assignmentJson);
+        return assignmentService.createSavedAssignment(request, files);
+    }
+
+    @GetMapping("/assignments/saved")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public List<AssignmentResponse> getSavedAssignments() {
+        return assignmentService.getSavedAssignments();
+    }
+
+    @PostMapping("/assignments/{assignmentId}/assign/{classroomId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse assignSavedAssignment(
+            @PathVariable UUID assignmentId,
+            @PathVariable UUID classroomId,
+            @RequestParam(value = "dueDate", required = false) String dueDateStr
+    ) {
+        java.time.LocalDateTime dueDate = dueDateStr != null ? java.time.LocalDateTime.parse(dueDateStr) : null;
+        return assignmentService.assignSavedAssignment(assignmentId, classroomId, dueDate);
+    }
+
     private AssignmentRequest parseAndValidate(String assignmentJson) {
         AssignmentRequest request;
         try {
@@ -63,6 +95,12 @@ public class AssignmentController {
             throw new InvalidAssignmentPayloadException(detail);
         }
         return request;
+    }
+
+    @GetMapping("/assignments/{assignmentId}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    public AssignmentResponse getAssignment(@PathVariable UUID assignmentId) {
+        return assignmentService.getAssignment(assignmentId);
     }
 
     @GetMapping("/classrooms/{classroomId}/assignments")

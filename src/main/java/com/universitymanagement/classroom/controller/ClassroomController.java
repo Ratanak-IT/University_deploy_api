@@ -74,7 +74,7 @@ public class ClassroomController {
     }
 
     @GetMapping("/{classroomId}/teachers")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public List<ClassroomMemberResponse> getTeachers(@PathVariable UUID classroomId) {
         return classroomService.getTeachersInClassroom(classroomId);
     }
@@ -119,13 +119,13 @@ public class ClassroomController {
     }
 
     @GetMapping("/{classroomId}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public ClassroomResponse getClassroomById(@PathVariable UUID classroomId) {
         return classroomService.getClassroomById(classroomId);
     }
 
     @GetMapping("/{classroomId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public List<ClassroomStudentResponse> getStudentsInClassroom(@PathVariable UUID classroomId) {
         return classroomService.getStudentsInClassroom(classroomId);
     }

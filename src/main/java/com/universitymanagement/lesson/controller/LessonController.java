@@ -35,6 +35,35 @@ public class LessonController {
         return lessonService.createLesson(classroomId, request, files);
     }
 
+    @PostMapping(
+            value = "/lessons/saved",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public LessonResponse createSavedLesson(
+            @Valid @RequestPart("lesson") LessonRequest request,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files
+    ) {
+        return lessonService.createSavedLesson(request, files);
+    }
+
+    @GetMapping("/lessons/saved")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public List<LessonResponse> getSavedLessons() {
+        return lessonService.getSavedLessons();
+    }
+
+    @PostMapping("/lessons/{lessonId}/assign/{classroomId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public LessonResponse assignSavedLesson(
+            @PathVariable UUID lessonId,
+            @PathVariable UUID classroomId
+    ) {
+        return lessonService.assignSavedLesson(lessonId, classroomId);
+    }
+
     @PutMapping(
             value = "/lessons/{lessonId}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE

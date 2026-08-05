@@ -30,6 +30,17 @@ public class TeacherController {
     private final DepartmentService departmentService;
 
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/me")
+    public TeacherDetailResponse getMyProfile() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return teacherService.findTeacherByUserId(jwt.getSubject());
+    }
+
+    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public Page<TeacherResponse> getAllTeachers(@RequestParam(defaultValue = "0") int page,

@@ -78,7 +78,7 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     public LessonResponse updateLesson(UUID lessonId, LessonRequest request, List<MultipartFile> files) {
         Lesson lesson = findLesson(lessonId);
-        requireTeacherOwnsClassroom(lesson.getClassroom());
+        requireLessonOwnership(lesson);
 
         applyRequest(lesson, request, files);
 
@@ -89,7 +89,7 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     public void deleteLesson(UUID lessonId) {
         Lesson lesson = findLesson(lessonId);
-        requireTeacherOwnsClassroom(lesson.getClassroom());
+        requireLessonOwnership(lesson);
         lesson.setIsDeleted(true);
         lessonRepository.save(lesson);
     }
@@ -140,7 +140,7 @@ public class LessonServiceImpl implements LessonService {
 
         return new LessonResponse(
                 lesson.getLessonId(),
-                lesson.getClassroom().getClassroomId(),
+                lesson.getClassroom() != null ? lesson.getClassroom().getClassroomId() : null,
                 lesson.getTitle(),
                 lesson.getContent(),
                 files,
@@ -155,7 +155,7 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     public void removeLessonFile(UUID lessonId, UUID fileId) {
         Lesson lesson = findLesson(lessonId);
-        requireTeacherOwnsClassroom(lesson.getClassroom());
+        requireLessonOwnership(lesson);
         boolean removed = lesson.getFiles().removeIf(f -> f.getFileId().equals(fileId));
         if (!removed) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -234,5 +234,78 @@ public class LessonServiceImpl implements LessonService {
         }
         return userRepository.findByKeycloakId(jwt.getSubject())
                 .orElseThrow(UserNotFoundException::new);
+    }
+
+    @Override
+    @Transactional
+    public LessonResponse createSavedLesson(LessonRequest request, List<MultipartFile> files) {
+        Lesson lesson = new Lesson();
+        lesson.setClassroom(null);
+        applyRequest(lesson, request, files);
+        return toResponse(lessonRepository.save(lesson));
+    }
+
+    @Override
+    public List<LessonResponse> getSavedLessons() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        String username = jwt.getClaimAsString("preferred_username");
+        if (username == null) {
+            username = "Admin";
+        }
+        return lessonRepository
+                .findByClassroomIsNullAndCreatedByAndIsDeletedFalseOrderByCreatedAtDesc(username)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public LessonResponse assignSavedLesson(UUID lessonId, UUID classroomId) {
+        Lesson savedLesson = findLesson(lessonId);
+        if (savedLesson.getClassroom() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This lesson is already assigned to a classroom");
+        }
+        requireLessonOwnership(savedLesson);
+
+        Classroom classroom = findClassroom(classroomId);
+        requireTeacherOwnsClassroom(classroom);
+
+        Lesson copiedLesson = new Lesson();
+        copiedLesson.setClassroom(classroom);
+        copiedLesson.setTitle(savedLesson.getTitle());
+        copiedLesson.setContent(savedLesson.getContent());
+        copiedLesson.setVideoLink(savedLesson.getVideoLink());
+        copiedLesson.setAllowDownload(savedLesson.getAllowDownload());
+
+        for (LessonFile file : savedLesson.getFiles()) {
+            LessonFile copiedFile = new LessonFile();
+            copiedFile.setLesson(copiedLesson);
+            copiedFile.setFileObjectName(file.getFileObjectName());
+            copiedFile.setFileOriginalName(file.getFileOriginalName());
+            copiedLesson.getFiles().add(copiedFile);
+        }
+
+        return toResponse(lessonRepository.save(copiedLesson));
+    }
+
+    private void requireLessonOwnership(Lesson lesson) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = getCurrentUser(auth);
+
+        if (lesson.getClassroom() != null) {
+            requireTeacherOwnsClassroom(lesson.getClassroom());
+        } else {
+            if (!(auth.getPrincipal() instanceof Jwt jwt)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            }
+            String username = jwt.getClaimAsString("preferred_username");
+            if (username == null || !username.equalsIgnoreCase(lesson.getCreatedBy())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not own this lesson template");
+            }
+        }
     }
 }

@@ -25,7 +25,7 @@ public class Assignment extends BasedEntity {
     private UUID assignmentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_id", nullable = false)
+    @JoinColumn(name = "classroom_id", nullable = true)
     private Classroom classroom;
 
     @Column(nullable = false, length = 200)
@@ -34,7 +34,7 @@ public class Assignment extends BasedEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime dueDate;
 
     private Double maxScore;

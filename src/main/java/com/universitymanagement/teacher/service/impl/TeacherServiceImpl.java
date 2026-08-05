@@ -225,6 +225,7 @@ public class TeacherServiceImpl implements TeacherService {
 
         return new TeacherDetailResponse(
                 kcUser.getId(),
+                teacher.getTeacherId().toString(),
                 kcUser.getUsername(),
                 kcUser.getEmail(),
                 kcUser.getFirstName(),

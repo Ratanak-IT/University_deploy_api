@@ -214,6 +214,7 @@ public class StudentServiceImpl implements StudentService {
 
         return new StudentDetailResponse(
                 kcUser.getId(),
+                student.getStudentId().toString(),
                 kcUser.getUsername(),
                 kcUser.getEmail(),
                 kcUser.getFirstName(),
@@ -226,7 +227,7 @@ public class StudentServiceImpl implements StudentService {
                 student.getSemester(),
                 user.getDateOfBirth(),
                 user.getGender() != null ? user.getGender().name() : null,
-                user.getAvatarObjectName() != null ? minioService.getPreviewUrl(user.getAvatarObjectName()) : null,
+                user.getAvatarObjectName() != null ? minioService.getAssetPreviewUrl(user.getAvatarObjectName()) : null,
                 student.getGraduationStatus()
         );
     }
@@ -272,7 +273,7 @@ public class StudentServiceImpl implements StudentService {
     public StudentDetailResponse uploadMyAvatar(MultipartFile file) {
         User user = accessGuard.getCurrentUser();
         String objectName = minioService.uploadAsset(file);
-        user.setAvatarObjectName(minioService.getPublicUrl(objectName));
+        user.setAvatarObjectName(objectName);
         userRepository.save(user);
         return findStudentById(user.getKeycloakId());
     }

@@ -21,4 +21,7 @@ public interface LessonService {
     List<LessonResponse> getLessonsByClassroom(UUID classroomId);
     FileStreamResult getLessonFilePreview(UUID lessonId, UUID fileId);
 
+    LessonResponse createSavedLesson(LessonRequest request, List<MultipartFile> files);
+    List<LessonResponse> getSavedLessons();
+    LessonResponse assignSavedLesson(UUID lessonId, UUID classroomId);
 }

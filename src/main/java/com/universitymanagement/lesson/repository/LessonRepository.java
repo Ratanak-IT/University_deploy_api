@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     List<Lesson> findByClassroom_ClassroomIdAndIsDeletedFalseOrderByCreatedAtDesc(UUID classroomId);
+    List<Lesson> findByClassroomIsNullAndCreatedByAndIsDeletedFalseOrderByCreatedAtDesc(String createdBy);
 }

@@ -14,8 +14,6 @@ public record AssignmentRequest(
 
         String description,
 
-        @NotNull(message = "Due date is required")
-        @Future(message = "Due date must be in the future")
         LocalDateTime dueDate,
         //file and video
 
