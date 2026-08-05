@@ -113,6 +113,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.config.Customizer;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.time.Instant;
 import java.util.*;
@@ -127,12 +128,13 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
     @Value("${keycloak.client-id}")
     private String CLIENT_ID;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // Public Endpoints (Swagger & Authentication)
