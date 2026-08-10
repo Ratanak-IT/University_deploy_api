@@ -25,6 +25,7 @@ import com.universitymanagement.student.service.StudentAcademicService;
 import com.universitymanagement.student.util.GradeScale;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
+import com.universitymanagement.score.dto.response.ExamScoreResponse;
 import com.universitymanagement.score.entity.ExamScore;
 import com.universitymanagement.score.repository.ExamScoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -277,18 +278,40 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                     graded++;
                 }
             }
-
             List<ExamScore> examScores = examScoreRepository
                     .findByStudent_StudentIdAndClassroom_ClassroomId(studentId, classroom.getClassroomId());
+
+            List<ExamScoreResponse> scoreResponses = new ArrayList<>();
+
             for (ExamScore examScore : examScores) {
                 if (examScore.getScore() != null
                         && examScore.getMaxScore() != null
                         && examScore.getMaxScore() > 0) {
-                    double weight = 2.0; // Exam weight
+
+                    double weight = switch (examScore.getExamType()) {
+                        case MIDTERM -> 2.5;
+                        case FINAL -> 3.5;
+                        case ASSIGNMENT -> 1.5;
+                        case QUIZ -> 1.5;
+                        case ATTENDANCE -> 1.0;
+                        case OTHER -> 1.0;
+                    };
+
                     double percent = examScore.getScore() / examScore.getMaxScore() * 100.0;
                     weightedSum += percent * weight;
                     weightTotal += weight;
                     graded++;
+
+                    scoreResponses.add(new ExamScoreResponse(
+                            examScore.getExamScoreId(),
+                            studentId,
+                            examScore.getStudent().getStudentCode(),
+                            examScore.getStudent().getFirstName() + " " + examScore.getStudent().getLastName(),
+                            classroom.getClassroomId(),
+                            examScore.getExamType(),
+                            examScore.getScore(),
+                            examScore.getMaxScore()
+                    ));
                 }
             }
 
@@ -308,7 +331,8 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                     assignments.size(),
                     scorePercent,
                     scorePercent != null ? GradeScale.toLetter(scorePercent) : null,
-                    scorePercent != null ? GradeScale.toGradePoint(scorePercent) : null
+                    scorePercent != null ? GradeScale.toGradePoint(scorePercent) : null,
+                    scoreResponses
             ));
         }
         return grades;

@@ -2,5 +2,9 @@ package com.universitymanagement.score.entity;
 
 public enum ExamType {
     MIDTERM,
-    FINAL
+    FINAL,
+    ASSIGNMENT,
+    QUIZ,
+    ATTENDANCE,
+    OTHER
 }

@@ -1,5 +1,7 @@
 package com.universitymanagement.student.dto.response;
 
+import com.universitymanagement.score.dto.response.ExamScoreResponse;
+import java.util.List;
 import java.util.UUID;
 
 /** Weighted grade for one classroom (subject) of the student. */
@@ -16,6 +18,7 @@ public record GradeResponse(
         Integer totalAssignments,
         Double scorePercent,
         String letterGrade,
-        Double gradePoint
+        Double gradePoint,
+        List<ExamScoreResponse> scores
 ) {
 }
