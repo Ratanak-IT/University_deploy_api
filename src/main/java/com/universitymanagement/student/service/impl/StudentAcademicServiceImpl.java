@@ -25,6 +25,8 @@ import com.universitymanagement.student.service.StudentAcademicService;
 import com.universitymanagement.student.util.GradeScale;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
+import com.universitymanagement.score.entity.ExamScore;
+import com.universitymanagement.score.repository.ExamScoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -46,6 +48,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final AttendanceRepository attendanceRepository;
+    private final ExamScoreRepository examScoreRepository;
     private final MinioService minioService;
 
     @Override
@@ -269,6 +272,20 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
 
                     double weight = assignment.getWeight() != null ? assignment.getWeight() : 1.0;
                     double percent = submission.get().getScore() / assignment.getMaxScore() * 100.0;
+                    weightedSum += percent * weight;
+                    weightTotal += weight;
+                    graded++;
+                }
+            }
+
+            List<ExamScore> examScores = examScoreRepository
+                    .findByStudent_StudentIdAndClassroom_ClassroomId(studentId, classroom.getClassroomId());
+            for (ExamScore examScore : examScores) {
+                if (examScore.getScore() != null
+                        && examScore.getMaxScore() != null
+                        && examScore.getMaxScore() > 0) {
+                    double weight = 2.0; // Exam weight
+                    double percent = examScore.getScore() / examScore.getMaxScore() * 100.0;
                     weightedSum += percent * weight;
                     weightTotal += weight;
                     graded++;
