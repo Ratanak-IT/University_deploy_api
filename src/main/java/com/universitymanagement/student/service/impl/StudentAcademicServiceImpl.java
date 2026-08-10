@@ -302,11 +302,15 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                     weightTotal += weight;
                     graded++;
 
+                    String studentFullName = (examScore.getStudent() != null && examScore.getStudent().getUser() != null)
+                            ? examScore.getStudent().getUser().getFullName()
+                            : (examScore.getStudent() != null ? examScore.getStudent().getStudentCode() : "Student");
+
                     scoreResponses.add(new ExamScoreResponse(
                             examScore.getExamScoreId(),
                             studentId,
-                            examScore.getStudent().getStudentCode(),
-                            examScore.getStudent().getFirstName() + " " + examScore.getStudent().getLastName(),
+                            examScore.getStudent() != null ? examScore.getStudent().getStudentCode() : null,
+                            studentFullName,
                             classroom.getClassroomId(),
                             examScore.getExamType(),
                             examScore.getScore(),
