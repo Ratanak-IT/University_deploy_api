@@ -116,6 +116,14 @@ public class QuizServiceImpl implements QuizService {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public void deleteQuiz(UUID quizId) {
+        Quiz quiz = findOwnedQuiz(quizId);
+        quiz.setIsDeleted(true);
+        quizRepository.save(quiz);
+    }
+
 
     private Quiz findOwnedQuiz(UUID quizId) {
         Quiz quiz = quizRepository.findById(quizId)

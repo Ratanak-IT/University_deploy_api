@@ -57,4 +57,11 @@ public class QuizController {
     public List<QuizManageResponse> getMyQuizzes() {
         return quizService.getMyQuizzes();
     }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('TEACHER')")
+    @DeleteMapping("/{quizId}")
+    public void deleteQuiz(@PathVariable UUID quizId) {
+        quizService.deleteQuiz(quizId);
+    }
 }
