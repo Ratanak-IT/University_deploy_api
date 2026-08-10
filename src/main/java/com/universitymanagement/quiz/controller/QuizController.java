@@ -53,6 +53,14 @@ public class QuizController {
 
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{quizId}")
+    public QuizManageResponse updateQuiz(@PathVariable UUID quizId,
+                                         @Valid @RequestBody CreateQuizRequest request) {
+        return quizService.updateQuiz(quizId, request);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/mine")
     public List<QuizManageResponse> getMyQuizzes() {
         return quizService.getMyQuizzes();

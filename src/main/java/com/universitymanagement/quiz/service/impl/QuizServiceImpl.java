@@ -107,6 +107,32 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
+    @Transactional
+    public QuizManageResponse updateQuiz(UUID quizId, CreateQuizRequest request) {
+        Quiz quiz = findOwnedQuiz(quizId);
+        quiz.setTitle(request.title());
+        quiz.setDescription(request.description());
+        quiz.setStartAt(request.startAt());
+        quiz.setEndAt(request.endAt());
+        if (request.durationMinutes() != null) {
+            quiz.setDurationMinutes(request.durationMinutes());
+        }
+        if (request.maxAttempts() != null) {
+            quiz.setMaxAttempts(request.maxAttempts());
+        }
+
+        if (request.questions() != null) {
+            quiz.getQuestions().clear();
+            int order = 0;
+            for (CreateQuizRequest.QuestionItem item : request.questions()) {
+                quiz.getQuestions().add(toQuestionEntity(quiz, item, order++));
+            }
+        }
+
+        return toManageResponse(quizRepository.save(quiz));
+    }
+
+    @Override
     public List<QuizManageResponse> getMyQuizzes() {
         Teacher teacher = currentTeacher();
         return quizRepository

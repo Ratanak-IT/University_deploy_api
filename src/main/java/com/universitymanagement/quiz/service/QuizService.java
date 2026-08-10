@@ -18,6 +18,8 @@ public interface QuizService {
 
     QuizManageResponse getQuiz(UUID quizId);
 
+    QuizManageResponse updateQuiz(UUID quizId, CreateQuizRequest request);
+
     List<QuizManageResponse> getMyQuizzes();
 
     void deleteQuiz(UUID quizId);
