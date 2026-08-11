@@ -368,4 +368,11 @@ public class UserManageServiceImpl implements UserManageService {
             return List.of();
         }
     }
+
+    @Override
+    @Transactional
+    public void assignRole(String userId, String roleName) {
+        UserRepresentation user = requireKeycloakUser(userId);
+        keycloakClient.assignRealmRole(user.getId(), roleName.toUpperCase());
+    }
 }

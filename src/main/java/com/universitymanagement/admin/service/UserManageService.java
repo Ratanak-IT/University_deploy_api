@@ -35,4 +35,6 @@ public interface UserManageService {
     void softDeleteUser(String id);
 
     void restoreUser(String userId);
+
+    void assignRole(String userId, String roleName);
 }
