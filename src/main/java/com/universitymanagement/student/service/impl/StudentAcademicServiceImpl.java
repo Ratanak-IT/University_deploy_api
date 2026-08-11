@@ -162,6 +162,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                         d.getSubjects().stream()
                                 .filter(s -> !Boolean.TRUE.equals(s.getIsDeleted()))
                                 .map(s -> new SubjectResponse(
+                                        s.getSubjectId(),
                                         s.getSubjectCode(),
                                         s.getSubjectName(),
                                         s.getCredit(),
@@ -181,6 +182,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 .values()
                 .stream()
                 .map(s -> new SubjectResponse(
+                        s.getSubjectId(),
                         s.getSubjectCode(),
                         s.getSubjectName(),
                         s.getCredit(),
