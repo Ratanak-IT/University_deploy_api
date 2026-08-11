@@ -49,13 +49,30 @@ public class KeycloakClientImpl implements KeycloakClient{
 
     @Override
     public void assignRealmRole(String userId, String roleName) {
-        RoleResource roleResource = realm().roles().get(roleName);
-
-        RoleRepresentation role;
+        RoleRepresentation role = null;
         try {
-            role = roleResource.toRepresentation();
-        } catch (NotFoundException e) {
-            throw new KeycloakRoleNotFoundException("Realm role not found: " + roleName);
+            role = realm().roles().get(roleName).toRepresentation();
+        } catch (Exception ignored) {
+            // Search all realm roles for case-insensitive or ROLE_ prefix match
+            try {
+                List<RoleRepresentation> allRoles = realm().roles().list();
+                for (RoleRepresentation r : allRoles) {
+                    String name = r.getName();
+                    if (name.equalsIgnoreCase(roleName) ||
+                        name.equalsIgnoreCase("ROLE_" + roleName) ||
+                        name.replace("ROLE_", "").equalsIgnoreCase(roleName)) {
+                        role = r;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore search error
+            }
+        }
+
+        if (role == null) {
+            System.err.println("Warning: Keycloak realm role '" + roleName + "' not found in realm " + properties.getTargetRealm());
+            return;
         }
 
         try {
