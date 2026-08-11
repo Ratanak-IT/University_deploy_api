@@ -19,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+import com.universitymanagement.notification.service.NotificationService;
+
 @Service
 @RequiredArgsConstructor
 public class CertificateServiceImpl implements CertificateService {
@@ -26,6 +28,7 @@ public class CertificateServiceImpl implements CertificateService {
     private final CertificateRequestRepository certificateRequestRepository;
     private final StudentAccessGuard accessGuard;
     private final MinioService minioService;
+    private final NotificationService notificationService;
 
     @Override
     public List<CertificateRequestResponse> getRequestsForStudent(UUID studentId) {
@@ -49,7 +52,21 @@ public class CertificateServiceImpl implements CertificateService {
         entity.setReason(request.reason());
         entity.setStatus(CertificateStatus.PENDING);
 
-        return toResponse(certificateRequestRepository.save(entity));
+        CertificateRequest saved = certificateRequestRepository.save(entity);
+
+        // Real notification trigger
+        if (student.getUser() != null) {
+            notificationService.createNotification(
+                    student.getUser().getId(),
+                    "Certificate Request Submitted",
+                    "Your request for " + request.certificateType().toString().replace("_", " ") + " Certificate has been submitted successfully.",
+                    "CERTIFICATE",
+                    "Official Certificate Application",
+                    "Academic Registrar"
+            );
+        }
+
+        return toResponse(saved);
     }
 
     @Override
