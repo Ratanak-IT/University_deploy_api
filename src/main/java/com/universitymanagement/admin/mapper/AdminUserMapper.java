@@ -13,6 +13,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface AdminUserMapper {
 
+    @Mapping(target = "roles", ignore = true)
     UserSummaryResponse toUserSummaryResponse(UserRepresentation userRepresentation);
 
     @Mapping(target = "roles", ignore = true)

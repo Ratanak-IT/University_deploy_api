@@ -64,7 +64,6 @@ public class UserManageServiceImpl implements UserManageService {
 
     @Override
     public Page<UserSummaryResponse> findAllUsers(int page, int size) {
-
         Pageable pageable = PageRequest.of(page, size);
 
         List<UserRepresentation> keycloakUsers = keycloak
@@ -73,7 +72,29 @@ public class UserManageServiceImpl implements UserManageService {
                 .list(page * size, size);
 
         List<UserSummaryResponse> content = keycloakUsers.stream()
-                .map(userMapper::toUserSummaryResponse)
+                .map(kcUser -> {
+                    List<String> roles = new java.util.ArrayList<>(fetchRealmRoles(kcUser.getId()));
+                    if (roles.isEmpty()) {
+                        userRepository.findByKeycloakId(kcUser.getId()).ifPresent(u -> {
+                            if (teacherRepository.findByUserId(u.getId()).isPresent()) {
+                                roles.add("TEACHER");
+                            } else if (adminRepository.findByUserId(u.getId()).isPresent()) {
+                                roles.add("ADMIN");
+                            } else if (studentRepository.findByUserId(u.getId()).isPresent()) {
+                                roles.add("STUDENT");
+                            }
+                        });
+                    }
+                    return new UserSummaryResponse(
+                            kcUser.getId(),
+                            kcUser.getUsername(),
+                            kcUser.getEmail(),
+                            kcUser.getFirstName(),
+                            kcUser.getLastName(),
+                            kcUser.isEnabled(),
+                            roles
+                    );
+                })
                 .toList();
 
         long total = keycloak
