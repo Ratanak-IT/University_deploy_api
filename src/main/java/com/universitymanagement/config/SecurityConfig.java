@@ -141,7 +141,13 @@ public class SecurityConfig {
                         // Public Endpoints (Swagger, Authentication & Public Academic Curriculums/Programs)
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/callback", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/programs/**", "/api/v1/curriculums/**", "/api/v1/departments/**", "/api/v1/subjects/**").permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/programs", "/api/v1/programs/**",
+                                "/api/v1/curriculums", "/api/v1/curriculums/**",
+                                "/api/v1/departments", "/api/v1/departments/**",
+                                "/api/v1/subjects", "/api/v1/subjects/**"
+                        ).permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
 
                         // Admin Only Operations
@@ -152,8 +158,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**").hasRole("ADMIN")
 
                         // Write Operations for Admin Only (Departments, Programs, Subjects, Curriculums)
-                        .requestMatchers("/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**")
-                        .hasRole("ADMIN")
+                        .requestMatchers(
+                                "/api/v1/departments", "/api/v1/departments/**",
+                                "/api/v1/programs", "/api/v1/programs/**",
+                                "/api/v1/subjects", "/api/v1/subjects/**",
+                                "/api/v1/curriculums", "/api/v1/curriculums/**"
+                        ).hasRole("ADMIN")
 
                         // Teacher & Admin Specific Operations
                         .requestMatchers(HttpMethod.POST, "/api/v1/quizzes/**", "/api/v1/scores/**").hasAnyRole("TEACHER", "ADMIN")
