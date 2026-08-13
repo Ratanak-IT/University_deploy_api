@@ -39,4 +39,6 @@ public interface TeacherService {
     TeacherResponse assignDepartment(UUID teacherId, UUID departmentId);
 
     TeacherResponse unassignDepartment(UUID teacherId, UUID departmentId);
+
+    TeacherDetailResponse uploadMyAvatar(org.springframework.web.multipart.MultipartFile file);
 }

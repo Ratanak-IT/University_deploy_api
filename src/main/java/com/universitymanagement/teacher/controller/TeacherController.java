@@ -41,6 +41,13 @@ public class TeacherController {
     }
 
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping(value = "/me/avatar", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public TeacherDetailResponse uploadMyAvatar(@RequestPart("file") org.springframework.web.multipart.MultipartFile file) {
+        return teacherService.uploadMyAvatar(file);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public Page<TeacherResponse> getAllTeachers(@RequestParam(defaultValue = "0") int page,

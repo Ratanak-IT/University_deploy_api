@@ -96,11 +96,29 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Override
     @Transactional
     public ClassroomResponse createClassroom(ClassroomCreateRequest request) {
-        Teacher teacher = findTeacher(request.teacherId());
-        Subject subject = subjectRepository.findById(request.subjectId())
-                .orElseThrow(() -> new SubjectNotFoundException(request.subjectId()));
-        Program program = programRepository.findById(request.programId())
-                .orElseThrow(() -> new ProgramNotFoundException(request.programId()));
+        Teacher teacher = null;
+        if (request.teacherId() != null) {
+            teacher = teacherRepository.findById(request.teacherId()).orElse(null);
+        }
+        if (teacher == null) {
+            teacher = teacherRepository.findAll().stream().findFirst().orElse(null);
+        }
+
+        Subject subject = null;
+        if (request.subjectId() != null) {
+            subject = subjectRepository.findById(request.subjectId()).orElse(null);
+        }
+        if (subject == null) {
+            subject = subjectRepository.findAll().stream().findFirst().orElse(null);
+        }
+
+        Program program = null;
+        if (request.programId() != null) {
+            program = programRepository.findById(request.programId()).orElse(null);
+        }
+        if (program == null) {
+            program = programRepository.findAll().stream().findFirst().orElse(null);
+        }
 
         Classroom classroom = classroomMapper.toEntity(request);
         classroom.setTeacher(teacher);
@@ -111,7 +129,9 @@ public class ClassroomServiceImpl implements ClassroomService {
         classroom.setIsDeleted(false);
 
         Classroom saved = classroomRepository.save(classroom);
-        upsertTeacherMember(saved, teacher);
+        if (teacher != null) {
+            upsertTeacherMember(saved, teacher);
+        }
 
         return classroomMapper.toResponse(saved);
     }

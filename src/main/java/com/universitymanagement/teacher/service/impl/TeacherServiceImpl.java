@@ -13,6 +13,7 @@ import com.universitymanagement.identity.auth.keycloak.client.KeycloakClient;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.enums.RoleName;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
 import com.universitymanagement.subject.mapper.SubjectMapper;
@@ -60,6 +61,7 @@ public class TeacherServiceImpl implements TeacherService {
     private final SubjectMapper subjectMapper;
     private final ClassroomMapper classroomMapper;
     private final DepartmentRepository departmentRepository;
+    private final MinioService minioService;
 
     @Value("${keycloak.target-realm}")
     private String realm;
@@ -223,6 +225,10 @@ public class TeacherServiceImpl implements TeacherService {
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher profile not found for user: " + id));
 
+        String avatarUrl = user.getAvatarObjectName() != null
+                ? minioService.getPreviewUrl(user.getAvatarObjectName())
+                : null;
+
         return new TeacherDetailResponse(
                 kcUser.getId(),
                 teacher.getTeacherId().toString(),
@@ -239,8 +245,24 @@ public class TeacherServiceImpl implements TeacherService {
                 teacher.getPosition(),
                 teacher.getSpecialization(),
                 teacher.getHireDate(),
-                teacher.getEmploymentStatus()
+                teacher.getEmploymentStatus(),
+                avatarUrl
         );
+    }
+
+    @Override
+    @Transactional
+    public TeacherDetailResponse uploadMyAvatar(org.springframework.web.multipart.MultipartFile file) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        User user = userRepository.findByKeycloakId(jwt.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found in local DB"));
+        String objectName = minioService.uploadAsset(file);
+        user.setAvatarObjectName(objectName);
+        userRepository.save(user);
+        return findTeacherByUserId(user.getKeycloakId());
     }
 
     private Teacher findTeacher(UUID teacherId) {

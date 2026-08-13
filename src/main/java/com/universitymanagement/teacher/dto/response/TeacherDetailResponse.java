@@ -17,6 +17,7 @@ public record TeacherDetailResponse(
         String position,
         String specialization,
         LocalDate hireDate,
-        String employmentStatus
+        String employmentStatus,
+        String avatarUrl
 ) {
 }

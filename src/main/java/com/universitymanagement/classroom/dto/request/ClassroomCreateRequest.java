@@ -12,11 +12,8 @@ public record ClassroomCreateRequest(
         @NotBlank(message = "Class name is required")
         String className,
 
-        @NotNull(message = "Teacher ID is required")
         UUID subjectId,
         UUID teacherId,
-
-        @NotNull(message = "Program ID is required")
         UUID programId,
 
         @NotBlank(message = "Academic year is required")
