@@ -1,5 +1,6 @@
 package com.universitymanagement.curriculum.dto.response;
 
+import com.universitymanagement.curriculum.entity.CourseType;
 import java.util.UUID;
 
 public record CurriculumResponse(
@@ -11,6 +12,12 @@ public record CurriculumResponse(
         UUID subjectId,
         String subjectName,
         String subjectCode,
-        Double credit
+        Double credit,
+        CourseType courseType,
+        UUID prerequisiteSubjectId,
+        String prerequisiteSubjectName,
+        String prerequisiteSubjectCode,
+        Integer lectureHours,
+        Integer labHours
 ) {
 }

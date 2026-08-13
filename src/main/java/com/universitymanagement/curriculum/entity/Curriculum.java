@@ -18,16 +18,27 @@ public class Curriculum {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID curriculumId;
+
     @Column(nullable = false)
     private Integer semester;
+
     @Column(nullable = false)
     private Integer yearLevel;
 
-    private Boolean isDeleted;
+    @Enumerated(EnumType.STRING)
+    private CourseType courseType = CourseType.CORE_REQUIRED;
 
-    @ManyToOne
+    private UUID prerequisiteSubjectId;
+
+    private Integer lectureHours;
+
+    private Integer labHours;
+
+    private Boolean isDeleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     private Program program;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Subject subject;
 }
