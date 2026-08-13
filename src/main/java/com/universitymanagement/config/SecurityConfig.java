@@ -138,9 +138,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Public Endpoints (Swagger & Authentication)
+                        // Public Endpoints (Swagger, Authentication & Public Academic Curriculums/Programs)
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/callback", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/programs/**", "/api/v1/curriculums/**", "/api/v1/departments/**", "/api/v1/subjects/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
 
                         // Admin Only Operations
@@ -150,9 +151,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/teachers/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**").hasRole("ADMIN")
 
-                        // Read-Only for All Roles / Write for Admin Only (Departments, Programs, Subjects, Curriculums)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**")
-                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        // Write Operations for Admin Only (Departments, Programs, Subjects, Curriculums)
                         .requestMatchers("/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**")
                         .hasRole("ADMIN")
 
