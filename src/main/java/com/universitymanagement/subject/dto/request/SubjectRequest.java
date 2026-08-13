@@ -16,6 +16,8 @@ public record SubjectRequest(
         @Positive(message = "Subject credit must be greater than 0")
         Double credit,
 
+        Integer hours,
+
         @NotNull(message = "Department ID cannot be null")
         UUID departmentId
 ) {

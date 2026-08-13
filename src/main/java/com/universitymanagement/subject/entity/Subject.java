@@ -33,6 +33,7 @@ public class Subject extends BasedEntity {
     @Column(nullable = false)
     @NotNull(message = "Subject credit cannot be null")
     private Double credit;
+    private Integer hours;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;

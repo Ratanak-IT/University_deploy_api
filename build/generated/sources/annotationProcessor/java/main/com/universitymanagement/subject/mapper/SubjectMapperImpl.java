@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-13T09:06:16+0700",
+    date = "2026-08-13T11:15:54+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -27,14 +27,16 @@ public class SubjectMapperImpl implements SubjectMapper {
         String subjectCode = null;
         String subjectName = null;
         Double credit = null;
+        Integer hours = null;
 
         departmentId = subjectDepartmentDepartmentId( subject );
         subjectId = subject.getSubjectId();
         subjectCode = subject.getSubjectCode();
         subjectName = subject.getSubjectName();
         credit = subject.getCredit();
+        hours = subject.getHours();
 
-        SubjectResponse subjectResponse = new SubjectResponse( subjectId, subjectCode, subjectName, credit, departmentId );
+        SubjectResponse subjectResponse = new SubjectResponse( subjectId, subjectCode, subjectName, credit, hours, departmentId );
 
         return subjectResponse;
     }
@@ -49,6 +51,7 @@ public class SubjectMapperImpl implements SubjectMapper {
 
         subject.setSubjectName( subjectRequest.subjectName() );
         subject.setCredit( subjectRequest.credit() );
+        subject.setHours( subjectRequest.hours() );
 
         return subject;
     }

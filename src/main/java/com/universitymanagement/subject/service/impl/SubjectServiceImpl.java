@@ -66,6 +66,9 @@ public class SubjectServiceImpl implements SubjectService {
 
         subject.setSubjectName(subjectRequest.subjectName());
         subject.setCredit(subjectRequest.credit());
+        if (subjectRequest.hours() != null) {
+            subject.setHours(subjectRequest.hours());
+        }
         subject.setDepartment(department);
         Subject updatedSubject = subjectRepository.save(subject);
         return subjectMapper.toResponse(updatedSubject);

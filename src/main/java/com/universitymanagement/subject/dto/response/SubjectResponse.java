@@ -7,10 +7,19 @@ public record SubjectResponse(
         String subjectCode,
         String subjectName,
         Double credit,
+        Integer hours,
         UUID departmentId
 ) {
+    public SubjectResponse(UUID subjectId, String subjectCode, String subjectName, Double credit, UUID departmentId) {
+        this(subjectId, subjectCode, subjectName, credit, null, departmentId);
+    }
+
     public SubjectResponse(String subjectCode, String subjectName, Double credit, UUID departmentId) {
-        this(null, subjectCode, subjectName, credit, departmentId);
+        this(null, subjectCode, subjectName, credit, null, departmentId);
+    }
+
+    public SubjectResponse(String subjectCode, String subjectName, Double credit, Integer hours, UUID departmentId) {
+        this(null, subjectCode, subjectName, credit, hours, departmentId);
     }
 
     public UUID getId() {
