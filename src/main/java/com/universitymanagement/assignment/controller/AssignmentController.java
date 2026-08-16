@@ -136,4 +136,20 @@ public class AssignmentController {
     ) {
         return assignmentService.gradeSubmission(submissionId, request);
     }
+
+    @PutMapping("/assignments/{assignmentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse updateAssignment(
+            @PathVariable UUID assignmentId,
+            @RequestBody AssignmentRequest request
+    ) {
+        return assignmentService.updateAssignment(assignmentId, request, null);
+    }
+
+    @DeleteMapping("/assignments/{assignmentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public void deleteAssignment(@PathVariable UUID assignmentId) {
+        assignmentService.deleteAssignment(assignmentId);
+    }
 }

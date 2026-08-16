@@ -436,4 +436,50 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
         return toAssignmentResponse(assignment);
     }
+
+    @Override
+    @Transactional
+    public AssignmentResponse updateAssignment(UUID assignmentId, AssignmentRequest request, List<MultipartFile> files) {
+        Assignment assignment = findAssignment(assignmentId);
+        if (assignment.getClassroom() != null) {
+            requireTeacherOwnsClassroom(assignment.getClassroom());
+        }
+        if (request.title() != null && !request.title().isBlank()) {
+            assignment.setTitle(request.title());
+        }
+        if (request.description() != null) {
+            assignment.setDescription(request.description());
+        }
+        if (request.dueDate() != null) {
+            assignment.setDueDate(request.dueDate());
+        }
+        if (request.maxScore() != null) {
+            assignment.setMaxScore(request.maxScore());
+        }
+        if (request.weight() != null) {
+            assignment.setWeight(request.weight());
+        }
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) continue;
+                AssignmentFile af = new AssignmentFile();
+                af.setAssignment(assignment);
+                af.setFileObjectName(minioService.uploadLessonFile(file));
+                af.setFileOriginalName(file.getOriginalFilename());
+                assignment.getFiles().add(af);
+            }
+        }
+        return toAssignmentResponse(assignmentRepository.save(assignment));
+    }
+
+    @Override
+    @Transactional
+    public void deleteAssignment(UUID assignmentId) {
+        Assignment assignment = findAssignment(assignmentId);
+        if (assignment.getClassroom() != null) {
+            requireTeacherOwnsClassroom(assignment.getClassroom());
+        }
+        assignment.setIsDeleted(true);
+        assignmentRepository.save(assignment);
+    }
 }

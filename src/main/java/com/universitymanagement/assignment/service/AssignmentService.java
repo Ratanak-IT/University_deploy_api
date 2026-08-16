@@ -28,4 +28,7 @@ public interface AssignmentService {
     AssignmentResponse createSavedAssignment(AssignmentRequest request, List<MultipartFile> files);
     List<AssignmentResponse> getSavedAssignments();
     AssignmentResponse assignSavedAssignment(UUID assignmentId, UUID classroomId, LocalDateTime dueDate);
+
+    AssignmentResponse updateAssignment(UUID assignmentId, AssignmentRequest request, List<MultipartFile> files);
+    void deleteAssignment(UUID assignmentId);
 }

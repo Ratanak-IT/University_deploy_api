@@ -64,17 +64,13 @@ public class LessonController {
         return lessonService.assignSavedLesson(lessonId, classroomId);
     }
 
-    @PutMapping(
-            value = "/lessons/{lessonId}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
+    @PutMapping("/lessons/{lessonId}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LessonResponse updateLesson(
             @PathVariable UUID lessonId,
-            @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) List<MultipartFile> files
+            @Valid @RequestBody LessonRequest request
     ) {
-        return lessonService.updateLesson(lessonId, request, files);
+        return lessonService.updateLesson(lessonId, request, null);
     }
 
     @DeleteMapping("/lessons/{lessonId}")
