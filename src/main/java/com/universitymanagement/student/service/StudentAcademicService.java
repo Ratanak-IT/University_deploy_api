@@ -20,6 +20,8 @@ public interface StudentAcademicService {
 
     GpaResponse getGpa(UUID studentId);
 
+    Double calculateGpaInternal(UUID studentId);
+
     List<AttendanceResponse> getAttendance(UUID studentId, UUID classroomId);
 
     List<DepartmentResponse> getDepartments(UUID studentId);

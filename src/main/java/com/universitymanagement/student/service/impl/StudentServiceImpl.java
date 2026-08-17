@@ -21,6 +21,8 @@ import com.universitymanagement.student.mapper.StudentMapper;
 import com.universitymanagement.student.repository.StudentRepository;
 import com.universitymanagement.student.security.StudentAccessGuard;
 import com.universitymanagement.student.service.StudentService;
+import com.universitymanagement.student.service.StudentAcademicService;
+import org.springframework.context.annotation.Lazy;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class StudentServiceImpl implements StudentService {
     private final StudentMapper studentMapper;
     private final StudentAccessGuard accessGuard;
     private final MinioService minioService;
+    @Lazy private final StudentAcademicService academicService;
 
     @Value("${keycloak.target-realm}")
     private String realm;
