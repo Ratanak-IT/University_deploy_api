@@ -2,6 +2,7 @@ package com.universitymanagement.program.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
 
 public record ProgramRequest(
         @NotBlank(message = "Program name is required")
@@ -9,6 +10,7 @@ public record ProgramRequest(
         @NotBlank(message = "Degree level is required")
         String degreeLevel,
         @NotNull(message = "Duration years is required")
-        Integer durationYears
+        Integer durationYears,
+        UUID departmentId
 ) {
 }

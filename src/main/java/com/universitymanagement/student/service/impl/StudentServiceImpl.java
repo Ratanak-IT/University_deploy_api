@@ -228,7 +228,8 @@ public class StudentServiceImpl implements StudentService {
                 user.getDateOfBirth(),
                 user.getGender() != null ? user.getGender().name() : null,
                 user.getAvatarObjectName() != null ? minioService.getAssetPreviewUrl(user.getAvatarObjectName()) : null,
-                student.getGraduationStatus()
+                student.getGraduationStatus(),
+                student.getProgram() != null ? student.getProgram().getProgramName() : null
         );
     }
 

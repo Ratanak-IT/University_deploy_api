@@ -1,5 +1,7 @@
 package com.universitymanagement.program.service.impl;
 
+import com.universitymanagement.department.entity.Department;
+import com.universitymanagement.department.repository.DepartmentRepository;
 import com.universitymanagement.program.dto.request.ProgramRequest;
 import com.universitymanagement.program.dto.response.ProgramResponse;
 import com.universitymanagement.program.entity.Program;
@@ -29,7 +31,7 @@ public class ProgramServiceImpl implements ProgramService {
     private final ProgramMapper programMapper;
     private final StudentRepository studentRepository;
     private final StudentMapper studentMapper;
-
+    private final DepartmentRepository departmentRepository;
 
     @Override
     public ProgramResponse create(ProgramRequest request) {
@@ -40,6 +42,12 @@ public class ProgramServiceImpl implements ProgramService {
 
         Program program = programMapper.toEntity(request);
         program.setProgramName(programName);
+
+        if (request.departmentId() != null) {
+            Department dept = departmentRepository.findById(request.departmentId()).orElse(null);
+            program.setDepartment(dept);
+        }
+
         Program savedProgram = programRepository.save(program);
         return programMapper.toResponse(savedProgram);
     }
@@ -67,6 +75,11 @@ public class ProgramServiceImpl implements ProgramService {
         program.setProgramName(programName);
         program.setDegreeLevel(request.degreeLevel());
         program.setDurationYears(request.durationYears());
+
+        if (request.departmentId() != null) {
+            Department dept = departmentRepository.findById(request.departmentId()).orElse(null);
+            program.setDepartment(dept);
+        }
 
         Program updatedProgram = programRepository.save(program);
         return programMapper.toResponse(updatedProgram);

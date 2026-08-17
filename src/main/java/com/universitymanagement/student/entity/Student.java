@@ -41,8 +41,6 @@ public class Student {
     private Integer yearLevel;
 
     private Integer semester;
-
-
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
     private LocalDate dob;
@@ -59,8 +57,6 @@ public class Student {
 
     @OneToMany(mappedBy = "student")
     private List<ClassroomStudent> classroomStudents;
-
     @ManyToOne
     private Program program;
-
 }

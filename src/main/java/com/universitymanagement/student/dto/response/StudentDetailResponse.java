@@ -19,6 +19,7 @@ public record StudentDetailResponse(
         LocalDate dob,
         String gender,
         String avatarUrl,
-        String graduationStatus
+        String graduationStatus,
+        String major
 ) {
 }

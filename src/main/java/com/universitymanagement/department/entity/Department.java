@@ -1,6 +1,7 @@
 package com.universitymanagement.department.entity;
 
 import com.universitymanagement.auditing.BasedEntity;
+import com.universitymanagement.program.entity.Program;
 import com.universitymanagement.subject.entity.Subject;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -27,4 +28,7 @@ public class Department extends BasedEntity {
     private String departmentCode;
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private List<Subject> subjects = new ArrayList<>();
+
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    private List<Program> programs = new ArrayList<>();
 }

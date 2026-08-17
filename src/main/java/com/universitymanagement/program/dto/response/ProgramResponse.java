@@ -6,6 +6,8 @@ public record ProgramResponse(
         UUID id,
         String programName,
         String degreeLevel,
-        Integer durationYears
+        Integer durationYears,
+        UUID departmentId,
+        String departmentName
 ) {
 }
