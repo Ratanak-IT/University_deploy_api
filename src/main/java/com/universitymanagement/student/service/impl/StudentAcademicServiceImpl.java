@@ -102,6 +102,13 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     }
 
     @Override
+    public Double calculateGpaInternal(UUID studentId) {
+        List<GradeResponse> grades = computeGrades(studentId);
+        double[] cumulative = weightedGpa(grades);
+        return round(cumulative[0]);
+    }
+
+    @Override
     public GpaResponse getGpa(UUID studentId) {
         Student student = accessGuard.requireSelfOrStaff(studentId);
         List<GradeResponse> grades = computeGrades(studentId);
