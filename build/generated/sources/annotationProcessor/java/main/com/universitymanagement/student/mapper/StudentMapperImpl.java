@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-17T19:47:02+0700",
+    date = "2026-08-17T20:06:45+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -78,8 +78,9 @@ public class StudentMapperImpl implements StudentMapper {
         graduationDate = student.getGraduationDate();
 
         String gender = student.getUser() != null && student.getUser().getGender() != null ? student.getUser().getGender().name() : null;
+        Double gpa = calculateGpa(student);
 
-        StudentAdminResponse studentAdminResponse = new StudentAdminResponse( studentId, userId, keycloakId, studentCode, fullName, email, phoneNumber, gender, dateOfBirth, academicYear, yearLevel, semester, programName, enrollmentDate, graduationStatus, graduationDate );
+        StudentAdminResponse studentAdminResponse = new StudentAdminResponse( studentId, userId, keycloakId, studentCode, fullName, email, phoneNumber, gender, dateOfBirth, academicYear, yearLevel, semester, programName, gpa, enrollmentDate, graduationStatus, graduationDate );
 
         return studentAdminResponse;
     }

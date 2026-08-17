@@ -18,6 +18,7 @@ public record StudentAdminResponse(
         Integer yearLevel,
         Integer semester,
         String programName,
+        Double gpa,
         LocalDate enrollmentDate,
         String graduationStatus,
         LocalDate graduationDate
