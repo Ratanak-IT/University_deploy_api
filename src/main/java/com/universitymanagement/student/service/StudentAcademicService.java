@@ -2,6 +2,7 @@ package com.universitymanagement.student.service;
 
 import com.universitymanagement.attendance.dto.response.AttendanceResponse;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
+import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
 import com.universitymanagement.student.dto.response.GradeResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
@@ -21,6 +22,9 @@ public interface StudentAcademicService {
     GpaResponse getGpa(UUID studentId);
 
     Double calculateGpaInternal(UUID studentId);
+
+    AcademicRecordSheetResponse getAcademicRecordSheet(UUID programId, Integer yearLevel,
+                                                       Integer semester, String academicYear);
 
     List<AttendanceResponse> getAttendance(UUID studentId, UUID classroomId);
 

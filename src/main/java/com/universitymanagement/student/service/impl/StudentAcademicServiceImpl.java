@@ -11,10 +11,13 @@ import com.universitymanagement.attendance.entity.Attendance;
 import com.universitymanagement.attendance.repository.AttendanceRepository;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
+import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.minio.MinioService;
+import com.universitymanagement.program.entity.Program;
+import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
 import com.universitymanagement.student.dto.response.GradeResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
@@ -45,6 +48,7 @@ import java.util.stream.Collectors;
 public class StudentAcademicServiceImpl implements StudentAcademicService {
 
     private final StudentAccessGuard accessGuard;
+    private final ClassroomRepository classroomRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
@@ -123,6 +127,81 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         );
     }
 
+    @Override
+    public AcademicRecordSheetResponse getAcademicRecordSheet(UUID programId, Integer yearLevel,
+                                                              Integer semester, String academicYear) {
+        // The roster comes from who was actually enrolled in that term's
+        // classrooms — not from each student's current profile fields — so a
+        // past term still resolves correctly after a student has since moved
+        // up a year or semester.
+        List<Classroom> offerings = classroomRepository
+                .findForAcademicRecordSheet(programId, yearLevel, semester,
+                        (academicYear == null || academicYear.isBlank()) ? null : academicYear);
+
+        Set<UUID> offeringIds = offerings.stream().map(Classroom::getClassroomId).collect(Collectors.toSet());
+
+        LinkedHashMap<UUID, Student> studentsById = new LinkedHashMap<>();
+        if (!offeringIds.isEmpty()) {
+            classroomStudentRepository.findByClassroom_ClassroomIdIn(new ArrayList<>(offeringIds)).stream()
+                    .map(ClassroomStudent::getStudent)
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(s ->
+                            s.getUser() != null && s.getUser().getFullName() != null
+                                    ? s.getUser().getFullName() : ""))
+                    .forEach(s -> studentsById.putIfAbsent(s.getStudentId(), s));
+        }
+
+        LinkedHashMap<UUID, AcademicRecordSheetResponse.SubjectColumn> subjectsById = new LinkedHashMap<>();
+        List<AcademicRecordSheetResponse.StudentRow> rows = new ArrayList<>();
+
+        for (Student student : studentsById.values()) {
+            // Scope this student's grades down to exactly the offerings that
+            // matched the filter, so a subject taken in another term never
+            // leaks into this term's row.
+            List<GradeResponse> grades = computeGrades(student.getStudentId()).stream()
+                    .filter(g -> offeringIds.contains(g.classroomId()))
+                    .toList();
+
+            List<AcademicRecordSheetResponse.GradeCell> cells = new ArrayList<>();
+            for (GradeResponse grade : grades) {
+                if (grade.subjectId() == null) {
+                    continue;
+                }
+                subjectsById.putIfAbsent(grade.subjectId(), new AcademicRecordSheetResponse.SubjectColumn(
+                        grade.subjectId(), grade.subjectCode(), grade.subjectName()));
+                cells.add(new AcademicRecordSheetResponse.GradeCell(
+                        grade.subjectId(), grade.scorePercent(), grade.letterGrade(), grade.gradePoint()));
+            }
+
+            double[] gpaCredits = weightedGpa(grades);
+
+            rows.add(new AcademicRecordSheetResponse.StudentRow(
+                    student.getStudentId(),
+                    student.getStudentCode(),
+                    student.getUser() != null ? student.getUser().getFullName() : null,
+                    cells,
+                    gpaCredits[1] > 0 ? round(gpaCredits[0]) : null
+            ));
+        }
+
+        String programName = offerings.stream()
+                .map(Classroom::getProgram)
+                .filter(Objects::nonNull)
+                .map(Program::getProgramName)
+                .findFirst()
+                .orElse(null);
+
+        return new AcademicRecordSheetResponse(
+                programId,
+                programName,
+                yearLevel,
+                semester,
+                academicYear,
+                new ArrayList<>(subjectsById.values()),
+                rows
+        );
+    }
+
     // Attendance
 
     @Override
@@ -132,8 +211,8 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         List<Attendance> records = classroomId == null
                 ? attendanceRepository.findByStudent_StudentIdOrderByAttendanceDateDesc(studentId)
                 : attendanceRepository
-                        .findByStudent_StudentIdAndClassroom_ClassroomIdOrderByAttendanceDateDesc(
-                                studentId, classroomId);
+                .findByStudent_StudentIdAndClassroom_ClassroomIdOrderByAttendanceDateDesc(
+                        studentId, classroomId);
 
         return records.stream()
                 .map(a -> new AttendanceResponse(
@@ -207,7 +286,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         List<Assignment> all = enrolledClassrooms(studentId).stream()
                 .filter(c -> subjectId == null
                         || (c.getSubject() != null
-                            && c.getSubject().getSubjectId().equals(subjectId)))
+                        && c.getSubject().getSubjectId().equals(subjectId)))
                 .flatMap(c -> assignmentRepository
                         .findByClassroom_ClassroomIdAndIsDeletedFalseOrderByDueDateAsc(
                                 c.getClassroomId())
@@ -393,11 +472,11 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
 
         List<FileResponse> submissionFiles = submission == null ? List.of()
                 : submission.getFiles().stream()
-                        .map(f -> new FileResponse(
-                                f.getFileId(),
-                                f.getFileOriginalName(),
-                                minioService.getPreviewUrl(f.getFileObjectName())))
-                        .toList();
+                .map(f -> new FileResponse(
+                        f.getFileId(),
+                        f.getFileOriginalName(),
+                        minioService.getPreviewUrl(f.getFileObjectName())))
+                .toList();
 
         Classroom classroom = assignment.getClassroom();
 

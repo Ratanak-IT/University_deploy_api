@@ -35,4 +35,19 @@ public interface ClassroomRepository extends JpaRepository<Classroom, UUID> {
             @Param("yearLevel") Integer yearLevel,
             @Param("semester") Integer semester,
             Pageable pageable);
+
+
+    @Query("""
+        select c from Classroom c
+        where c.isDeleted = false
+          and (:programId is null or c.program.id = :programId)
+          and (:yearLevel is null or c.yearLevel = :yearLevel)
+          and (:semester is null or c.semester = :semester)
+          and (:academicYear is null or c.academicYear = :academicYear)
+        """)
+    List<Classroom> findForAcademicRecordSheet(
+            @Param("programId") UUID programId,
+            @Param("yearLevel") Integer yearLevel,
+            @Param("semester") Integer semester,
+            @Param("academicYear") String academicYear);
 }

@@ -12,5 +12,6 @@ public interface ClassroomStudentRepository extends JpaRepository<ClassroomStude
     boolean existsByClassroom_ClassroomIdAndStudent_StudentId(UUID classroomId, UUID studentId);
     Optional<ClassroomStudent> findByClassroom_ClassroomIdAndStudent_StudentId(UUID classroomId, UUID studentId);
     List<ClassroomStudent> findByClassroom_ClassroomId(UUID classroomId);
+    List<ClassroomStudent> findByClassroom_ClassroomIdIn(List<UUID> classroomIds);
 
 }
