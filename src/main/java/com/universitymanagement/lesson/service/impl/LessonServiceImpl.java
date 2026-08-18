@@ -178,6 +178,9 @@ public class LessonServiceImpl implements LessonService {
 
     private void requireTeacherOwnsClassroom(Classroom classroom) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (hasRole(auth, "ADMIN")) {
+            return;
+        }
         User user = getCurrentUser(auth);
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -294,6 +297,9 @@ public class LessonServiceImpl implements LessonService {
 
     private void requireLessonOwnership(Lesson lesson) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (hasRole(auth, "ADMIN")) {
+            return;
+        }
         User user = getCurrentUser(auth);
 
         if (lesson.getClassroom() != null) {

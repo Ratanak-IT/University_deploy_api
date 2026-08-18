@@ -1,94 +1,3 @@
-//package com.universitymanagement.config;
-//
-//import com.universitymanagement.identity.auth.keycloak.config.KeycloakProperties;
-//import lombok.RequiredArgsConstructor;
-//
-//import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-//import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.core.GrantedAuthority;
-//import org.springframework.security.core.authority.SimpleGrantedAuthority;
-//import org.springframework.security.oauth2.jwt.Jwt;
-//import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-//import org.springframework.security.web.SecurityFilterChain;
-//
-//import java.util.Collection;
-//import java.util.HashSet;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//import java.util.stream.Collectors;
-//
-//@Configuration
-//@EnableWebSecurity
-//@EnableMethodSecurity
-//@RequiredArgsConstructor
-//public class SecurityConfig {
-//
-//    @Value("${keycloak.client-id}")
-//    private String CLIENT_ID;
-//    private final KeycloakProperties keycloakProperties;
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//
-//        http
-//                .csrf(csrf -> csrf.disable())
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-//                        .requestMatchers("/swagger-resources/**").permitAll()
-//                        .requestMatchers("/webjars/**").permitAll()
-//                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
-//                        .requestMatchers("/api/v1/auth/**").authenticated()
-//                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-//                        .anyRequest().authenticated()
-//                )
-//                .oauth2ResourceServer(oauth2 ->
-//                        oauth2.jwt(jwt ->
-//                                jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-//                        )
-//                );
-//
-//        return http.build();
-//    }
-//
-//    @Bean
-//    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-//        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-//        converter.setJwtGrantedAuthoritiesConverter(this::extractAuthorities);
-//        return converter;
-//    }
-//
-//    @SuppressWarnings("unchecked")
-//    private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-//
-//        Set<String> roles = new HashSet<>();
-//
-//        // 1. Realm roles -> realm_access.roles  (ADMIN, TEACHER, STUDENT នៅទីនេះ)
-//        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-//        if (realmAccess != null && realmAccess.get("roles") instanceof List<?> realmRoles) {
-//            realmRoles.forEach(r -> roles.add(String.valueOf(r)));
-//        }
-//
-//        // 2. Client roles -> resource_access.{client-id}.roles
-//        Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
-//        if (resourceAccess != null
-//                && resourceAccess.get(CLIENT_ID) instanceof Map<?, ?> client
-//                && client.get("roles") instanceof List<?> clientRoles) {
-//            clientRoles.forEach(r -> roles.add(String.valueOf(r)));
-//        }
-//
-//        return roles.stream()
-//                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-//                .collect(Collectors.toList());
-//    }
-//}
-
-
 package com.universitymanagement.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,8 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -112,35 +21,60 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Central Security Configuration for University Management System API.
+ * Configures OAuth2 JWT authentication, Keycloak role mapping, CORS, CSRF, and HTTP authorization rules.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    public static final String ADMIN = "ADMIN";
+    public static final String TEACHER = "TEACHER";
+    public static final String STUDENT = "STUDENT";
+
     private final ObjectMapper objectMapper;
-    @Value("${keycloak.client-id}")
-    private String CLIENT_ID;
     private final CorsConfigurationSource corsConfigurationSource;
+
+    @Value("${keycloak.client-id}")
+    private String clientId;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Preflight CORS Request Handlers
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Public Endpoints (Swagger, Authentication & Public Academic Curriculums/Programs)
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/callback", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
+
+                        // 2. Swagger / OpenAPI Documentation Resources
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
+                        // 3. Public Authentication & Identity Endpoints
+                        .requestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/callback",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh-token"
+                        ).permitAll()
+
+                        // 4. Public Academic Read Operations
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/programs", "/api/v1/programs/**",
@@ -148,36 +82,90 @@ public class SecurityConfig {
                                 "/api/v1/departments", "/api/v1/departments/**",
                                 "/api/v1/subjects", "/api/v1/subjects/**"
                         ).permitAll()
-                        .requestMatchers("/api/v1/auth/**").authenticated()
 
-                        // Admin Only Operations
-                        .requestMatchers("/api/v1/users/**", "/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/students/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/teachers/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/teachers/**").hasRole("ADMIN")
-
-                        // Write Operations for Admin Only (Departments, Programs, Subjects, Curriculums)
+                        // 5. Admin-Only Management Endpoints
                         .requestMatchers(
-                                "/api/v1/departments", "/api/v1/departments/**",
-                                "/api/v1/programs", "/api/v1/programs/**",
-                                "/api/v1/subjects", "/api/v1/subjects/**",
-                                "/api/v1/curriculums", "/api/v1/curriculums/**"
-                        ).hasRole("ADMIN")
+                                "/api/v1/users/**",
+                                "/api/v1/admin/**",
+                                "/api/v1/students/admin/**"
+                        ).hasRole(ADMIN)
+                        .requestMatchers(
+                                HttpMethod.POST, "/api/v1/teachers/**", "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**"
+                        ).hasRole(ADMIN)
+                        .requestMatchers(
+                                HttpMethod.PUT, "/api/v1/teachers/**", "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**"
+                        ).hasRole(ADMIN)
+                        .requestMatchers(
+                                HttpMethod.DELETE, "/api/v1/teachers/**", "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**"
+                        ).hasRole(ADMIN)
 
-                        // Teacher & Admin Specific Operations
-                        .requestMatchers(HttpMethod.POST, "/api/v1/quizzes/**", "/api/v1/scores/**").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/quizzes/**", "/api/v1/scores/**").hasAnyRole("TEACHER", "ADMIN")
+                        // 6. Student Submissions & Student Interactive Endpoints
+                        .requestMatchers("/api/v1/submissions/**").hasAnyRole(ADMIN, TEACHER, STUDENT)
 
-                        // Authenticated Users (Classrooms, Assignments, Submissions, Certificates, Lessons)
-                        .requestMatchers("/api/v1/classrooms/**", "/api/v1/assignments/**", "/api/v1/submissions/**", "/api/v1/certificates/**", "/api/v1/lessons/**").authenticated()
-                        .anyRequest().authenticated()
+                        // 7. Teacher & Admin Write Operations (Create, Update, Delete for Academic Resources)
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/classrooms/**",
+                                "/api/v1/lessons/**",
+                                "/api/v1/assignments/**",
+                                "/api/v1/quizzes/**",
+                                "/api/v1/scores/**",
+                                "/api/v1/attendance/**",
+                                "/api/v1/certificates/**"
+                        ).hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/classrooms/**",
+                                "/api/v1/lessons/**",
+                                "/api/v1/assignments/**",
+                                "/api/v1/quizzes/**",
+                                "/api/v1/scores/**",
+                                "/api/v1/attendance/**",
+                                "/api/v1/certificates/**"
+                        ).hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/v1/classrooms/**",
+                                "/api/v1/lessons/**",
+                                "/api/v1/assignments/**",
+                                "/api/v1/quizzes/**",
+                                "/api/v1/scores/**",
+                                "/api/v1/attendance/**",
+                                "/api/v1/certificates/**"
+                        ).hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/v1/classrooms/**",
+                                "/api/v1/lessons/**",
+                                "/api/v1/assignments/**",
+                                "/api/v1/quizzes/**",
+                                "/api/v1/scores/**",
+                                "/api/v1/attendance/**",
+                                "/api/v1/certificates/**"
+                        ).hasAnyRole(TEACHER, ADMIN)
+
+                        // 8. Read-Only Access (GET) for Authenticated Users (ADMIN, TEACHER, STUDENT)
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/classrooms/**",
+                                "/api/v1/lessons/**",
+                                "/api/v1/assignments/**",
+                                "/api/v1/quizzes/**",
+                                "/api/v1/scores/**",
+                                "/api/v1/attendance/**",
+                                "/api/v1/certificates/**",
+                                "/api/v1/notifications/**",
+                                "/api/v1/students/**",
+                                "/api/v1/teachers/**"
+                        ).hasAnyRole(ADMIN, TEACHER, STUDENT)
+
+                        // 9. Catch-All for any other authenticated route
+                        .anyRequest().hasAnyRole(ADMIN, TEACHER, STUDENT)
                 )
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt ->
-                                jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        )
-                ).exceptionHandling(ex -> ex
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                )
+                .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler())
                 );
@@ -192,48 +180,20 @@ public class SecurityConfig {
         return converter;
     }
 
-//    private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-//
-//        Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
-//
-//        if (resourceAccess == null) {
-//            return Collections.emptyList();
-//        }
-//
-//        Map<String, Object> client =
-//                (Map<String, Object>) resourceAccess.get(CLIENT_ID);
-//
-//        if (client == null) {
-//            return Collections.emptyList();
-//        }
-//
-//        List<String> roles =
-//                (List<String>) client.get("roles");
-//
-//        if (roles == null) {
-//            return Collections.emptyList();
-//        }
-//
-//        return roles.stream()
-//                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-//                .collect(Collectors.toList());
-//    }
-
     @SuppressWarnings("unchecked")
     private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-
         Set<String> roles = new HashSet<>();
 
-        // 1. Realm roles -> realm_access.roles (ADMIN, TEACHER, STUDENT នៅទីនេះ)
+        // Extract Keycloak Realm Roles (e.g., ADMIN, TEACHER, STUDENT)
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         if (realmAccess != null && realmAccess.get("roles") instanceof List<?> realmRoles) {
             realmRoles.forEach(r -> roles.add(String.valueOf(r)));
         }
 
-        // 2. Client roles -> resource_access.{client-id}.roles
+        // Extract Keycloak Client Roles
         Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
         if (resourceAccess != null
-                && resourceAccess.get(CLIENT_ID) instanceof Map<?, ?> client
+                && resourceAccess.get(clientId) instanceof Map<?, ?> client
                 && client.get("roles") instanceof List<?> clientRoles) {
             clientRoles.forEach(r -> roles.add(String.valueOf(r)));
         }
@@ -266,7 +226,7 @@ public class SecurityConfig {
                               HttpStatus status,
                               String title,
                               String detail,
-                              String errorCode) throws java.io.IOException {
+                              String errorCode) throws IOException {
         ProblemDetail problem = ProblemDetail.forStatus(status);
         problem.setTitle(title);
         problem.setDetail(detail);
