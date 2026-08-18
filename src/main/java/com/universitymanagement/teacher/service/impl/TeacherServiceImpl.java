@@ -141,27 +141,28 @@ public class TeacherServiceImpl implements TeacherService {
     public void deleteTeacher(UUID teacherId) {
         Teacher teacher = findTeacher(teacherId);
 
-        entityManager.createQuery("UPDATE Classroom c SET c.teacher = NULL WHERE c.teacher.teacherId = :id").setParameter("id", teacherId).executeUpdate();
-        try {
-            entityManager.createQuery("UPDATE Classroom c SET c.leadTeacher = NULL WHERE c.leadTeacher.teacherId = :id").setParameter("id", teacherId).executeUpdate();
-        } catch (Exception ignored) {}
-        try {
-            teacher.getSubjects().clear();
-        } catch (Exception ignored) {}
-        try {
-            teacher.getDepartments().clear();
-        } catch (Exception ignored) {}
+        List<Classroom> classrooms = classroomRepository.findByTeacher_TeacherId(teacherId);
+        if (classrooms != null && !classrooms.isEmpty()) {
+            classrooms.forEach(c -> c.setTeacher(null));
+            classroomRepository.saveAll(classrooms);
+        }
 
-        teacher.getSubjects().clear();
+        if (teacher.getSubjects() != null) {
+            teacher.getSubjects().clear();
+        }
+        if (teacher.getDepartments() != null) {
+            teacher.getDepartments().clear();
+        }
+        teacherRepository.save(teacher);
 
         User user = teacher.getUser();
         teacherRepository.delete(teacher);
 
         if (user != null) {
+            userRepository.delete(user);
             try {
                 keycloakClient.deleteUser(user.getKeycloakId());
             } catch (Exception ignored) {}
-            userRepository.delete(user);
         }
     }
 

@@ -13,6 +13,9 @@ import com.universitymanagement.program.service.ProgramService;
 import com.universitymanagement.student.dto.response.StudentResponse;
 import com.universitymanagement.student.mapper.StudentMapper;
 import com.universitymanagement.student.repository.StudentRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +30,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class ProgramServiceImpl implements ProgramService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final ProgramRepository programRepository;
     private final ProgramMapper programMapper;
     private final StudentRepository studentRepository;
@@ -86,8 +93,15 @@ public class ProgramServiceImpl implements ProgramService {
     }
 
     @Override
+    @Transactional
     public void delete(UUID id) {
         Program program = programRepository.findById(id).orElseThrow(() -> new ProgramNotFoundException(id));
+
+        try { entityManager.createNativeQuery("UPDATE students SET program_id = NULL WHERE program_id = :id").setParameter("id", id).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("UPDATE classrooms SET program_id = NULL WHERE program_id = :id").setParameter("id", id).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM curriculum_structures WHERE program_id = :id").setParameter("id", id).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM curriculums WHERE program_id = :id").setParameter("id", id).executeUpdate(); } catch (Exception ignored) {}
+
         programRepository.deleteById(id);
     }
 

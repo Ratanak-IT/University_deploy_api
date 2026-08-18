@@ -12,6 +12,9 @@ import com.universitymanagement.subject.repository.SubjectRepository;
 import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import com.universitymanagement.teacher.mapper.TeacherMapper;
 import com.universitymanagement.teacher.repository.TeacherRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +30,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final DepartmentRepository departmentRepository;
     private final Departmentmapper departmentmapper;
     private final SubjectRepository subjectRepository;
@@ -66,8 +73,14 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public void delete(UUID departmentId) {
         Department department = departmentRepository.findById(departmentId).orElseThrow(() -> new DepartmentNotFoundException(departmentId));
+
+        try { entityManager.createNativeQuery("DELETE FROM teacher_departments WHERE department_id = :id").setParameter("id", departmentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("UPDATE programs SET department_id = NULL WHERE department_id = :id").setParameter("id", departmentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("UPDATE subjects SET department_id = NULL WHERE department_id = :id").setParameter("id", departmentId).executeUpdate(); } catch (Exception ignored) {}
+
         departmentRepository.delete(department);
     }
 
