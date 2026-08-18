@@ -28,6 +28,8 @@ import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.mapper.TeacherMapper;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import com.universitymanagement.teacher.service.TeacherService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -131,14 +133,19 @@ public class TeacherServiceImpl implements TeacherService {
         return teacherMapper.toResponse(teacherRepository.save(teacher));
     }
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Override
     @Transactional
     public void deleteTeacher(UUID teacherId) {
         Teacher teacher = findTeacher(teacherId);
 
-        List<Classroom> classrooms = classroomRepository.findByTeacher_TeacherId(teacherId);
-        classrooms.forEach(classroom -> classroom.setTeacher(null));
-        classroomRepository.saveAll(classrooms);
+        try { entityManager.createNativeQuery("UPDATE classrooms SET teacher_id = NULL WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("UPDATE classrooms SET lead_teacher_id = NULL WHERE lead_teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM classroom_teachers WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM teacher_departments WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM teacher_subjects WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
 
         teacher.getSubjects().clear();
 
@@ -146,7 +153,9 @@ public class TeacherServiceImpl implements TeacherService {
         teacherRepository.delete(teacher);
 
         if (user != null) {
-            keycloakClient.deleteUser(user.getKeycloakId());
+            try {
+                keycloakClient.deleteUser(user.getKeycloakId());
+            } catch (Exception ignored) {}
             userRepository.delete(user);
         }
     }

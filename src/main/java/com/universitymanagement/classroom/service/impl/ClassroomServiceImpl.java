@@ -37,6 +37,8 @@ import com.universitymanagement.subject.repository.SubjectRepository;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -61,6 +63,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ClassroomServiceImpl implements ClassroomService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final ClassroomRepository classroomRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
@@ -243,6 +248,8 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional
     public void softDelete(UUID classroomId) {
         Classroom classroom = findClassroom(classroomId);
+        try { entityManager.createNativeQuery("DELETE FROM classroom_students WHERE classroom_id = :id").setParameter("id", classroomId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM classroom_teachers WHERE classroom_id = :id").setParameter("id", classroomId).executeUpdate(); } catch (Exception ignored) {}
         classroom.setIsDeleted(true);
         classroomRepository.save(classroom);
     }

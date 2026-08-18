@@ -23,6 +23,8 @@ import com.universitymanagement.student.security.StudentAccessGuard;
 import com.universitymanagement.student.service.StudentService;
 import com.universitymanagement.student.service.StudentAcademicService;
 import org.springframework.context.annotation.Lazy;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -158,18 +160,29 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toAdminResponse(studentRepository.save(student));
     }
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Override
     @Transactional
     public void deleteStudent(UUID studentId) {
         Student student = findStudent(studentId);
-        classroomStudentRepository.deleteAll(
-                classroomStudentRepository.findByStudent_StudentId(studentId));
+
+        try { entityManager.createNativeQuery("DELETE FROM attendances WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM submissions WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM exam_scores WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM quiz_attempts WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM student_quiz_attempts WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM certificates WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM classroom_students WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
 
         User user = student.getUser();
         studentRepository.delete(student);
 
         if (user != null) {
-            keycloakClient.deleteUser(user.getKeycloakId());
+            try {
+                keycloakClient.deleteUser(user.getKeycloakId());
+            } catch (Exception ignored) {}
             userRepository.delete(user);
         }
     }

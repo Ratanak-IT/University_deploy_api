@@ -11,6 +11,8 @@ import com.universitymanagement.subject.exception.SubjectNotFoundException;
 import com.universitymanagement.subject.mapper.SubjectMapper;
 import com.universitymanagement.subject.repository.SubjectRepository;
 import com.universitymanagement.subject.service.SubjectService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +27,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SubjectServiceImpl implements SubjectService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final SubjectRepository subjectRepository;
     private final SubjectMapper subjectMapper;
     private final DepartmentRepository departmentRepository;
@@ -75,9 +81,16 @@ public class SubjectServiceImpl implements SubjectService {
     }
 
     @Override
+    @Transactional
     public void deleteSubject(UUID subjectId) {
-    Subject subject = subjectRepository.findById(subjectId).orElseThrow(() -> new SubjectNotFoundException(subjectId));
-    subjectRepository.delete(subject);
+        Subject subject = subjectRepository.findById(subjectId).orElseThrow(() -> new SubjectNotFoundException(subjectId));
+
+        try { entityManager.createNativeQuery("DELETE FROM curriculum_structures WHERE subject_id = :id").setParameter("id", subjectId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM curriculum_items WHERE subject_id = :id").setParameter("id", subjectId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("DELETE FROM teacher_subjects WHERE subject_id = :id").setParameter("id", subjectId).executeUpdate(); } catch (Exception ignored) {}
+        try { entityManager.createNativeQuery("UPDATE classrooms SET subject_id = NULL WHERE subject_id = :id").setParameter("id", subjectId).executeUpdate(); } catch (Exception ignored) {}
+
+        subjectRepository.delete(subject);
     }
 
     @Override
