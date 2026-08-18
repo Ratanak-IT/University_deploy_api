@@ -248,8 +248,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional
     public void softDelete(UUID classroomId) {
         Classroom classroom = findClassroom(classroomId);
-        try { entityManager.createNativeQuery("DELETE FROM classroom_students WHERE classroom_id = :id").setParameter("id", classroomId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM classroom_teachers WHERE classroom_id = :id").setParameter("id", classroomId).executeUpdate(); } catch (Exception ignored) {}
+        entityManager.createQuery("DELETE FROM ClassroomStudent cs WHERE cs.classroom.classroomId = :id").setParameter("id", classroomId).executeUpdate();
         classroom.setIsDeleted(true);
         classroomRepository.save(classroom);
     }

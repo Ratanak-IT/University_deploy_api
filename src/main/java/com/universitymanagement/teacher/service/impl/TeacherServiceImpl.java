@@ -141,11 +141,16 @@ public class TeacherServiceImpl implements TeacherService {
     public void deleteTeacher(UUID teacherId) {
         Teacher teacher = findTeacher(teacherId);
 
-        try { entityManager.createNativeQuery("UPDATE classrooms SET teacher_id = NULL WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("UPDATE classrooms SET lead_teacher_id = NULL WHERE lead_teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM classroom_teachers WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM teacher_departments WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM teacher_subjects WHERE teacher_id = :id").setParameter("id", teacherId).executeUpdate(); } catch (Exception ignored) {}
+        entityManager.createQuery("UPDATE Classroom c SET c.teacher = NULL WHERE c.teacher.teacherId = :id").setParameter("id", teacherId).executeUpdate();
+        try {
+            entityManager.createQuery("UPDATE Classroom c SET c.leadTeacher = NULL WHERE c.leadTeacher.teacherId = :id").setParameter("id", teacherId).executeUpdate();
+        } catch (Exception ignored) {}
+        try {
+            teacher.getSubjects().clear();
+        } catch (Exception ignored) {}
+        try {
+            teacher.getDepartments().clear();
+        } catch (Exception ignored) {}
 
         teacher.getSubjects().clear();
 

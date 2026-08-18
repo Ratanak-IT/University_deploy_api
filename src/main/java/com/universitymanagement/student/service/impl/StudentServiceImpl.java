@@ -168,13 +168,11 @@ public class StudentServiceImpl implements StudentService {
     public void deleteStudent(UUID studentId) {
         Student student = findStudent(studentId);
 
-        try { entityManager.createNativeQuery("DELETE FROM attendances WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM submissions WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM exam_scores WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM quiz_attempts WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM student_quiz_attempts WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM certificates WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
-        try { entityManager.createNativeQuery("DELETE FROM classroom_students WHERE student_id = :id").setParameter("id", studentId).executeUpdate(); } catch (Exception ignored) {}
+        entityManager.createQuery("DELETE FROM Attendance a WHERE a.student.studentId = :id").setParameter("id", studentId).executeUpdate();
+        entityManager.createQuery("DELETE FROM Submission s WHERE s.student.studentId = :id").setParameter("id", studentId).executeUpdate();
+        entityManager.createQuery("DELETE FROM ExamScore e WHERE e.student.studentId = :id").setParameter("id", studentId).executeUpdate();
+        entityManager.createQuery("DELETE FROM QuizAttempt q WHERE q.student.studentId = :id").setParameter("id", studentId).executeUpdate();
+        entityManager.createQuery("DELETE FROM ClassroomStudent cs WHERE cs.student.studentId = :id").setParameter("id", studentId).executeUpdate();
 
         User user = student.getUser();
         studentRepository.delete(student);
