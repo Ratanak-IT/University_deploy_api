@@ -13,6 +13,7 @@ import com.universitymanagement.identity.auth.keycloak.client.KeycloakClient;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.enums.RoleName;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.identity.service.UserProfileWriter;
 import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
@@ -64,6 +65,7 @@ public class TeacherServiceImpl implements TeacherService {
     private final ClassroomMapper classroomMapper;
     private final DepartmentRepository departmentRepository;
     private final MinioService minioService;
+    private final UserProfileWriter userProfileWriter;
 
     @Value("${keycloak.target-realm}")
     private String realm;
@@ -99,12 +101,41 @@ public class TeacherServiceImpl implements TeacherService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Teacher profile was not created for user: " + createdUser.id()));
 
+        // Person-level extras that createUser() doesn't know about.
+        User user = teacher.getUser();
+        if (user != null) {
+            user.setFirstName(request.firstName());
+            user.setLastName(request.lastName());
+            user.syncFullName();
+            user.setNameKhmer(request.nameKhmer());
+            user.setIdCardNumber(request.idCardNumber());
+            user.setPlaceOfBirth(request.placeOfBirth());
+            user.setCurrentAddress(request.currentAddress());
+            user.setAddress(request.address() != null ? request.address() : request.currentAddress());
+            userRepository.save(user);
+        }
+
+        if (request.teacherCode() != null && !request.teacherCode().isBlank()) {
+            String code = request.teacherCode().trim();
+            if (!code.equals(teacher.getTeacherCode()) && teacherRepository.existsByTeacherCode(code)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Teacher code already in use: " + code);
+            }
+            teacher.setTeacherCode(code);
+        }
+
         teacher.setSpecialization(request.specialization());
         if (request.departmentIds() != null && !request.departmentIds().isEmpty()) {
             teacher.setDepartments(resolveDepartments(request.departmentIds()));
         }
 
         teacher.setPosition(request.position());
+        if (request.hireDate() != null) {
+            teacher.setHireDate(request.hireDate());
+        }
+        if (request.employmentStatus() != null) {
+            teacher.setEmploymentStatus(request.employmentStatus());
+        }
 
         return teacherMapper.toResponse(teacherRepository.save(teacher));
     }
@@ -114,6 +145,20 @@ public class TeacherServiceImpl implements TeacherService {
     public TeacherResponse updateTeacher(UUID teacherId, UpdateTeacherRequest request) {
         Teacher teacher = findTeacher(teacherId);
 
+        // 1. Person-level fields (users table + Keycloak).
+        User user = teacher.getUser();
+        if (user != null) {
+            userProfileWriter.apply(user, request);
+        }
+
+        if (request.teacherCode() != null && !request.teacherCode().isBlank()) {
+            String code = request.teacherCode().trim();
+            if (!code.equals(teacher.getTeacherCode()) && teacherRepository.existsByTeacherCode(code)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Teacher code already in use: " + code);
+            }
+            teacher.setTeacherCode(code);
+        }
         if (request.specialization() != null) {
             teacher.setSpecialization(request.specialization());
         }
@@ -249,8 +294,8 @@ public class TeacherServiceImpl implements TeacherService {
                 teacher.getTeacherId().toString(),
                 kcUser.getUsername(),
                 kcUser.getEmail(),
-                kcUser.getFirstName(),
-                kcUser.getLastName(),
+                user.resolvedFirstName() != null ? user.resolvedFirstName() : kcUser.getFirstName(),
+                user.resolvedLastName() != null ? user.resolvedLastName() : kcUser.getLastName(),
                 Boolean.TRUE.equals(kcUser.isEnabled()),
                 roles,
                 teacher.getTeacherCode(),

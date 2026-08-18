@@ -3,8 +3,6 @@ package com.universitymanagement.identity.entity;
 import com.universitymanagement.admin.dto.GenderOption;
 import com.universitymanagement.auditing.BasedEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,6 +34,15 @@ public class User extends BasedEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    @Column(name = "name_khmer")
+    private String nameKhmer;
+
     @Column(nullable = false, length = 20)
     private String phoneNumber;
 
@@ -45,6 +52,15 @@ public class User extends BasedEntity {
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
+
+    @Column(name = "id_card_number", length = 50)
+    private String idCardNumber;
+
+    @Column(name = "place_of_birth")
+    private String placeOfBirth;
+
+    @Column(name = "current_address", columnDefinition = "TEXT")
+    private String currentAddress;
 
     @Column(columnDefinition = "TEXT")
     private String address;
@@ -63,4 +79,27 @@ public class User extends BasedEntity {
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
+
+
+    public String resolvedFirstName() {
+        if (firstName != null && !firstName.isBlank()) return firstName;
+        if (fullName == null || fullName.isBlank()) return null;
+        return fullName.trim().split("\\s+")[0];
+    }
+
+    public String resolvedLastName() {
+        if (lastName != null && !lastName.isBlank()) return lastName;
+        if (fullName == null || fullName.isBlank()) return null;
+        String[] parts = fullName.trim().split("\\s+", 2);
+        return parts.length > 1 ? parts[1] : "";
+    }
+
+    public void syncFullName() {
+        String first = firstName == null ? "" : firstName.trim();
+        String last = lastName == null ? "" : lastName.trim();
+        String joined = (first + " " + last).trim();
+        if (!joined.isBlank()) {
+            this.fullName = joined;
+        }
+    }
 }

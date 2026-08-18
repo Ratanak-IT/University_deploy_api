@@ -18,6 +18,11 @@ public record StudentDetailResponse(
         Integer semester,
         LocalDate dob,
         String gender,
+        String nameKhmer,
+        String idCardNumber,
+        String placeOfBirth,
+        String currentAddress,
+        String phoneNumber,
         String avatarUrl,
         String graduationStatus,
         String major

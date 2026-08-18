@@ -1,5 +1,6 @@
 package com.universitymanagement.student.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.universitymanagement.admin.dto.GenderOption;
 import jakarta.validation.constraints.*;
 
@@ -7,6 +8,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record CreateStudentRequest(
+
+        String studentCode,
+
         @NotBlank
         @Email
         String email,
@@ -24,15 +28,33 @@ public record CreateStudentRequest(
         @NotBlank
         String lastName,
 
+        @JsonAlias({"khmerName", "fullNameKhmer"})
+        String nameKhmer,
+
         @NotBlank(message = "Phone number is required")
         @Pattern(regexp = "^\\+?[0-9]{8,15}$")
         String phoneNumber,
 
         @NotNull(message = "Date of birth cannot be null")
+        @JsonAlias({"dob", "birthDate"})
         LocalDate dateOfBirth,
 
         @NotNull(message = "Gender cannot be null")
         GenderOption gender,
+
+        @JsonAlias({"idCard", "nationalId"})
+        String idCardNumber,
+
+        @JsonAlias("birthPlace")
+        String placeOfBirth,
+
+        String currentAddress,
+
+        String address,
+
+        String fatherContact,
+
+        String motherContact,
 
         @NotBlank(message = "Academic year is required")
         String academicYear,

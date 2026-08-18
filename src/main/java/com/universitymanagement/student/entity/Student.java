@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,13 +40,18 @@ public class Student {
     private Integer yearLevel;
 
     private Integer semester;
+
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
+
     private LocalDate dob;
     private String address;
     private String fatherContact;
     private String motherContact;
     private String gender;
+
+    @Column(name = "status", length = 30)
+    private String status = "active";
 
     @Column(name = "graduation_status")
     private String graduationStatus = "enrolled";
@@ -57,6 +61,7 @@ public class Student {
 
     @OneToMany(mappedBy = "student")
     private List<ClassroomStudent> classroomStudents;
+
     @ManyToOne
     private Program program;
 }

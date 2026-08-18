@@ -21,13 +21,16 @@ public class StudentAdminController {
 
     private final StudentService studentService;
 
+
     @ResponseStatus(HttpStatus.OK)
     @GetMapping
     public Page<StudentAdminResponse> getAllStudents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "25") int size,
-            @RequestParam(required = false) String keyword) {
-        return studentService.getAllStudents(page, size, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String search) {
+        String term = (keyword != null && !keyword.isBlank()) ? keyword : search;
+        return studentService.getAllStudents(page, size, term);
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -46,6 +49,13 @@ public class StudentAdminController {
     @PutMapping("/{studentId}")
     public StudentAdminResponse updateStudent(@PathVariable UUID studentId,
                                               @Valid @RequestBody StudentUpdateRequest request) {
+        return studentService.updateStudent(studentId, request);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PatchMapping("/{studentId}")
+    public StudentAdminResponse patchStudent(@PathVariable UUID studentId,
+                                             @Valid @RequestBody StudentUpdateRequest request) {
         return studentService.updateStudent(studentId, request);
     }
 
