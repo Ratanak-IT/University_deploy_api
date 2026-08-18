@@ -129,7 +129,7 @@ public class AssignmentController {
     }
 
     @PatchMapping("/submissions/{submissionId}/grade")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public SubmissionResponse gradeSubmission(
             @PathVariable UUID submissionId,
             @Valid @RequestBody GradeSubmissionRequest request

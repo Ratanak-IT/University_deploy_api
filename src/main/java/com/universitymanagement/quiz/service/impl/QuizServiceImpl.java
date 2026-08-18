@@ -46,7 +46,14 @@ public class QuizServiceImpl implements QuizService {
     @Override
     @Transactional
     public QuizManageResponse createQuiz(CreateQuizRequest request) {
-        Teacher teacher = currentTeacher();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Teacher teacher = null;
+        if (!hasRole(authentication, "ADMIN")) {
+            teacher = currentTeacher();
+        } else {
+            User user = getCurrentUser(authentication);
+            teacher = teacherRepository.findByUserId(user.getId()).orElse(null);
+        }
 
         Quiz quiz = new Quiz();
         quiz.setClassroom(null);
@@ -134,6 +141,17 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     public List<QuizManageResponse> getMyQuizzes() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (hasRole(authentication, "ADMIN")) {
+            return quizRepository.findAll().stream()
+                    .filter(q -> !Boolean.TRUE.equals(q.getIsDeleted()))
+                    .sorted((a, b) -> {
+                        if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+                        return b.getCreatedAt().compareTo(a.getCreatedAt());
+                    })
+                    .map(this::toManageResponse)
+                    .toList();
+        }
         Teacher teacher = currentTeacher();
         return quizRepository
                 .findByCreatedByTeacher_TeacherIdAndIsDeletedFalseOrderByCreatedAtDesc(teacher.getTeacherId())
@@ -172,6 +190,9 @@ public class QuizServiceImpl implements QuizService {
     private Teacher currentTeacher() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = getCurrentUser(authentication);
+        if (hasRole(authentication, "ADMIN")) {
+            return teacherRepository.findByUserId(user.getId()).orElse(null);
+        }
         return teacherRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new TeacherNotFoundException(
                         "Teacher profile not found for current user"));

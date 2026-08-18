@@ -249,9 +249,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (hasRole(auth, "ADMIN")) {
-            if (classroom.getTeacher() == null) {
-                throw new ClassroomHasNoTeacherException(classroom.getClassroomId());
-            }
             return classroom.getTeacher();
         }
 

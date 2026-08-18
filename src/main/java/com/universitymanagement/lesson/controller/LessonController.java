@@ -30,7 +30,7 @@ public class LessonController {
     public LessonResponse createLesson(
             @PathVariable UUID classroomId,
             @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) List<MultipartFile> files
+            @RequestParam(value = "file", required = false) List<MultipartFile> files
     ) {
         return lessonService.createLesson(classroomId, request, files);
     }
@@ -43,7 +43,7 @@ public class LessonController {
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LessonResponse createSavedLesson(
             @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) List<MultipartFile> files
+            @RequestParam(value = "file", required = false) List<MultipartFile> files
     ) {
         return lessonService.createSavedLesson(request, files);
     }
@@ -72,7 +72,7 @@ public class LessonController {
     public LessonResponse updateLessonMultipart(
             @PathVariable UUID lessonId,
             @Valid @RequestPart("lesson") LessonRequest request,
-            @RequestPart(value = "file", required = false) List<MultipartFile> files
+            @RequestParam(value = "file", required = false) List<MultipartFile> files
     ) {
         return lessonService.updateLesson(lessonId, request, files);
     }
