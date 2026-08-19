@@ -14,7 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+        @Index(name = "idx_notification_user", columnList = "user_id, is_read")
+})
 public class Notification {
 
     @Id
@@ -31,12 +33,22 @@ public class Notification {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String message;
 
+    /** GRADE, ASSIGNMENT, CERTIFICATE, ANNOUNCEMENT, ATTENDANCE, MENTION, COMMENT_REPLY */
     @Column(nullable = false, length = 50)
-    private String type; // GRADE, ASSIGNMENT, CERTIFICATE, ANNOUNCEMENT, ATTENDANCE
+    private String type;
 
     private String context;
 
     private String actor;
+
+    @Column(name = "link", length = 500)
+    private String link;
+
+    @Column(name = "resource_type", length = 50)
+    private String resourceType;
+
+    @Column(name = "resource_id")
+    private UUID resourceId;
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;

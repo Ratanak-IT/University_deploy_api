@@ -15,5 +15,10 @@ public interface NotificationService {
 
     long getUnreadCount();
 
-    void createNotification(UUID userId, String title, String message, String type, String context, String actor);
+    void createNotification(UUID userId, String title, String message,
+                            String type, String context, String actor);
+
+    void createNotification(UUID userId, String title, String message,
+                            String type, String context, String actor,
+                            String link, String resourceType, UUID resourceId);
 }

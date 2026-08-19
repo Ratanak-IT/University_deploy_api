@@ -36,6 +36,11 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
+  logging:
+    level:
+      org.springframework.security.web.access: DEBUG
+      org.springframework.security.authorization: TRACE
+
   datasource:
     url: jdbc:postgresql://15.235.209.49:1688/university_db
     username: ratanak
@@ -71,3 +76,5 @@ keycloak:
 server:
   port: 8081
   max-http-request-header-size: 32KB
+
+

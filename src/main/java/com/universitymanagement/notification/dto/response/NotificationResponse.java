@@ -11,6 +11,9 @@ public record NotificationResponse(
         String type,
         String context,
         String actor,
+        String link,
+        String resourceType,
+        UUID resourceId,
         boolean isRead,
         LocalDateTime createdAt
 ) {

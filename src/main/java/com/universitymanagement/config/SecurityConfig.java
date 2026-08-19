@@ -28,10 +28,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Central Security Configuration for University Management System API.
- * Configures OAuth2 JWT authentication, Keycloak role mapping, CORS, CSRF, and HTTP authorization rules.
- */
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -99,8 +96,21 @@ public class SecurityConfig {
                                 HttpMethod.DELETE, "/api/v1/teachers/**", "/api/v1/departments/**", "/api/v1/programs/**", "/api/v1/subjects/**", "/api/v1/curriculums/**"
                         ).hasRole(ADMIN)
 
-                        // 6. Student Submissions & Student Interactive Endpoints
+                        .requestMatchers(
+                                HttpMethod.POST, "/api/v1/assignments/*/submissions"
+                        ).hasRole(STUDENT)
                         .requestMatchers("/api/v1/submissions/**").hasAnyRole(ADMIN, TEACHER, STUDENT)
+
+
+                        .requestMatchers(
+                                "/api/v1/classrooms/*/comments",
+                                "/api/v1/classrooms/*/comments/**",
+                                "/api/v1/classrooms/*/mentionable-members",
+                                "/api/v1/assignments/*/comments",
+                                "/api/v1/assignments/*/comments/**",
+                                "/api/v1/assignments/*/mentionable-members",
+                                "/api/v1/comments/**"
+                        ).hasAnyRole(ADMIN, TEACHER, STUDENT)
 
                         // 7. Teacher & Admin Write Operations (Create, Update, Delete for Academic Resources)
                         .requestMatchers(
