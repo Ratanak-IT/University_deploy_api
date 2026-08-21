@@ -95,6 +95,9 @@ public class AttendanceServiceImpl implements AttendanceService {
                 a.getClassroom().getClassroomId(),
                 a.getClassroom().getClassName(),
                 a.getClassroom().getSubject() != null ? a.getClassroom().getSubject().getSubjectName() : null,
+                a.getStudent() != null ? a.getStudent().getStudentId() : null,
+                a.getStudent() != null ? a.getStudent().getStudentCode() : null,
+                a.getStudent() != null && a.getStudent().getUser() != null ? a.getStudent().getUser().getFullName() : null,
                 a.getAttendanceDate(),
                 a.getStatus(),
                 a.getRemark()

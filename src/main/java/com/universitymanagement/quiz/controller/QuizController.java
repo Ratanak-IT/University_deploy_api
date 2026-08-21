@@ -22,14 +22,14 @@ public class QuizController {
     private final QuizService quizService;
 
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @PostMapping
     public QuizManageResponse createQuiz(@Valid @RequestBody CreateQuizRequest request) {
         return quizService.createQuiz(request);
     }
 
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @PutMapping("/{quizId}/assign-classroom")
     public QuizManageResponse assignToClassroom(@PathVariable UUID quizId,
                                                  @Valid @RequestBody AssignQuizToClassroomRequest request) {
@@ -37,7 +37,7 @@ public class QuizController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @PostMapping("/{quizId}/questions")
     public QuizManageResponse addQuestion(@PathVariable UUID quizId,
                                            @Valid @RequestBody AddQuizQuestionRequest request) {
@@ -52,7 +52,7 @@ public class QuizController {
     }
 
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @PutMapping("/{quizId}")
     public QuizManageResponse updateQuiz(@PathVariable UUID quizId,
                                          @Valid @RequestBody CreateQuizRequest request) {
@@ -60,14 +60,14 @@ public class QuizController {
     }
 
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @GetMapping("/mine")
     public List<QuizManageResponse> getMyQuizzes() {
         return quizService.getMyQuizzes();
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     @DeleteMapping("/{quizId}")
     public void deleteQuiz(@PathVariable UUID quizId) {
         quizService.deleteQuiz(quizId);

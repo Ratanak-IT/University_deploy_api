@@ -152,6 +152,13 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         }
 
         LinkedHashMap<UUID, AcademicRecordSheetResponse.SubjectColumn> subjectsById = new LinkedHashMap<>();
+        for (Classroom offering : offerings) {
+            if (offering.getSubject() != null) {
+                com.universitymanagement.subject.entity.Subject subj = offering.getSubject();
+                subjectsById.putIfAbsent(subj.getSubjectId(), new AcademicRecordSheetResponse.SubjectColumn(
+                        subj.getSubjectId(), subj.getSubjectCode(), subj.getSubjectName()));
+            }
+        }
         List<AcademicRecordSheetResponse.StudentRow> rows = new ArrayList<>();
 
         for (Student student : studentsById.values()) {
@@ -221,6 +228,9 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                         a.getClassroom().getClassName(),
                         a.getClassroom().getSubject() != null
                                 ? a.getClassroom().getSubject().getSubjectName() : null,
+                        a.getStudent() != null ? a.getStudent().getStudentId() : null,
+                        a.getStudent() != null ? a.getStudent().getStudentCode() : null,
+                        a.getStudent() != null && a.getStudent().getUser() != null ? a.getStudent().getUser().getFullName() : null,
                         a.getAttendanceDate(),
                         a.getStatus(),
                         a.getRemark()))

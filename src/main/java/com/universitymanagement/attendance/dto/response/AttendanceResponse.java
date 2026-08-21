@@ -10,8 +10,12 @@ public record AttendanceResponse(
         UUID classroomId,
         String className,
         String subjectName,
+        UUID studentId,
+        String studentCode,
+        String studentName,
         LocalDate attendanceDate,
         AttendanceStatus status,
         String remark
 ) {
 }
+
