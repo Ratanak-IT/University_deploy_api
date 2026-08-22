@@ -29,6 +29,8 @@ public interface ClassroomMapper {
     @Mapping(target = "yearLevel", source = "student.yearLevel")
     @Mapping(target = "semester", source = "student.semester")
     @Mapping(target = "joinedAt", source = "createdAt")
+    // Filled in by the service: building it needs MinIO, not a field copy.
+    @Mapping(target = "avatarUrl", ignore = true)
     ClassroomStudentResponse toStudentResponse(ClassroomStudent classroomStudent);
     void updateEntity(ClassroomUpdateRequest request, @MappingTarget Classroom classroom);
 }

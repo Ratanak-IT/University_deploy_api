@@ -285,8 +285,15 @@ public class TeacherServiceImpl implements TeacherService {
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher profile not found for user: " + id));
 
+        // getAssetPreviewUrl, not getPreviewUrl: the avatar was written to the
+        // assets bucket by uploadMyAvatar()'s call to minioService.uploadAsset(),
+        // but getPreviewUrl signs a URL against the *lessons* bucket instead. The
+        // object doesn't exist there, so the signed URL 404s in the browser even
+        // though the upload itself succeeded. TeacherMapper.toResponse already
+        // gets this right for every other teacher-listing endpoint — this was the
+        // one path that didn't match it.
         String avatarUrl = user.getAvatarObjectName() != null
-                ? minioService.getPreviewUrl(user.getAvatarObjectName())
+                ? minioService.getAssetPreviewUrl(user.getAvatarObjectName())
                 : null;
 
         return new TeacherDetailResponse(

@@ -17,6 +17,7 @@ import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
 import com.universitymanagement.assignment.service.AssignmentService;
 import com.universitymanagement.classroom.entity.Classroom;
+import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.identity.entity.User;
@@ -42,7 +43,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -94,11 +100,43 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment assignment = findAssignment(assignmentId);
         requireTeacherOwnsClassroomOrAdmin(assignment.getClassroom());
 
-        return submissionRepository
-                .findByAssignment_AssignmentIdOrderBySubmittedAtDesc(assignmentId)
-                .stream()
-                .map(this::toSubmissionResponse)
-                .toList();
+        List<Submission> submissions = submissionRepository
+                .findByAssignment_AssignmentIdOrderBySubmittedAtDesc(assignmentId);
+
+        Map<UUID, Submission> byStudent = new LinkedHashMap<>();
+        for (Submission submission : submissions) {
+            byStudent.put(submission.getStudent().getStudentId(), submission);
+        }
+
+        // The roster leads, so a student who never handed in still gets a row.
+        // Returning submissions alone made "who is missing work" unanswerable —
+        // the teacher's screen could only ever list students who had submitted.
+        List<ClassroomStudent> roster = classroomStudentRepository
+                .findRosterWithUser(assignment.getClassroom().getClassroomId());
+
+        List<SubmissionResponse> result = new ArrayList<>(
+                Math.max(roster.size(), submissions.size()));
+        Set<UUID> covered = new HashSet<>();
+
+        for (ClassroomStudent enrolment : roster) {
+            Student student = enrolment.getStudent();
+            covered.add(student.getStudentId());
+
+            Submission submission = byStudent.get(student.getStudentId());
+            result.add(submission != null
+                    ? toSubmissionResponse(submission)
+                    : missingSubmission(assignmentId, student));
+        }
+
+        // Work handed in by someone since removed from the roster must not
+        // vanish: it still exists and may still need a grade.
+        for (Submission submission : submissions) {
+            if (!covered.contains(submission.getStudent().getStudentId())) {
+                result.add(toSubmissionResponse(submission));
+            }
+        }
+
+        return result;
     }
 
     @Override
@@ -208,6 +246,43 @@ public class AssignmentServiceImpl implements AssignmentService {
         );
     }
 
+    /** A roster row for a student with nothing handed in. */
+    private SubmissionResponse missingSubmission(UUID assignmentId, Student student) {
+        return new SubmissionResponse(
+                null,
+                assignmentId,
+                student.getStudentId(),
+                student.getStudentCode(),
+                student.getUser() != null ? student.getUser().getFullName() : null,
+                avatarUrlOf(student),
+                List.of(),
+                null,
+                SubmissionStatus.MISSING,
+                null,
+                null,
+                null
+        );
+    }
+
+    /**
+     * A presigned avatar URL, or null when the student has none.
+     *
+     * <p>A MinIO problem degrades to "no picture" rather than failing the whole
+     * submissions list.
+     */
+    private String avatarUrlOf(Student student) {
+        if (student == null
+                || student.getUser() == null
+                || student.getUser().getAvatarObjectName() == null) {
+            return null;
+        }
+        try {
+            return minioService.getAssetPreviewUrl(student.getUser().getAvatarObjectName());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private SubmissionResponse toSubmissionResponse(Submission s) {
         List<FileResponse> files = s.getFiles().stream()
                 .map(f -> new FileResponse(
@@ -223,6 +298,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 s.getStudent().getStudentId(),
                 s.getStudent().getStudentCode(),
                 s.getStudent().getUser().getFullName(),
+                avatarUrlOf(s.getStudent()),
                 files,
                 s.getSubmittedAt(),
                 s.getStatus(),

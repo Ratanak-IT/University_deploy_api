@@ -12,6 +12,17 @@ public record SubmitQuizAttemptRequest(
 ) {
     public record AnswerItem(
             @NotNull UUID questionId,
+
+            /**
+             * The option the student picked, zero-based.
+             *
+             * <p>Preferred for choice questions. Sending the index rather than
+             * the option's text means grading no longer depends on the two
+             * strings still matching.
+             */
+            Integer selectedOptionIndex,
+
+            /** The typed answer for SHORT_ANSWER, or a legacy text choice. */
             String answer
     ) {
     }

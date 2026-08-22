@@ -27,6 +27,7 @@ import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import com.universitymanagement.quiz.entity.QuestionType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -148,10 +149,10 @@ public class QuizServiceImpl implements QuizService {
         QuizQuestion question = new QuizQuestion();
         question.setQuiz(quiz);
         question.setQuestionText(request.questionText());
-        question.setOptionsJson(writeOptions(request.options()));
-        question.setCorrectAnswer(request.correctAnswer());
         question.setScore(request.score());
         question.setQuestionOrder(nextOrder);
+        applyAnswer(question, request.type(), request.options(),
+                request.correctOptionIndex(), request.correctAnswer());
         quiz.getQuestions().add(question);
 
         return toManageResponse(quizRepository.save(quiz));
@@ -265,10 +266,10 @@ public class QuizServiceImpl implements QuizService {
         QuizQuestion question = new QuizQuestion();
         question.setQuiz(quiz);
         question.setQuestionText(item.questionText());
-        question.setOptionsJson(writeOptions(item.options()));
-        question.setCorrectAnswer(item.correctAnswer());
         question.setScore(item.score());
         question.setQuestionOrder(item.questionOrder() != null ? item.questionOrder() : fallbackOrder);
+        applyAnswer(question, item.type(), item.options(),
+                item.correctOptionIndex(), item.correctAnswer());
         return question;
     }
 
@@ -279,6 +280,87 @@ public class QuizServiceImpl implements QuizService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to serialize options");
         }
+    }
+
+    /**
+     * Writes the options and the correct answer onto a question, refusing
+     * anything that could not be answered correctly.
+     *
+     * <p>This validation lives here rather than in bean annotations because it
+     * is a relationship *between* fields: an index is only meaningful against
+     * the option list it points into. The client already guards this, but a
+     * client-side check is not a control — the API is reachable directly, and
+     * without this a question could be stored whose correct answer matches no
+     * option at all, which no student could ever get right.
+     */
+    private void applyAnswer(QuizQuestion question,
+                             QuestionType requestedType,
+                             List<String> options,
+                             Integer correctOptionIndex,
+                             String correctAnswer) {
+
+        QuestionType type = requestedType != null ? requestedType : QuestionType.MULTIPLE_CHOICE;
+        question.setType(type);
+
+        if (type == QuestionType.SHORT_ANSWER) {
+            if (correctAnswer == null || correctAnswer.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "A short-answer question needs a correct answer.");
+            }
+            question.setOptionsJson(writeOptions(List.of()));
+            question.setCorrectOptionIndex(null);
+            question.setCorrectAnswer(correctAnswer.trim());
+            return;
+        }
+
+        List<String> cleaned = options == null
+                ? List.of()
+                : options.stream()
+                        .filter(o -> o != null && !o.isBlank())
+                        .map(String::trim)
+                        .toList();
+
+        if (cleaned.size() < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A choice question needs at least two options.");
+        }
+        if (type == QuestionType.TRUE_FALSE && cleaned.size() != 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A true/false question needs exactly two options.");
+        }
+
+        Integer index = correctOptionIndex;
+
+        // No index sent: fall back to locating the answer's text, so a client
+        // written against the old contract keeps working.
+        if (index == null && correctAnswer != null && !correctAnswer.isBlank()) {
+            String wanted = correctAnswer.trim();
+            for (int i = 0; i < cleaned.size(); i++) {
+                if (cleaned.get(i).equalsIgnoreCase(wanted)) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "The correct answer \"" + wanted + "\" is not one of the options.");
+            }
+        }
+
+        if (index == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A choice question needs correctOptionIndex.");
+        }
+        if (index < 0 || index >= cleaned.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "correctOptionIndex " + index + " is outside the "
+                            + cleaned.size() + " options supplied.");
+        }
+
+        question.setOptionsJson(writeOptions(cleaned));
+        question.setCorrectOptionIndex(index);
+        // Mirror kept in step with the index so exports stay readable.
+        question.setCorrectAnswer(cleaned.get(index));
     }
 
     private List<String> readOptions(String optionsJson) {
@@ -303,7 +385,9 @@ public class QuizServiceImpl implements QuizService {
                         q.getQuestionId(),
                         q.getQuestionText(),
                         readOptions(q.getOptionsJson()),
+                        q.getCorrectOptionIndex(),
                         q.getCorrectAnswer(),
+                        q.getType(),
                         q.getScore(),
                         q.getQuestionOrder()))
                 .toList();

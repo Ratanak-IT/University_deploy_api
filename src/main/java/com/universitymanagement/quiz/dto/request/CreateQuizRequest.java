@@ -2,6 +2,7 @@ package com.universitymanagement.quiz.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import com.universitymanagement.quiz.entity.QuestionType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -29,10 +30,15 @@ public record CreateQuizRequest(
             @NotBlank(message = "Question text is required")
             String questionText,
 
-            @NotEmpty(message = "Options cannot be empty")
             List<String> options,
 
-            @NotBlank(message = "Correct answer is required")
+            /** Zero-based index of the correct option; wins over the text form. */
+            Integer correctOptionIndex,
+
+            /** Defaults to MULTIPLE_CHOICE when omitted. */
+            QuestionType type,
+
+            /** Required for SHORT_ANSWER; a fallback locator for choice questions. */
             String correctAnswer,
 
             @NotNull(message = "Score is required")

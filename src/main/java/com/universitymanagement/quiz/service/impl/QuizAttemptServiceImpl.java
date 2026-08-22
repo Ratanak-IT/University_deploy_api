@@ -105,21 +105,22 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
         List<QuizQuestion> questions =
                 quizQuestionRepository.findByQuiz_QuizIdOrderByQuestionOrderAsc(quizId);
-        Map<UUID, String> submitted = new HashMap<>();
-        request.answers().forEach(a -> submitted.put(a.questionId(), a.answer()));
+        Map<UUID, SubmitQuizAttemptRequest.AnswerItem> submitted = new HashMap<>();
+        request.answers().forEach(a -> submitted.put(a.questionId(), a));
 
         double earned = 0.0;
         attempt.getAnswers().clear();
         for (QuizQuestion question : questions) {
-            String answer = submitted.get(question.getQuestionId());
-            boolean correct = !expired
-                    && answer != null
-                    && answer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim());
+            SubmitQuizAttemptRequest.AnswerItem item = submitted.get(question.getQuestionId());
+            String answer = item != null ? item.answer() : null;
+            Integer picked = item != null ? item.selectedOptionIndex() : null;
+
+            boolean correct = !expired && isCorrect(question, picked, answer);
 
             QuizAttemptAnswer attemptAnswer = new QuizAttemptAnswer();
             attemptAnswer.setAttempt(attempt);
             attemptAnswer.setQuestion(question);
-            attemptAnswer.setAnswer(answer);
+            attemptAnswer.setAnswer(answerText(question, picked, answer));
             attemptAnswer.setIsCorrect(correct);
             attemptAnswer.setEarnedScore(correct ? question.getScore() : 0.0);
             attempt.getAnswers().add(attemptAnswer);
@@ -140,6 +141,69 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         QuizAttempt attempt = findAttempt(attemptId, quizId, studentId);
         boolean showAnswers = attempt.getStatus() != AttemptStatus.IN_PROGRESS;
         return toAttemptResponse(attempt, !showAnswers, showAnswers);
+    }
+
+    /**
+     * Whether an answer earns its marks.
+     *
+     * <p>Choice questions are decided on the index, so rewording an option can
+     * no longer silently invalidate every answer. The text path is kept only
+     * for clients that still submit the option's label, and for SHORT_ANSWER
+     * where text is all there is.
+     */
+    private boolean isCorrect(QuizQuestion question, Integer picked, String answer) {
+        if (question.getType() == QuestionType.SHORT_ANSWER) {
+            return answer != null
+                    && question.getCorrectAnswer() != null
+                    && answer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim());
+        }
+
+        Integer correctIndex = question.getCorrectOptionIndex();
+
+        if (picked != null && correctIndex != null) {
+            return picked.intValue() == correctIndex.intValue();
+        }
+
+        // Older client sent the option text: resolve it to an index rather than
+        // comparing against the stored label, which may since have been edited.
+        if (answer != null && correctIndex != null) {
+            List<String> options = readOptions(question.getOptionsJson());
+            String wanted = answer.trim();
+            for (int i = 0; i < options.size(); i++) {
+                if (options.get(i).trim().equalsIgnoreCase(wanted)) {
+                    return i == correctIndex.intValue();
+                }
+            }
+            return false;
+        }
+
+        // Nothing indexed yet (a row the migration could not resolve): fall
+        // back to the historical text comparison rather than failing everyone.
+        return answer != null
+                && question.getCorrectAnswer() != null
+                && answer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim());
+    }
+
+    /** What to record as the student's answer, for the result screen. */
+    private String answerText(QuizQuestion question, Integer picked, String answer) {
+        if (picked != null && question.getType() != QuestionType.SHORT_ANSWER) {
+            List<String> options = readOptions(question.getOptionsJson());
+            if (picked >= 0 && picked < options.size()) {
+                return options.get(picked);
+            }
+        }
+        return answer;
+    }
+
+    private List<String> readOptions(String optionsJson) {
+        if (optionsJson == null || optionsJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(optionsJson, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     private Quiz findQuiz(UUID quizId) {
@@ -258,6 +322,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 question.getQuestionId(),
                 question.getQuestionText(),
                 options,
+                question.getType(),
                 question.getScore(),
                 question.getQuestionOrder()
         );

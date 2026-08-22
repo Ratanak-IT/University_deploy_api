@@ -17,6 +17,9 @@ public record ClassroomMemberResponse(
 
         LocalDateTime joinedAt,
 
-        MemberStatus status
+        MemberStatus status,
+
+        /** Presigned MinIO URL for the member's avatar. Null when unset. */
+        String avatarUrl
 ) {
 }

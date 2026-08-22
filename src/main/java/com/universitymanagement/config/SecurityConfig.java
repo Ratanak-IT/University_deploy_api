@@ -86,6 +86,19 @@ public class SecurityConfig {
                                 "/api/v1/subjects", "/api/v1/subjects/**"
                         ).permitAll()
 
+                        // 4b. A teacher's own self-service sub-resources under /teachers/me/**
+                        // (currently just the avatar upload). This has to be matched
+                        // before rule 5 below: that rule locks every other POST under
+                        // /api/v1/teachers/** to ADMIN, and Spring evaluates matchers
+                        // in order, first match wins. Without this carve-out, a
+                        // teacher POSTing to their own /teachers/me/avatar got a 403
+                        // from this filter chain before the request ever reached
+                        // TeacherController's @PreAuthorize("hasRole('TEACHER')") --
+                        // the method-level annotation never got a chance to run.
+                        .requestMatchers(
+                                HttpMethod.POST, "/api/v1/teachers/me/**"
+                        ).hasAnyRole(TEACHER, ADMIN)
+
                         // 5. Admin-Only Management Endpoints
                         .requestMatchers(
                                 "/api/v1/users/**",

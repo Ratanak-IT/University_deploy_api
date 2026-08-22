@@ -11,6 +11,9 @@ public record ClassroomStudentResponse(
         String email,
         Integer yearLevel,
         Integer semester,
-        LocalDateTime joinedAt
+        LocalDateTime joinedAt,
+
+        /** Presigned MinIO URL for the student's avatar. Null when unset. */
+        String avatarUrl
 ) {
 }

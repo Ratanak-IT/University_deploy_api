@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-22T12:10:34+0700",
+    date = "2026-08-23T00:41:26+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -119,7 +119,9 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         semester = classroomStudentStudentSemester( classroomStudent );
         joinedAt = classroomStudent.getCreatedAt();
 
-        ClassroomStudentResponse classroomStudentResponse = new ClassroomStudentResponse( studentId, studentCode, fullName, email, yearLevel, semester, joinedAt );
+        String avatarUrl = null;
+
+        ClassroomStudentResponse classroomStudentResponse = new ClassroomStudentResponse( studentId, studentCode, fullName, email, yearLevel, semester, joinedAt, avatarUrl );
 
         return classroomStudentResponse;
     }

@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.universitymanagement.quiz.entity.QuestionType;
+
 public record QuizManageResponse(
         UUID quizId,
 
@@ -30,7 +32,10 @@ public record QuizManageResponse(
             UUID questionId,
             String questionText,
             List<String> options,
+            /** Zero-based index of the correct option; null for SHORT_ANSWER. */
+            Integer correctOptionIndex,
             String correctAnswer,
+            QuestionType type,
             Double score,
             Integer questionOrder
     ) {

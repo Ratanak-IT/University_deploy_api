@@ -37,6 +37,7 @@ import com.universitymanagement.subject.repository.SubjectRepository;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
+import com.universitymanagement.minio.MinioService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +77,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final SubjectRepository subjectRepository;
     private final ProgramRepository programRepository;
     private final UserRepository userRepository;
+    private final MinioService minioService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String INVITE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -195,7 +197,7 @@ public class ClassroomServiceImpl implements ClassroomService {
         checkTeacherOwnsClassroomIfTeacher(classroom);
 
         return classroomMemberRepository
-                .findByClassroom_ClassroomIdAndRoleAndStatus(
+                .findMembersWithUser(
                         classroomId, ClassroomRole.TEACHER, MemberStatus.ACTIVE)
                 .stream()
                 .map(this::toMemberResponse)
@@ -297,10 +299,48 @@ public class ClassroomServiceImpl implements ClassroomService {
         Classroom classroom = findClassroom(classroomId);
         checkTeacherOwnsClassroomIfTeacher(classroom);
 
-        return classroomStudentRepository.findByClassroom_ClassroomId(classroomId)
+        return classroomStudentRepository.findRosterWithUser(classroomId)
                 .stream()
-                .map(classroomMapper::toStudentResponse)
+                .map(cs -> {
+                    ClassroomStudentResponse base = classroomMapper.toStudentResponse(cs);
+                    return new ClassroomStudentResponse(
+                            base.studentId(),
+                            base.studentCode(),
+                            base.fullName(),
+                            base.email(),
+                            base.yearLevel(),
+                            base.semester(),
+                            base.joinedAt(),
+                            avatarUrlOf(cs.getStudent()));
+                })
                 .toList();
+    }
+
+    /**
+     * A presigned avatar URL, or null when the student has none.
+     *
+     * <p>A broken or missing avatar must never fail the roster request, so a
+     * MinIO problem degrades to "no picture" rather than a 500.
+     */
+    private String avatarUrlOf(Student student) {
+        return student == null ? null : avatarUrlOf(student.getUser());
+    }
+
+    /**
+     * A presigned avatar URL, or null when the user has none.
+     *
+     * <p>A broken or missing avatar must never fail the request it rode in on,
+     * so a MinIO problem degrades to "no picture" rather than a 500.
+     */
+    private String avatarUrlOf(User user) {
+        if (user == null || user.getAvatarObjectName() == null) {
+            return null;
+        }
+        try {
+            return minioService.getAssetPreviewUrl(user.getAvatarObjectName());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
@@ -395,7 +435,8 @@ public class ClassroomServiceImpl implements ClassroomService {
                 user.getEmail(),
                 member.getRole(),
                 member.getJoinedAt(),
-                member.getStatus()
+                member.getStatus(),
+                avatarUrlOf(user)
         );
     }
 
