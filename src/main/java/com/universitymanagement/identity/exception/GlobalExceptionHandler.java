@@ -891,4 +891,68 @@ public class GlobalExceptionHandler {
                         "SCR-400-ENR",
                         request));
     }
+
+    @ExceptionHandler(com.universitymanagement.grading.exception.InvalidGradingSchemeException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidGradingScheme(
+            com.universitymanagement.grading.exception.InvalidGradingSchemeException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid grading scheme: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildProblemDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid Grading Policy",
+                        ex.getMessage(),
+                        "GRD-400",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.grading.exception.GradeComponentNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleGradeComponentNotFound(
+            com.universitymanagement.grading.exception.GradeComponentNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Grade component not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Grade Component Not Found",
+                        ex.getMessage(),
+                        "GRD-404-CMP",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.grading.exception.AssessmentNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAssessmentNotFound(
+            com.universitymanagement.grading.exception.AssessmentNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Assessment not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Assessment Not Found",
+                        ex.getMessage(),
+                        "GRD-404-ASM",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.grading.exception.GradeLockedException.class)
+    public ResponseEntity<ProblemDetail> handleGradeLocked(
+            com.universitymanagement.grading.exception.GradeLockedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Grade locked: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Grades Locked",
+                        ex.getMessage(),
+                        "GRD-409-LOCK",
+                        request));
+    }
 }

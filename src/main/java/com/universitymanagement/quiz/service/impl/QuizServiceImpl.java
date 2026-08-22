@@ -10,12 +10,16 @@ import com.universitymanagement.identity.repository.UserRepository;
 import com.universitymanagement.quiz.dto.request.AddQuizQuestionRequest;
 import com.universitymanagement.quiz.dto.request.AssignQuizToClassroomRequest;
 import com.universitymanagement.quiz.dto.request.CreateQuizRequest;
+import com.universitymanagement.quiz.dto.response.QuizClassroomResponse;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 import com.universitymanagement.quiz.entity.Quiz;
+import com.universitymanagement.quiz.entity.QuizAssignment;
 import com.universitymanagement.quiz.entity.QuizQuestion;
 import com.universitymanagement.quiz.exception.QuizAccessDeniedException;
 import com.universitymanagement.quiz.exception.QuizClassroomNotFoundException;
 import com.universitymanagement.quiz.exception.QuizNotFoundException;
+import com.universitymanagement.quiz.repository.QuizAssignmentRepository;
+import com.universitymanagement.quiz.repository.QuizAttemptRepository;
 import com.universitymanagement.quiz.repository.QuizRepository;
 import com.universitymanagement.quiz.service.QuizService;
 import com.universitymanagement.teacher.entity.Teacher;
@@ -31,13 +35,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class QuizServiceImpl implements QuizService {
 
     private final QuizRepository quizRepository;
+    private final QuizAssignmentRepository assignmentRepository;
+    private final QuizAttemptRepository attemptRepository;
     private final ClassroomRepository classroomRepository;
     private final TeacherRepository teacherRepository;
     private final UserRepository userRepository;
@@ -80,12 +88,53 @@ public class QuizServiceImpl implements QuizService {
     @Transactional
     public QuizManageResponse assignToClassroom(UUID quizId, AssignQuizToClassroomRequest request) {
         Quiz quiz = findOwnedQuiz(quizId);
-        Classroom classroom = classroomRepository.findById(request.classroomId())
-                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
-                .orElseThrow(() -> new QuizClassroomNotFoundException(request.classroomId()));
 
-        quiz.setClassroom(classroom);
-        return toManageResponse(quizRepository.save(quiz));
+        List<AssignQuizToClassroomRequest.ClassroomRelease> releases = request.releases();
+        if (releases.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Pick at least one classroom to release this quiz to.");
+        }
+
+        List<QuizAssignment> existing = assignmentRepository.findByQuizWithClassroom(quizId);
+        Set<UUID> keep = releases.stream()
+                .map(AssignQuizToClassroomRequest.ClassroomRelease::classroomId)
+                .collect(Collectors.toSet());
+
+        // Pulling a quiz from a section it was never released to is a no-op, but
+        // pulling it from one where students have already sat it would strand
+        // their attempts — so that is refused rather than silently discarded.
+        for (QuizAssignment assignment : existing) {
+            UUID classroomId = assignment.getClassroom().getClassroomId();
+            if (keep.contains(classroomId)) {
+                continue;
+            }
+            long attempts = attemptRepository.countByQuiz_QuizIdAndClassroom(quizId, classroomId);
+            if (attempts > 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "\"" + assignment.getClassroom().getClassName() + "\" already has "
+                                + attempts + " attempt(s) on this quiz and cannot be removed.");
+            }
+            assignmentRepository.delete(assignment);
+        }
+
+        for (AssignQuizToClassroomRequest.ClassroomRelease release : releases) {
+            Classroom classroom = classroomRepository.findById(release.classroomId())
+                    .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                    .orElseThrow(() -> new QuizClassroomNotFoundException(release.classroomId()));
+
+            QuizAssignment assignment = assignmentRepository
+                    .findByQuiz_QuizIdAndClassroom_ClassroomId(quizId, release.classroomId())
+                    .orElseGet(QuizAssignment::new);
+
+            assignment.setQuiz(quiz);
+            assignment.setClassroom(classroom);
+            assignment.setAvailableFrom(release.availableFrom());
+            assignment.setAvailableTo(release.availableTo());
+
+            assignmentRepository.save(assignment);
+        }
+
+        return toManageResponse(quiz);
     }
 
     @Override
@@ -166,6 +215,7 @@ public class QuizServiceImpl implements QuizService {
         Quiz quiz = findOwnedQuiz(quizId);
         quiz.setIsDeleted(true);
         quizRepository.save(quiz);
+        assignmentRepository.deleteByQuiz_QuizId(quizId);
     }
 
 
@@ -258,17 +308,34 @@ public class QuizServiceImpl implements QuizService {
                         q.getQuestionOrder()))
                 .toList();
 
+        List<QuizClassroomResponse> classrooms = assignmentRepository
+                .findByQuizWithClassroom(quiz.getQuizId())
+                .stream()
+                .map(a -> new QuizClassroomResponse(
+                        a.getAssignmentId(),
+                        a.getClassroom().getClassroomId(),
+                        a.getClassroom().getClassName(),
+                        a.getClassroom().getClassCode(),
+                        a.getClassroom().getSubject() != null
+                                ? a.getClassroom().getSubject().getSubjectName() : null,
+                        a.getAvailableFrom(),
+                        a.getAvailableTo()))
+                .toList();
+
+        QuizClassroomResponse first = classrooms.isEmpty() ? null : classrooms.getFirst();
+
         return new QuizManageResponse(
                 quiz.getQuizId(),
-                quiz.getClassroom() != null ? quiz.getClassroom().getClassroomId() : null,
-                quiz.getClassroom() != null ? quiz.getClassroom().getClassName() : null,
+                first != null ? first.classroomId() : null,
+                first != null ? first.className() : null,
+                classrooms,
                 quiz.getTitle(),
                 quiz.getDescription(),
                 quiz.getStartAt(),
                 quiz.getEndAt(),
                 quiz.getDurationMinutes(),
                 quiz.getMaxAttempts(),
-                quiz.getClassroom() != null ? "PUBLISHED" : "DRAFT",
+                classrooms.isEmpty() ? "DRAFT" : "PUBLISHED",
                 questions
         );
     }

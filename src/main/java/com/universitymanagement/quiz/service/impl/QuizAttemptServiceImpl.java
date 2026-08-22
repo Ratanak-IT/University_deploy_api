@@ -16,6 +16,8 @@ import com.universitymanagement.quiz.exception.QuizWindowClosedException;
 import com.universitymanagement.quiz.exception.StudentNotEnrolledInQuizException;
 import com.universitymanagement.quiz.repository.QuizAttemptRepository;
 import com.universitymanagement.quiz.repository.QuizQuestionRepository;
+import com.universitymanagement.quiz.entity.QuizAssignment;
+import com.universitymanagement.quiz.repository.QuizAssignmentRepository;
 import com.universitymanagement.quiz.repository.QuizRepository;
 import com.universitymanagement.quiz.service.QuizAttemptService;
 import com.universitymanagement.student.entity.Student;
@@ -37,16 +39,16 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     private final QuizRepository quizRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final QuizAttemptRepository quizAttemptRepository;
-    private final ClassroomStudentRepository classroomStudentRepository;
+    private final QuizAssignmentRepository assignmentRepository;
     private final StudentAccessGuard accessGuard;
     private final ObjectMapper objectMapper;
 
     @Override
     public List<QuizResponse> getQuizzesForStudent(UUID studentId) {
         accessGuard.requireSelfOrStaff(studentId);
-        return quizRepository.findAllForStudent(studentId)
+        return assignmentRepository.findAllForStudent(studentId)
                 .stream()
-                .map(quiz -> toQuizResponse(quiz, studentId))
+                .map(assignment -> toQuizResponse(assignment, studentId))
                 .toList();
     }
 
@@ -55,13 +57,16 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     public QuizAttemptResponse startAttempt(UUID studentId, UUID quizId) {
         Student student = accessGuard.requireSelf(studentId);
         Quiz quiz = findQuiz(quizId);
-        requireEnrolled(quiz, studentId);
+        QuizAssignment release = requireRelease(quiz, studentId);
 
         LocalDateTime now = LocalDateTime.now();
-        if (quiz.getStartAt() != null && now.isBefore(quiz.getStartAt())) {
+        LocalDateTime opensAt = release.effectiveFrom();
+        LocalDateTime closesAt = release.effectiveTo();
+
+        if (opensAt != null && now.isBefore(opensAt)) {
             throw new QuizWindowClosedException(quizId, "quiz has not started yet");
         }
-        if (quiz.getEndAt() != null && now.isAfter(quiz.getEndAt())) {
+        if (closesAt != null && now.isAfter(closesAt)) {
             throw new QuizWindowClosedException(quizId, "quiz window is already closed");
         }
 
@@ -149,13 +154,22 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 .orElseThrow(() -> new QuizAttemptNotFoundException(attemptId));
     }
 
+    /**
+     * The release this student sits under. A student enrolled in two sections
+     * that both received the quiz gets the most generous window, since either
+     * would let them in on its own.
+     */
+    private QuizAssignment requireRelease(Quiz quiz, UUID studentId) {
+        return assignmentRepository.findForStudentAndQuiz(quiz.getQuizId(), studentId)
+                .stream()
+                .max(java.util.Comparator.comparing(
+                        QuizAssignment::effectiveTo,
+                        java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+                .orElseThrow(() -> new StudentNotEnrolledInQuizException(studentId, quiz.getQuizId()));
+    }
+
     private void requireEnrolled(Quiz quiz, UUID studentId) {
-        boolean enrolled = classroomStudentRepository
-                .existsByClassroom_ClassroomIdAndStudent_StudentId(
-                        quiz.getClassroom().getClassroomId(), studentId);
-        if (!enrolled) {
-            throw new StudentNotEnrolledInQuizException(studentId, quiz.getQuizId());
-        }
+        requireRelease(quiz, studentId);
     }
 
     private Double sumTotalScore(UUID quizId) {
@@ -165,7 +179,8 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 .sum();
     }
 
-    private QuizResponse toQuizResponse(Quiz quiz, UUID studentId) {
+    private QuizResponse toQuizResponse(QuizAssignment release, UUID studentId) {
+        Quiz quiz = release.getQuiz();
         long used = quizAttemptRepository
                 .countByQuiz_QuizIdAndStudent_StudentId(quiz.getQuizId(), studentId);
         Double best = quizAttemptRepository
@@ -179,14 +194,14 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
         return new QuizResponse(
                 quiz.getQuizId(),
-                quiz.getClassroom().getClassroomId(),
-                quiz.getClassroom().getClassName(),
-                quiz.getClassroom().getSubject() != null
-                        ? quiz.getClassroom().getSubject().getSubjectName() : null,
+                release.getClassroom().getClassroomId(),
+                release.getClassroom().getClassName(),
+                release.getClassroom().getSubject() != null
+                        ? release.getClassroom().getSubject().getSubjectName() : null,
                 quiz.getTitle(),
                 quiz.getDescription(),
-                quiz.getStartAt(),
-                quiz.getEndAt(),
+                release.effectiveFrom(),
+                release.effectiveTo(),
                 quiz.getDurationMinutes(),
                 quiz.getMaxAttempts(),
                 used,

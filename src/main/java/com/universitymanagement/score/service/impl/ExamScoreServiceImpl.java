@@ -1,170 +1,202 @@
 package com.universitymanagement.score.service.impl;
 
 import com.universitymanagement.classroom.entity.Classroom;
-import com.universitymanagement.classroom.repository.ClassroomRepository;
-import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
-import com.universitymanagement.identity.entity.User;
-import com.universitymanagement.identity.exception.UserNotFoundException;
-import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.grading.entity.Assessment;
+import com.universitymanagement.grading.entity.AssessmentScore;
+import com.universitymanagement.grading.entity.ComponentSource;
+import com.universitymanagement.grading.entity.GradeComponent;
+import com.universitymanagement.grading.entity.ScoreStatus;
+import com.universitymanagement.grading.repository.AssessmentRepository;
+import com.universitymanagement.grading.repository.AssessmentScoreRepository;
+import com.universitymanagement.grading.security.ClassroomGradeGuard;
+import com.universitymanagement.grading.service.GradeSchemeService;
 import com.universitymanagement.score.dto.request.SetExamScoresRequest;
 import com.universitymanagement.score.dto.response.ExamScoreResponse;
-import com.universitymanagement.score.entity.ExamScore;
+import com.universitymanagement.score.entity.ExamType;
 import com.universitymanagement.score.exception.InvalidExamScoreException;
 import com.universitymanagement.score.exception.StudentNotInClassroomException;
-import com.universitymanagement.score.repository.ExamScoreRepository;
 import com.universitymanagement.score.service.ExamScoreService;
+import com.universitymanagement.classroom.entity.ClassroomStudent;
+import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.student.entity.Student;
-import com.universitymanagement.student.repository.StudentRepository;
 import com.universitymanagement.teacher.entity.Teacher;
-import com.universitymanagement.teacher.repository.TeacherRepository;
-import com.universitymanagement.assignment.exception.AssignmentClassroomNotFoundException;
-import com.universitymanagement.assignment.exception.ClassroomHasNoTeacherException;
-import com.universitymanagement.assignment.exception.NotClassroomTeacherException;
-import com.universitymanagement.assignment.exception.TeacherProfileNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Compatibility layer over the old flat exam-score API.
+ *
+ * <p>It now reads and writes the gradebook rather than its own table, so the
+ * two can no longer disagree. Exam types that the gradebook derives from
+ * another module — assignments, quizzes, attendance — are refused here instead
+ * of being written a second time under a different weight.
+ *
+ * @deprecated use the classroom gradebook endpoints; this exists so older
+ * clients keep working through the transition.
+ */
+@Deprecated
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ExamScoreServiceImpl implements ExamScoreService {
 
-    private final ExamScoreRepository examScoreRepository;
-    private final ClassroomRepository classroomRepository;
+    /** Exam types that map onto a manual component of the default scheme. */
+    private static final Map<ExamType, String> MANUAL_COMPONENTS = Map.of(
+            ExamType.MIDTERM, "Midterm",
+            ExamType.FINAL, "Final Exam");
+
+    private static final Map<ExamType, String> DERIVED_ELSEWHERE = Map.of(
+            ExamType.ASSIGNMENT, "the assignments module",
+            ExamType.QUIZ, "the quizzes module",
+            ExamType.ATTENDANCE, "the attendance register");
+
+    private final ClassroomGradeGuard guard;
+    private final GradeSchemeService schemeService;
+    private final AssessmentRepository assessmentRepository;
+    private final AssessmentScoreRepository scoreRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
-    private final StudentRepository studentRepository;
-    private final TeacherRepository teacherRepository;
-    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public List<ExamScoreResponse> setScores(UUID classroomId, SetExamScoresRequest request) {
-        Classroom classroom = findClassroom(classroomId);
-        Teacher teacher = requireTeacherOwnsClassroom(classroom);
+        Classroom classroom = guard.requireClassroom(classroomId);
+        Teacher teacher = guard.requireGrader(classroom);
 
-        List<ExamScore> saved = request.scores().stream()
-                .map(item -> {
-                    if (item.score() > request.maxScore()) {
-                        throw new InvalidExamScoreException(
-                                "Score " + item.score() + " exceeds maxScore " + request.maxScore()
-                                        + " for student " + item.studentId());
-                    }
+        String derivedFrom = DERIVED_ELSEWHERE.get(request.examType());
+        if (derivedFrom != null) {
+            throw new InvalidExamScoreException(
+                    request.examType() + " scores are derived from " + derivedFrom
+                            + " and can no longer be typed in here.");
+        }
 
-                    Student student = studentRepository.findById(item.studentId())
-                            .orElseThrow(() -> new StudentNotInClassroomException(
-                                    item.studentId(), classroomId));
+        String componentName = MANUAL_COMPONENTS.get(request.examType());
+        if (componentName == null) {
+            throw new InvalidExamScoreException(
+                    "Exam type " + request.examType() + " has no fixed place in the grading policy. "
+                            + "Add a column to the classroom gradebook instead.");
+        }
 
-                    boolean enrolled = classroomStudentRepository
-                            .existsByClassroom_ClassroomIdAndStudent_StudentId(
-                                    classroomId, student.getStudentId());
-                    if (!enrolled) {
-                        throw new StudentNotInClassroomException(student.getStudentId(), classroomId);
-                    }
+        Assessment assessment = resolveAssessment(classroom, componentName, request.maxScore());
 
-                    ExamScore examScore = examScoreRepository
-                            .findByStudent_StudentIdAndClassroom_ClassroomIdAndExamType(
-                                    student.getStudentId(), classroomId, request.examType())
-                            .orElseGet(ExamScore::new);
+        Map<UUID, Student> roster = new HashMap<>();
+        for (ClassroomStudent link : classroomStudentRepository
+                .findByClassroom_ClassroomId(classroomId)) {
+            if (link.getStudent() != null) {
+                roster.put(link.getStudent().getStudentId(), link.getStudent());
+            }
+        }
 
-                    examScore.setStudent(student);
-                    examScore.setClassroom(classroom);
-                    examScore.setExamType(request.examType());
-                    examScore.setScore(item.score());
-                    examScore.setMaxScore(request.maxScore());
-                    examScore.setEnteredByTeacher(teacher);
+        List<ExamScoreResponse> saved = new ArrayList<>();
+        for (SetExamScoresRequest.StudentScore item : request.scores()) {
+            if (item.score() > request.maxScore()) {
+                throw new InvalidExamScoreException(
+                        "Score " + item.score() + " exceeds maxScore " + request.maxScore()
+                                + " for student " + item.studentId());
+            }
 
-                    return examScoreRepository.save(examScore);
-                })
-                .toList();
+            Student student = roster.get(item.studentId());
+            if (student == null) {
+                throw new StudentNotInClassroomException(item.studentId(), classroomId);
+            }
 
-        return saved.stream().map(this::toResponse).toList();
+            AssessmentScore score = scoreRepository
+                    .findByAssessment_AssessmentIdAndStudent_StudentId(
+                            assessment.getAssessmentId(), student.getStudentId())
+                    .orElseGet(AssessmentScore::new);
+
+            score.setAssessment(assessment);
+            score.setStudent(student);
+            score.setScore(item.score());
+            score.setStatus(ScoreStatus.GRADED);
+            score.setGradedByTeacher(teacher);
+            score.setGradedAt(LocalDateTime.now());
+
+            saved.add(toResponse(classroomId, request.examType(),
+                    scoreRepository.save(score), assessment));
+        }
+        return saved;
     }
 
     @Override
     public List<ExamScoreResponse> getScoresByClassroom(UUID classroomId) {
-        Classroom classroom = findClassroom(classroomId);
-        requireTeacherOwnsClassroomOrAdmin(classroom);
+        Classroom classroom = guard.requireClassroom(classroomId);
+        guard.requireReader(classroom);
 
-        return examScoreRepository
-                .findByClassroom_ClassroomId(classroomId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        List<ExamScoreResponse> responses = new ArrayList<>();
+        for (AssessmentScore score : scoreRepository.findByClassroom(classroomId)) {
+            Assessment assessment = score.getAssessment();
+            responses.add(toResponse(classroomId,
+                    examTypeOf(assessment.getComponent()), score, assessment));
+        }
+        return responses;
     }
 
     // ---- helpers ----
 
-    private ExamScoreResponse toResponse(ExamScore e) {
+    private Assessment resolveAssessment(Classroom classroom, String componentName, Double maxScore) {
+        GradeComponent component = schemeService.ensureScheme(classroom).stream()
+                .filter(c -> c.getSource() == ComponentSource.MANUAL)
+                .filter(c -> c.getName().equalsIgnoreCase(componentName))
+                .findFirst()
+                .orElseThrow(() -> new InvalidExamScoreException(
+                        "This classroom's grading policy has no manual \"" + componentName
+                                + "\" component. Edit the policy in the gradebook first."));
+
+        List<Assessment> assessments = assessmentRepository
+                .findByComponent_ComponentIdAndIsDeletedFalseOrderByPositionAsc(
+                        component.getComponentId());
+
+        // The old API had one score per exam type, so it maps onto exactly one
+        // column. If the teacher has since split the component into several,
+        // there is no unambiguous target and they should use the gradebook.
+        if (assessments.size() > 1) {
+            throw new InvalidExamScoreException(
+                    "\"" + component.getName() + "\" now has " + assessments.size()
+                            + " columns. Enter these scores in the gradebook instead.");
+        }
+
+        Assessment assessment = assessments.isEmpty() ? new Assessment() : assessments.getFirst();
+        if (assessments.isEmpty()) {
+            assessment.setComponent(component);
+            assessment.setTitle(component.getName());
+            assessment.setPosition(0);
+        }
+        assessment.setMaxScore(maxScore);
+        return assessmentRepository.save(assessment);
+    }
+
+    private ExamType examTypeOf(GradeComponent component) {
+        return switch (component.getSource()) {
+            case ASSIGNMENT -> ExamType.ASSIGNMENT;
+            case QUIZ -> ExamType.QUIZ;
+            case ATTENDANCE -> ExamType.ATTENDANCE;
+            case MANUAL -> MANUAL_COMPONENTS.entrySet().stream()
+                    .filter(e -> e.getValue().equalsIgnoreCase(component.getName()))
+                    .map(Map.Entry::getKey)
+                    .findFirst()
+                    .orElse(ExamType.OTHER);
+        };
+    }
+
+    private ExamScoreResponse toResponse(UUID classroomId, ExamType examType,
+                                         AssessmentScore score, Assessment assessment) {
+        Student student = score.getStudent();
         return new ExamScoreResponse(
-                e.getExamScoreId(),
-                e.getStudent().getStudentId(),
-                e.getStudent().getStudentCode(),
-                e.getStudent().getUser() != null ? e.getStudent().getUser().getFullName() : null,
-                e.getClassroom().getClassroomId(),
-                e.getExamType(),
-                e.getScore(),
-                e.getMaxScore()
-        );
-    }
-
-    private Classroom findClassroom(UUID classroomId) {
-        return classroomRepository.findById(classroomId)
-                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
-                .orElseThrow(() -> new AssignmentClassroomNotFoundException(classroomId));
-    }
-
-    private Teacher requireTeacherOwnsClassroom(Classroom classroom) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (hasRole(auth, "ADMIN")) {
-            if (classroom.getTeacher() == null) {
-                throw new ClassroomHasNoTeacherException(classroom.getClassroomId());
-            }
-            return classroom.getTeacher();
-        }
-
-        User user = getCurrentUser(auth);
-        Teacher teacher = teacherRepository.findByUserId(user.getId())
-                .orElseThrow(TeacherProfileNotFoundException::new);
-
-        boolean owns = classroom.getTeacher() != null
-                && classroom.getTeacher().getTeacherId().equals(teacher.getTeacherId());
-        if (!owns) {
-            throw new NotClassroomTeacherException(classroom.getClassroomId());
-        }
-        return teacher;
-    }
-
-    private void requireTeacherOwnsClassroomOrAdmin(Classroom classroom) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (hasRole(auth, "ADMIN")) {
-            return;
-        }
-        requireTeacherOwnsClassroom(classroom);
-    }
-
-    private boolean hasRole(Authentication authentication, String role) {
-        if (authentication == null) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(a -> a.equals("ROLE_" + role));
-    }
-
-    private User getCurrentUser(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
-            throw new UserNotFoundException();
-        }
-        return userRepository.findByKeycloakId(jwt.getSubject())
-                .orElseThrow(UserNotFoundException::new);
+                score.getScoreId(),
+                student.getStudentId(),
+                student.getStudentCode(),
+                student.getUser() != null ? student.getUser().getFullName() : null,
+                classroomId,
+                examType,
+                score.getScore(),
+                assessment.getMaxScore());
     }
 }

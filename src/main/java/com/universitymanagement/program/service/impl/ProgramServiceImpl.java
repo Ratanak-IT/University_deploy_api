@@ -1,5 +1,6 @@
 package com.universitymanagement.program.service.impl;
 
+import com.universitymanagement.curriculum.repository.CurriculumRepository;
 import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.department.repository.DepartmentRepository;
 import com.universitymanagement.program.dto.request.ProgramRequest;
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class ProgramServiceImpl implements ProgramService {
 
     private final ProgramRepository programRepository;
     private final ProgramMapper programMapper;
+    private final CurriculumRepository curriculumRepository;
     private final StudentRepository studentRepository;
     private final StudentMapper studentMapper;
     private final DepartmentRepository departmentRepository;
@@ -62,13 +66,42 @@ public class ProgramServiceImpl implements ProgramService {
     @Override
     public ProgramResponse getById(UUID id) {
         Program program = programRepository.findById(id).orElseThrow(() -> new ProgramNotFoundException(id));
-        return programMapper.toResponse(program);
+
+        return programMapper.toResponse(program).withCounts(
+                countOf(curriculumRepository.countSubjectsByProgram().stream()
+                        .collect(Collectors.toMap(
+                                CurriculumRepository.ProgramSubjectCount::getProgramId,
+                                CurriculumRepository.ProgramSubjectCount::getTotal)), id),
+                countOf(studentRepository.countStudentsByProgram().stream()
+                        .collect(Collectors.toMap(
+                                StudentRepository.ProgramStudentCount::getProgramId,
+                                StudentRepository.ProgramStudentCount::getTotal)), id));
     }
 
     @Override
     public Page<ProgramResponse> getAll(Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size);
-        return programRepository.findAll(pageable).map(programMapper::toResponse);
+
+        // Two grouped counts for the whole table, rather than two per row.
+        Map<UUID, Long> subjectCounts = curriculumRepository.countSubjectsByProgram().stream()
+                .collect(Collectors.toMap(
+                        CurriculumRepository.ProgramSubjectCount::getProgramId,
+                        CurriculumRepository.ProgramSubjectCount::getTotal));
+
+        Map<UUID, Long> studentCounts = studentRepository.countStudentsByProgram().stream()
+                .collect(Collectors.toMap(
+                        StudentRepository.ProgramStudentCount::getProgramId,
+                        StudentRepository.ProgramStudentCount::getTotal));
+
+        return programRepository.findAll(pageable)
+                .map(programMapper::toResponse)
+                .map(response -> response.withCounts(
+                        countOf(subjectCounts, response.id()),
+                        countOf(studentCounts, response.id())));
+    }
+
+    private int countOf(Map<UUID, Long> counts, UUID id) {
+        return counts.getOrDefault(id, 0L).intValue();
     }
 
     @Override

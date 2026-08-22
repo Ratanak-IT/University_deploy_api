@@ -73,6 +73,20 @@ keycloak:
   admin-username: ${KEYCLOAK_ADMIN_USERNAME}
   admin-password: ${KEYCLOAK_ADMIN_PASSWORD}
 
+# Only health is exposed, and only its bare status. The default actuator
+# surface leaks env vars, beans and mappings, none of which belong on a
+# public port.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
 server:
   port: 8081
   max-http-request-header-size: 32KB

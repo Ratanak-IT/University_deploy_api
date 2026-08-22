@@ -1,10 +1,10 @@
 package com.universitymanagement.student.service;
 
-import com.universitymanagement.attendance.dto.response.AttendanceResponse;
+import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
+import com.universitymanagement.grading.dto.response.CourseGradeResponse;
 import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
-import com.universitymanagement.student.dto.response.GradeResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
 import com.universitymanagement.student.dto.response.TranscriptResponse;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
@@ -17,7 +17,7 @@ public interface StudentAcademicService {
 
     TranscriptResponse getTranscript(UUID studentId);
 
-    List<GradeResponse> getGrades(UUID studentId);
+    List<CourseGradeResponse> getGrades(UUID studentId);
 
     GpaResponse getGpa(UUID studentId);
 
@@ -26,7 +26,8 @@ public interface StudentAcademicService {
     AcademicRecordSheetResponse getAcademicRecordSheet(UUID programId, Integer yearLevel,
                                                        Integer semester, String academicYear);
 
-    List<AttendanceResponse> getAttendance(UUID studentId, UUID classroomId);
+    /** The student's register, grouped per course, with exam eligibility. */
+    List<StudentAttendanceResponse> getAttendance(UUID studentId, UUID classroomId);
 
     List<DepartmentResponse> getDepartments(UUID studentId);
 

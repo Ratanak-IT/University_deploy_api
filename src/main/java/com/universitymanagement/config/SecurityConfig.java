@@ -54,6 +54,12 @@ public class SecurityConfig {
                         // 1. Preflight CORS Request Handlers
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // 1b. Liveness/readiness, for the container healthcheck
+                        // and the deploy step. Only the bare status is exposed
+                        // (see `management.endpoint.health` in application.yaml),
+                        // so this reveals UP or DOWN and nothing else.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
                         // 2. Swagger / OpenAPI Documentation Resources
                         .requestMatchers(
                                 "/v3/api-docs/**",

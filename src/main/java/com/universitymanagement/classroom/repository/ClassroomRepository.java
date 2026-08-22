@@ -19,6 +19,23 @@ public interface ClassroomRepository extends JpaRepository<Classroom, UUID> {
     long countBySubject_SubjectId(UUID subjectId);
     boolean existsByClassCode(String classCode);
 
+    /** How many live classrooms teach a subject. */
+    interface SubjectClassroomCount {
+        UUID getSubjectId();
+
+        long getTotal();
+    }
+
+    /** Counts every subject in one query, rather than one count per table row. */
+    @Query("""
+            select c.subject.subjectId as subjectId, count(c) as total
+            from Classroom c
+            where c.isDeleted = false
+              and c.subject is not null
+            group by c.subject.subjectId
+            """)
+    List<SubjectClassroomCount> countClassroomsBySubject();
+
     @Query("""
         select c from Classroom c
         where c.isDeleted = false

@@ -2,12 +2,13 @@ package com.universitymanagement.student.controller;
 
 import com.universitymanagement.assignment.dto.response.SubmissionResponse;
 import com.universitymanagement.assignment.service.AssignmentService;
-import com.universitymanagement.attendance.dto.response.AttendanceResponse;
+import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
 import com.universitymanagement.certificate.dto.request.CreateCertificateRequest;
 import com.universitymanagement.certificate.dto.response.CertificateDownloadResponse;
 import com.universitymanagement.certificate.dto.response.CertificateRequestResponse;
 import com.universitymanagement.certificate.service.CertificateService;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
+import com.universitymanagement.grading.dto.response.CourseGradeResponse;
 import com.universitymanagement.quiz.dto.request.SubmitQuizAttemptRequest;
 import com.universitymanagement.quiz.dto.response.QuizAttemptResponse;
 import com.universitymanagement.quiz.dto.response.QuizResponse;
@@ -73,7 +74,7 @@ public class StudentController {
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
     @GetMapping("/{studentId}/grades")
-    public List<GradeResponse> getGrades(@PathVariable UUID studentId) {
+    public List<CourseGradeResponse> getGrades(@PathVariable UUID studentId) {
         return academicService.getGrades(studentId);
     }
 
@@ -87,7 +88,7 @@ public class StudentController {
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
     @GetMapping("/{studentId}/attendance")
-    public List<AttendanceResponse> getAttendance(
+    public List<StudentAttendanceResponse> getAttendance(
             @PathVariable UUID studentId,
             @RequestParam(required = false) UUID classroomId) {
         return academicService.getAttendance(studentId, classroomId);

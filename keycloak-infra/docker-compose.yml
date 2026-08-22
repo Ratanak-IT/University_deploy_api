@@ -1,89 +1,156 @@
-  version: '3.8'
-  
-  volumes:
-    university-postgres-db-vol:
-    university-keycloak-vol:
-    npm-data:
-    npm-letsencrypt:
-  
-  networks:
-    university-net:
-      driver: bridge
-  
-  services:
-    # 1. Database Postgres
-    university-postgres-db:
-      image: postgres:16-alpine # ប្រើ alpine version ដើម្បីស្រាលម៉ាស៊ីន AWS Free Tier
-      container_name: university-postgres-db
-      ports:
-        - "1688:5432"
-      environment:
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        POSTGRES_DB: postgres     # database ដើមសម្រាប់ដំបូងបង្អស់
-      volumes:
-        - university-postgres-db-vol:/var/lib/postgresql/data
-        - ./init-scripts:/docker-entrypoint-initdb.d # បញ្ចូល init script បង្កើត DB របស់អ្នក
-      networks:
-        - university-net
-      restart: unless-stopped
-  
-    # 2. Keycloak (ទាញទិន្នន័យពី .env)
-    university-keycloak:
-      image: quay.io/keycloak/keycloak:26.6.4
-      container_name: university-keycloak
-      environment:
-        # Database Configuration
-        KC_DB: postgres
-        KC_DB_URL: jdbc:postgresql://university-postgres-db:5432/univerysity_keycloak_db
-        KC_DB_USERNAME: ${POSTGRES_USER}
-        KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-  
-        # Admin User
-        KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-        KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-  
-        # Production Settings
-        KC_HOSTNAME: ${KC_HOSTNAME}
-        KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT}
-        KC_HOSTNAME_STRICT: true                # បើក true សម្រាប់ HTTPS ផលិតកម្ម
-        KC_HOSTNAME_STRICT_HTTPS: true          # បើក true សម្រាប់ HTTPS ផលិតកម្ម
-        KC_PROXY_HEADERS: xforwarded
-        KC_HTTP_ENABLED: true
-        
-        # ការកំណត់បន្ថែមសម្រាប់ Proxy និង Cache
-        KC_PROXY: edge
-        KC_CACHE: ispn
-        KC_LOG_LEVEL: INFO
-        KC_METRICS_ENABLED: true
-        KC_HEALTH_ENABLED: true
-  
-        JAVA_OPTS_APPEND: "-Xms128m -Xmx512m"
-  
-      command: start
-      ports:
-        - "9999:8080"
-      volumes:
-        - university-keycloak-vol:/opt/keycloak/data
-        - ./keycloak/themes:/opt/keycloak/themes
-        - ./keycloak/conf:/opt/keycloak/conf
-      networks:
-        - university-net
-      depends_on:
-        - university-postgres-db
-      restart: unless-stopped
-  
-    # 3. Nginx Proxy Manager (សម្រាប់ធ្វើ HTTPS / SSL ទៅកាន់ Subdomain របស់ Namecheap)
-    nginx-proxy-manager:
-      image: 'jc21/nginx-proxy-manager:latest'
-      container_name: nginx-proxy-manager
-      restart: unless-stopped
-      ports:
-        - '80:80'
-        - '443:443'
-        - '81:81'
-      volumes:
-        - npm-data:/data
-        - npm-letsencrypt:/etc/letsencrypt
-      networks:
-        - university-net
+
+volumes:
+  university-postgres-db-vol:
+  university-keycloak-vol:
+  npm-data:
+  npm-letsencrypt:
+  minio-data:
+
+networks:
+  university-net:
+    driver: bridge
+
+services:
+  # 1. Database Postgres
+  university-postgres-db:
+    image: postgres:16-alpine
+    container_name: university-postgres-db
+    ports:
+      - "1688:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - university-postgres-db-vol:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - university-net
+    restart: unless-stopped
+    # Lets the API wait for a database that is actually accepting connections,
+    # rather than one whose container merely exists.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # 2. Keycloak
+  university-keycloak:
+    image: quay.io/keycloak/keycloak:26.6.4
+    container_name: university-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://university-postgres-db:5432/univerysity_keycloak_db
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: edge
+      KC_CACHE: ispn
+      KC_LOG_LEVEL: INFO
+      KC_METRICS_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      JAVA_OPTS_APPEND: "-Xms128m -Xmx512m"
+    command: start
+    ports:
+      - "9999:8080"
+    volumes:
+      - university-keycloak-vol:/opt/keycloak/data
+      - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/conf:/opt/keycloak/conf
+    networks:
+      - university-net
+    depends_on:
+      - university-postgres-db
+    restart: unless-stopped
+
+  # 3. Nginx Proxy Manager
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81'
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - university-net
+
+  university-minio:
+    image: minio/minio:latest
+    container_name: university-minio
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SERVER_URL: "https://s3.careerpatch.site"
+      MINIO_BROWSER_REDIRECT_URL: "https://storage.careerpatch.site"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - university-net
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+  university-api:
+    image: ghcr.io/ratanak-it/university_deploy_api:latest
+    container_name: university-api
+    restart: unless-stopped
+    # No host port. Nginx Proxy Manager reaches it over the shared network by
+    # container name, so the API is only ever served over TLS through the
+    # proxy — publishing 8081 would also expose it unencrypted on the raw IP,
+    # bypassing every certificate and access rule set up in the proxy.
+    expose:
+      - "8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://university-postgres-db/university_db
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+
+      # Keycloak Credentials & Endpoint
+      - KEYCLOAK_CLIENT_ID=university-api
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT}
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.careerpatch.site/realms/university
+
+      # MinIO Endpoint
+      - MINIO_ENDPOINT=https://s3.careerpatch.site
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+
+      # Browser origins allowed to call the API directly. The admin app proxies
+      # through its own server today, so this only matters if that is turned off.
+      - APP_CORS_ALLOWED_ORIGINS=${APP_CORS_ALLOWED_ORIGINS:-https://admin.careerpatch.site}
+    networks:
+      - university-net
+    depends_on:
+      university-postgres-db:
+        condition: service_healthy
+    # The deploy step polls this. Without it "docker compose up" returning
+    # successfully would be taken as a working deploy, when the app may still
+    # be seconds away from failing on the database.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

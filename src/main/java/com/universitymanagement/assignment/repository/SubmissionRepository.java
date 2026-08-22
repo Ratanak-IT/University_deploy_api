@@ -10,4 +10,7 @@ import java.util.UUID;
 public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
     List<Submission> findByAssignment_AssignmentIdOrderBySubmittedAtDesc(UUID assignmentId);
     Optional<Submission> findByAssignment_AssignmentIdAndStudent_StudentId(UUID assignmentId, UUID studentId);
+
+    /** All submissions for a set of assignments — lets the gradebook mirror them in one query. */
+    List<Submission> findByAssignment_AssignmentIdIn(List<UUID> assignmentIds);
 }

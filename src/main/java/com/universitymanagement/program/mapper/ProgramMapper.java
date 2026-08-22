@@ -10,6 +10,10 @@ import org.mapstruct.Mapping;
 public interface ProgramMapper {
     @Mapping(target = "departmentId", source = "department.departmentId")
     @Mapping(target = "departmentName", source = "department.departmentName")
+    // Counts are filled in by the service from grouped queries; mapping them off
+    // the entity's collections would load every subject and student per row.
+    @Mapping(target = "subjectCount", ignore = true)
+    @Mapping(target = "studentCount", ignore = true)
     ProgramResponse toResponse(Program program);
     Program toEntity(ProgramRequest programRequest);
 }

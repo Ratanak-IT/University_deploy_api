@@ -1,38 +1,65 @@
-name: Build and Push Docker Image to GHCR
+name: Build, Push and Deploy
+
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+concurrency:
 
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: "25"
+          distribution: temurin
 
-      # ១. ថែម Step ផ្តល់សិទ្ធិ Execute ដល់ Gradlew
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      # ២. ថែម Step Build Spring Boot JAR File ថ្មីឱ្យបានជោគជ័យមុន Build Docker Image
-      - name: Build with Gradle
-        run: ./gradlew bootJar --no-daemon
+      - run: chmod +x ./gradlew
+
+      - name: Run tests
+        run: >
+          ./gradlew test --no-daemon
+          --tests "com.universitymanagement.grading.*"
+          --tests "com.universitymanagement.attendance.*"
+
+      - name: Publish test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/test-results/test/
+          retention-days: 7
+
+  build-and-push:
+    name: Build and push image
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -41,11 +68,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ៣. កែប្រែឈ្មោះ Image ទៅជា lowercase ដើម្បីកុំឱ្យមានបញ្ហាជាមួយ GHCR
-      - name: Set lowercase image name
-        id: string
-        run: |
-          echo "IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Resolve image name
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta
@@ -53,10 +77,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
 
-      - name: Build and push Docker image
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -64,3 +91,72 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to server
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Pull the new image and restart the API
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stops: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.SERVER_COMPOSE_PATH }}"
+
+            # GHCR needs a login even for a public package on some hosts, and
+            # always for a private one. The token is read-only.
+            echo "${{ secrets.GHCR_TOKEN }}" \
+              | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            docker compose pull university-api
+            docker compose up -d --no-deps university-api
+
+            # Keep the box from filling with superseded layers over time.
+            docker image prune -f
+
+      - name: Wait for the API to report healthy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stops: true
+          script: |
+            set -euo pipefail
+            # `docker compose logs` below only resolves the service from here.
+            cd "${{ secrets.SERVER_COMPOSE_PATH }}"
+
+            # "The container started" is not "the app works" — it can boot and
+            # then fail on the database. Poll the health endpoint instead, and
+            # fail the run if it never comes up so the deploy is not reported
+            # as a success.
+            for i in $(seq 1 30); do
+              status=$(docker inspect --format='{{.State.Health.Status}}' university-api 2>/dev/null || echo starting)
+              if [ "$status" = "healthy" ]; then
+                echo "API is healthy after ${i} attempt(s)."
+                exit 0
+              fi
+              if [ "$status" = "unhealthy" ]; then
+                echo "::error::The API container reports unhealthy."
+                docker compose logs --tail=100 university-api
+                exit 1
+              fi
+              echo "waiting… (${status})"
+              sleep 10
+            done
+
+            echo "::error::The API did not become healthy within 5 minutes."
+            docker compose logs --tail=100 university-api
+            exit 1

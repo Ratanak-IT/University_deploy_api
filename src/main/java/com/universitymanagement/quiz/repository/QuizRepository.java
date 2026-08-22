@@ -23,4 +23,8 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
     List<Quiz> findAllForStudent(@Param("studentId") UUID studentId);
 
     List<Quiz> findByCreatedByTeacher_TeacherIdAndIsDeletedFalseOrderByCreatedAtDesc(UUID teacherId);
+
+    List<Quiz> findByClassroom_ClassroomIdAndIsDeletedFalseOrderByStartAtAsc(UUID classroomId);
+
+    List<Quiz> findByClassroom_ClassroomIdInAndIsDeletedFalse(List<UUID> classroomIds);
 }

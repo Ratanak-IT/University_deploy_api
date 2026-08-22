@@ -3,34 +3,30 @@ package com.universitymanagement.student.service.impl;
 import com.universitymanagement.assignment.dto.response.FileResponse;
 import com.universitymanagement.assignment.entity.Assignment;
 import com.universitymanagement.assignment.entity.Submission;
-import com.universitymanagement.assignment.entity.SubmissionStatus;
 import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
-import com.universitymanagement.attendance.dto.response.AttendanceResponse;
-import com.universitymanagement.attendance.entity.Attendance;
-import com.universitymanagement.attendance.repository.AttendanceRepository;
+import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
+import com.universitymanagement.attendance.service.StudentAttendanceReader;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.department.entity.Department;
+import com.universitymanagement.grading.calc.GpaCalculator;
+import com.universitymanagement.grading.dto.response.CourseGradeResponse;
+import com.universitymanagement.grading.service.CourseGradeQueryService;
 import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.program.entity.Program;
 import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
-import com.universitymanagement.student.dto.response.GradeResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
 import com.universitymanagement.student.dto.response.TranscriptResponse;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.student.security.StudentAccessGuard;
 import com.universitymanagement.student.service.StudentAcademicService;
-import com.universitymanagement.student.util.GradeScale;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.subject.entity.Subject;
-import com.universitymanagement.score.dto.response.ExamScoreResponse;
-import com.universitymanagement.score.entity.ExamScore;
-import com.universitymanagement.score.repository.ExamScoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -52,16 +48,17 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     private final ClassroomStudentRepository classroomStudentRepository;
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
-    private final AttendanceRepository attendanceRepository;
-    private final ExamScoreRepository examScoreRepository;
+    private final StudentAttendanceReader attendanceReader;
+    private final CourseGradeQueryService courseGradeQuery;
+    private final GpaCalculator gpaCalculator;
     private final MinioService minioService;
 
     @Override
     public TranscriptResponse getTranscript(UUID studentId) {
         Student student = accessGuard.requireSelfOrStaff(studentId);
-        List<GradeResponse> grades = computeGrades(studentId);
+        List<CourseGradeResponse> grades = gradesOf(studentId);
 
-        Map<String, List<GradeResponse>> byTerm = grades.stream()
+        Map<String, List<CourseGradeResponse>> byTerm = grades.stream()
                 .collect(Collectors.groupingBy(
                         g -> (g.academicYear() != null ? g.academicYear() : "N/A")
                                 + "|" + (g.semester() != null ? g.semester() : 0),
@@ -71,22 +68,24 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         List<TranscriptResponse.TermResponse> terms = byTerm.entrySet().stream()
                 .map(entry -> {
                     String[] key = entry.getKey().split("\\|");
-                    List<GradeResponse> termGrades = entry.getValue();
-                    double[] gpaCredits = weightedGpa(termGrades);
+                    List<CourseGradeResponse> termGrades = entry.getValue();
+                    GpaCalculator.Gpa termGpa = gpaCalculator.calculate(termGrades);
                     return new TranscriptResponse.TermResponse(
                             key[0],
                             Integer.parseInt(key[1]),
                             termGrades,
-                            round(gpaCredits[0]),
-                            gpaCredits[1]
-                    );
+                            // A term's own GPA follows the same rule as the
+                            // cumulative one: posted first, current as a fallback
+                            // so an in-progress term is not simply blank.
+                            termGpa.cumulativeGpa() != null ? termGpa.cumulativeGpa() : termGpa.currentGpa(),
+                            termGpa.creditsAttempted());
                 })
                 .sorted(Comparator
                         .comparing(TranscriptResponse.TermResponse::academicYear)
                         .thenComparing(TranscriptResponse.TermResponse::semester))
                 .toList();
 
-        double[] cumulative = weightedGpa(grades);
+        GpaCalculator.Gpa cumulative = gpaCalculator.calculate(grades);
 
         return new TranscriptResponse(
                 student.getStudentId(),
@@ -94,37 +93,38 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 student.getUser() != null ? student.getUser().getFullName() : null,
                 student.getProgram() != null ? student.getProgram().getProgramName() : null,
                 terms,
-                round(cumulative[0]),
-                cumulative[1]
-        );
+                cumulative.cumulativeGpa(),
+                cumulative.currentGpa(),
+                cumulative.creditsEarned(),
+                cumulative.creditsAttempted());
     }
 
     @Override
-    public List<GradeResponse> getGrades(UUID studentId) {
+    public List<CourseGradeResponse> getGrades(UUID studentId) {
         accessGuard.requireSelfOrStaff(studentId);
-        return computeGrades(studentId);
+        return gradesOf(studentId);
     }
 
     @Override
     public Double calculateGpaInternal(UUID studentId) {
-        List<GradeResponse> grades = computeGrades(studentId);
-        double[] cumulative = weightedGpa(grades);
-        return round(cumulative[0]);
+        GpaCalculator.Gpa gpa = gpaCalculator.calculate(gradesOf(studentId));
+        return gpa.cumulativeGpa() != null ? gpa.cumulativeGpa() : gpa.currentGpa();
     }
 
     @Override
     public GpaResponse getGpa(UUID studentId) {
         Student student = accessGuard.requireSelfOrStaff(studentId);
-        List<GradeResponse> grades = computeGrades(studentId);
-        double[] cumulative = weightedGpa(grades);
+        List<CourseGradeResponse> grades = gradesOf(studentId);
+        GpaCalculator.Gpa gpa = gpaCalculator.calculate(grades);
 
         return new GpaResponse(
                 student.getStudentId(),
                 student.getStudentCode(),
-                round(cumulative[0]),
-                cumulative[1],
-                grades
-        );
+                gpa.cumulativeGpa(),
+                gpa.currentGpa(),
+                gpa.creditsEarned(),
+                gpa.creditsAttempted(),
+                grades);
     }
 
     @Override
@@ -138,58 +138,50 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 .findForAcademicRecordSheet(programId, yearLevel, semester,
                         (academicYear == null || academicYear.isBlank()) ? null : academicYear);
 
-        Set<UUID> offeringIds = offerings.stream().map(Classroom::getClassroomId).collect(Collectors.toSet());
-
-        LinkedHashMap<UUID, Student> studentsById = new LinkedHashMap<>();
-        if (!offeringIds.isEmpty()) {
-            classroomStudentRepository.findByClassroom_ClassroomIdIn(new ArrayList<>(offeringIds)).stream()
-                    .map(ClassroomStudent::getStudent)
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(s ->
-                            s.getUser() != null && s.getUser().getFullName() != null
-                                    ? s.getUser().getFullName() : ""))
-                    .forEach(s -> studentsById.putIfAbsent(s.getStudentId(), s));
-        }
-
         LinkedHashMap<UUID, AcademicRecordSheetResponse.SubjectColumn> subjectsById = new LinkedHashMap<>();
         for (Classroom offering : offerings) {
-            if (offering.getSubject() != null) {
-                com.universitymanagement.subject.entity.Subject subj = offering.getSubject();
-                subjectsById.putIfAbsent(subj.getSubjectId(), new AcademicRecordSheetResponse.SubjectColumn(
-                        subj.getSubjectId(), subj.getSubjectCode(), subj.getSubjectName()));
+            Subject subject = offering.getSubject();
+            if (subject != null) {
+                subjectsById.putIfAbsent(subject.getSubjectId(),
+                        new AcademicRecordSheetResponse.SubjectColumn(
+                                subject.getSubjectId(), subject.getSubjectCode(),
+                                subject.getSubjectName(), subject.getCredit()));
             }
         }
-        List<AcademicRecordSheetResponse.StudentRow> rows = new ArrayList<>();
 
-        for (Student student : studentsById.values()) {
-            // Scope this student's grades down to exactly the offerings that
-            // matched the filter, so a subject taken in another term never
-            // leaks into this term's row.
-            List<GradeResponse> grades = computeGrades(student.getStudentId()).stream()
-                    .filter(g -> offeringIds.contains(g.classroomId()))
-                    .toList();
+        // One pass over the whole cohort, rather than recomputing each student's
+        // entire academic history and then filtering it down to this term.
+        Map<UUID, List<CourseGradeResponse>> byStudent = courseGradeQuery.gradesFor(offerings);
 
-            List<AcademicRecordSheetResponse.GradeCell> cells = new ArrayList<>();
-            for (GradeResponse grade : grades) {
-                if (grade.subjectId() == null) {
-                    continue;
-                }
-                subjectsById.putIfAbsent(grade.subjectId(), new AcademicRecordSheetResponse.SubjectColumn(
-                        grade.subjectId(), grade.subjectCode(), grade.subjectName()));
-                cells.add(new AcademicRecordSheetResponse.GradeCell(
-                        grade.subjectId(), grade.scorePercent(), grade.letterGrade(), grade.gradePoint()));
-            }
+        List<AcademicRecordSheetResponse.StudentRow> rows = byStudent.values().stream()
+                .filter(grades -> !grades.isEmpty())
+                .map(grades -> {
+                    CourseGradeResponse first = grades.getFirst();
+                    GpaCalculator.Gpa gpa = gpaCalculator.calculate(grades);
 
-            double[] gpaCredits = weightedGpa(grades);
+                    List<AcademicRecordSheetResponse.GradeCell> cells = grades.stream()
+                            .filter(g -> g.subjectId() != null)
+                            .map(g -> new AcademicRecordSheetResponse.GradeCell(
+                                    g.subjectId(),
+                                    g.scorePercent(),
+                                    g.letterGrade(),
+                                    g.gradePoint(),
+                                    g.completenessPercent(),
+                                    g.status()))
+                            .toList();
 
-            rows.add(new AcademicRecordSheetResponse.StudentRow(
-                    student.getStudentId(),
-                    student.getStudentCode(),
-                    student.getUser() != null ? student.getUser().getFullName() : null,
-                    cells,
-                    gpaCredits[1] > 0 ? round(gpaCredits[0]) : null
-            ));
-        }
+                    return new AcademicRecordSheetResponse.StudentRow(
+                            first.studentId(),
+                            first.studentCode(),
+                            first.fullName(),
+                            cells,
+                            gpa.cumulativeGpa() != null ? gpa.cumulativeGpa() : gpa.currentGpa(),
+                            gpa.creditsEarned());
+                })
+                .sorted(Comparator.comparing(
+                        r -> r.fullName() != null ? r.fullName() : "",
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
 
         String programName = offerings.stream()
                 .map(Classroom::getProgram)
@@ -205,36 +197,15 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 semester,
                 academicYear,
                 new ArrayList<>(subjectsById.values()),
-                rows
-        );
+                rows);
     }
 
     // Attendance
 
     @Override
-    public List<AttendanceResponse> getAttendance(UUID studentId, UUID classroomId) {
-        accessGuard.requireSelfOrStaff(studentId);
-
-        List<Attendance> records = classroomId == null
-                ? attendanceRepository.findByStudent_StudentIdOrderByAttendanceDateDesc(studentId)
-                : attendanceRepository
-                .findByStudent_StudentIdAndClassroom_ClassroomIdOrderByAttendanceDateDesc(
-                        studentId, classroomId);
-
-        return records.stream()
-                .map(a -> new AttendanceResponse(
-                        a.getAttendanceId(),
-                        a.getClassroom().getClassroomId(),
-                        a.getClassroom().getClassName(),
-                        a.getClassroom().getSubject() != null
-                                ? a.getClassroom().getSubject().getSubjectName() : null,
-                        a.getStudent() != null ? a.getStudent().getStudentId() : null,
-                        a.getStudent() != null ? a.getStudent().getStudentCode() : null,
-                        a.getStudent() != null && a.getStudent().getUser() != null ? a.getStudent().getUser().getFullName() : null,
-                        a.getAttendanceDate(),
-                        a.getStatus(),
-                        a.getRemark()))
-                .toList();
+    public List<StudentAttendanceResponse> getAttendance(UUID studentId, UUID classroomId) {
+        Student student = accessGuard.requireSelfOrStaff(studentId);
+        return attendanceReader.byCourse(student, classroomId);
     }
 
     @Override
@@ -338,120 +309,16 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
 
     // Helpers
 
+    private List<CourseGradeResponse> gradesOf(UUID studentId) {
+        return courseGradeQuery.gradesFor(studentId, enrolledClassrooms(studentId));
+    }
+
     private List<Classroom> enrolledClassrooms(UUID studentId) {
         return classroomStudentRepository.findByStudent_StudentId(studentId)
                 .stream()
                 .map(ClassroomStudent::getClassroom)
                 .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
                 .toList();
-    }
-
-    private List<GradeResponse> computeGrades(UUID studentId) {
-        List<GradeResponse> grades = new ArrayList<>();
-
-        for (Classroom classroom : enrolledClassrooms(studentId)) {
-            List<Assignment> assignments = assignmentRepository
-                    .findByClassroom_ClassroomIdAndIsDeletedFalseOrderByDueDateAsc(
-                            classroom.getClassroomId());
-
-            double weightedSum = 0.0;
-            double weightTotal = 0.0;
-            int graded = 0;
-
-            for (Assignment assignment : assignments) {
-                Optional<Submission> submission = submissionRepository
-                        .findByAssignment_AssignmentIdAndStudent_StudentId(
-                                assignment.getAssignmentId(), studentId);
-
-                if (submission.isPresent()
-                        && submission.get().getStatus() == SubmissionStatus.GRADED
-                        && submission.get().getScore() != null
-                        && assignment.getMaxScore() != null
-                        && assignment.getMaxScore() > 0) {
-
-                    double weight = assignment.getWeight() != null ? assignment.getWeight() : 1.0;
-                    double percent = submission.get().getScore() / assignment.getMaxScore() * 100.0;
-                    weightedSum += percent * weight;
-                    weightTotal += weight;
-                    graded++;
-                }
-            }
-            List<ExamScore> examScores = examScoreRepository
-                    .findByStudent_StudentIdAndClassroom_ClassroomId(studentId, classroom.getClassroomId());
-
-            List<ExamScoreResponse> scoreResponses = new ArrayList<>();
-
-            for (ExamScore examScore : examScores) {
-                if (examScore.getScore() != null
-                        && examScore.getMaxScore() != null
-                        && examScore.getMaxScore() > 0) {
-
-                    double weight = switch (examScore.getExamType()) {
-                        case MIDTERM -> 2.5;
-                        case FINAL -> 3.5;
-                        case ASSIGNMENT -> 1.5;
-                        case QUIZ -> 1.5;
-                        case ATTENDANCE -> 1.0;
-                        case OTHER -> 1.0;
-                    };
-
-                    double percent = examScore.getScore() / examScore.getMaxScore() * 100.0;
-                    weightedSum += percent * weight;
-                    weightTotal += weight;
-                    graded++;
-
-                    String studentFullName = (examScore.getStudent() != null && examScore.getStudent().getUser() != null)
-                            ? examScore.getStudent().getUser().getFullName()
-                            : (examScore.getStudent() != null ? examScore.getStudent().getStudentCode() : "Student");
-
-                    scoreResponses.add(new ExamScoreResponse(
-                            examScore.getExamScoreId(),
-                            studentId,
-                            examScore.getStudent() != null ? examScore.getStudent().getStudentCode() : null,
-                            studentFullName,
-                            classroom.getClassroomId(),
-                            examScore.getExamType(),
-                            examScore.getScore(),
-                            examScore.getMaxScore()
-                    ));
-                }
-            }
-
-            Double scorePercent = weightTotal > 0 ? round(weightedSum / weightTotal) : null;
-            Subject subject = classroom.getSubject();
-
-            grades.add(new GradeResponse(
-                    classroom.getClassroomId(),
-                    classroom.getClassName(),
-                    subject != null ? subject.getSubjectId() : null,
-                    subject != null ? subject.getSubjectCode() : null,
-                    subject != null ? subject.getSubjectName() : null,
-                    subject != null ? subject.getCredit() : null,
-                    classroom.getAcademicYear(),
-                    classroom.getSemester(),
-                    graded,
-                    assignments.size(),
-                    scorePercent,
-                    scorePercent != null ? GradeScale.toLetter(scorePercent) : null,
-                    scorePercent != null ? GradeScale.toGradePoint(scorePercent) : null,
-                    scoreResponses
-            ));
-        }
-        return grades;
-    }
-
-    private double[] weightedGpa(List<GradeResponse> grades) {
-        double pointSum = 0.0;
-        double creditSum = 0.0;
-        for (GradeResponse grade : grades) {
-            if (grade.gradePoint() == null) {
-                continue;
-            }
-            double credit = grade.credit() != null ? grade.credit() : 1.0;
-            pointSum += grade.gradePoint() * credit;
-            creditSum += credit;
-        }
-        return new double[]{creditSum > 0 ? pointSum / creditSum : 0.0, creditSum};
     }
 
     private boolean matchesStatus(StudentAssignmentResponse response, String status) {
@@ -508,11 +375,6 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 submission != null ? submission.getScore() : null,
                 submission != null ? submission.getFeedback() : null,
                 submission != null ? submission.getGradedAt() : null,
-                submissionFiles
-        );
-    }
-
-    private double round(double value) {
-        return Math.round(value * 100.0) / 100.0;
+                submissionFiles);
     }
 }

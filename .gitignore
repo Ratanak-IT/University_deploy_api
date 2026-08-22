@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# Secrets
+# ---------------------------------------------------------------------------
+# The repository had no .gitignore at all, so anything dropped into the working
+# tree was one `git add .` away from being published. These come first for that
+# reason.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+deploy_key
+deploy_key.pub
+**/secrets/
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+build/
+!src/**/build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+bin/
+
+# ---------------------------------------------------------------------------
+# IDE
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db

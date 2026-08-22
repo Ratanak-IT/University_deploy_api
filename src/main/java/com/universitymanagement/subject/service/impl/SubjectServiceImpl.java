@@ -22,7 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,13 +40,24 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     public Page<SubjectResponse> getAllSubjects(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return subjectRepository.findAll(pageable).map(subjectMapper::toResponse);
+
+        // One grouped count for the whole table, rather than a count per row.
+        Map<UUID, Long> classroomCounts = classroomRepository.countClassroomsBySubject().stream()
+                .collect(Collectors.toMap(
+                        ClassroomRepository.SubjectClassroomCount::getSubjectId,
+                        ClassroomRepository.SubjectClassroomCount::getTotal));
+
+        return subjectRepository.findAll(pageable)
+                .map(subjectMapper::toResponse)
+                .map(response -> response.withClassroomCount(
+                        classroomCounts.getOrDefault(response.subjectId(), 0L).intValue()));
     }
 
     @Override
     public SubjectResponse getSubjectById(UUID subjectId) {
         Subject subject = subjectRepository.findById(subjectId).orElseThrow(() -> new SubjectNotFoundException(subjectId));
-        return subjectMapper.toResponse(subject);
+        return subjectMapper.toResponse(subject)
+                .withClassroomCount((int) classroomRepository.countBySubject_SubjectId(subjectId));
     }
 
     @Override
