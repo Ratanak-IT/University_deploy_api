@@ -62,7 +62,12 @@ public class CertificateServiceImpl implements CertificateService {
                     "Your request for " + request.certificateType().toString().replace("_", " ") + " Certificate has been submitted successfully.",
                     "CERTIFICATE",
                     "Official Certificate Application",
-                    "Academic Registrar"
+                    "Academic Registrar",
+                    // Previously this used the 6-arg overload with no link at
+                    // all, so clicking the notification did nothing.
+                    "/dashboard/student/certificates",
+                    "CERTIFICATE",
+                    saved.getRequestId()
             );
         }
 

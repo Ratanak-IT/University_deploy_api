@@ -18,9 +18,11 @@ import com.universitymanagement.score.exception.StudentNotInClassroomException;
 import com.universitymanagement.score.service.ExamScoreService;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
+import com.universitymanagement.notification.service.NotificationService;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.teacher.entity.Teacher;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ExamScoreServiceImpl implements ExamScoreService {
 
     /** Exam types that map onto a manual component of the default scheme. */
@@ -63,6 +66,7 @@ public class ExamScoreServiceImpl implements ExamScoreService {
     private final AssessmentRepository assessmentRepository;
     private final AssessmentScoreRepository scoreRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -88,7 +92,7 @@ public class ExamScoreServiceImpl implements ExamScoreService {
 
         Map<UUID, Student> roster = new HashMap<>();
         for (ClassroomStudent link : classroomStudentRepository
-                .findByClassroom_ClassroomId(classroomId)) {
+                .findRosterWithUser(classroomId)) {
             if (link.getStudent() != null) {
                 roster.put(link.getStudent().getStudentId(), link.getStudent());
             }
@@ -119,8 +123,35 @@ public class ExamScoreServiceImpl implements ExamScoreService {
             score.setGradedByTeacher(teacher);
             score.setGradedAt(LocalDateTime.now());
 
-            saved.add(toResponse(classroomId, request.examType(),
-                    scoreRepository.save(score), assessment));
+            AssessmentScore savedScore = scoreRepository.save(score);
+            saved.add(toResponse(classroomId, request.examType(), savedScore, assessment));
+
+            // Best-effort: a student without a linked user account (or a
+            // notification write that fails) must not roll back the grade
+            // itself, which is the part that actually matters here.
+            if (student.getUser() != null) {
+                try {
+                    notificationService.createNotification(
+                            student.getUser().getId(),
+                            "Grade posted",
+                            request.examType().name() + " score for " + classroom.getClassName()
+                                    + ": " + item.score() + " / " + request.maxScore(),
+                            "GRADE",
+                            classroom.getClassName(),
+                            teacher.getUser() != null ? teacher.getUser().getFullName() : "Your teacher",
+                            // The student's own grades page, not the classroom's
+                            // front door: clicking a grade notification should
+                            // land on the score itself, not require a second
+                            // click to find it once inside the classroom.
+                            "/dashboard/student/grades?classroomId=" + classroom.getClassroomId(),
+                            "GRADE",
+                            classroom.getClassroomId()
+                    );
+                } catch (Exception e) {
+                    log.warn("Grade-posted notification failed for student {}: {}",
+                            student.getStudentId(), e.getMessage());
+                }
+            }
         }
         return saved;
     }

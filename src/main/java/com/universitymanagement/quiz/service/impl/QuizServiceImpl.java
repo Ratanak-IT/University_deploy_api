@@ -27,6 +27,7 @@ import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import com.universitymanagement.quiz.entity.QuestionType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class QuizServiceImpl implements QuizService {
 
     private final QuizRepository quizRepository;
@@ -51,6 +53,8 @@ public class QuizServiceImpl implements QuizService {
     private final TeacherRepository teacherRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final com.universitymanagement.classroom.repository.ClassroomStudentRepository classroomStudentRepository;
+    private final com.universitymanagement.notification.service.NotificationService notificationService;
 
     @Override
     @Transactional
@@ -123,6 +127,10 @@ public class QuizServiceImpl implements QuizService {
                     .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
                     .orElseThrow(() -> new QuizClassroomNotFoundException(release.classroomId()));
 
+            boolean isNewRelease = assignmentRepository
+                    .findByQuiz_QuizIdAndClassroom_ClassroomId(quizId, release.classroomId())
+                    .isEmpty();
+
             QuizAssignment assignment = assignmentRepository
                     .findByQuiz_QuizIdAndClassroom_ClassroomId(quizId, release.classroomId())
                     .orElseGet(QuizAssignment::new);
@@ -133,9 +141,56 @@ public class QuizServiceImpl implements QuizService {
             assignment.setAvailableTo(release.availableTo());
 
             assignmentRepository.save(assignment);
+
+            // Only the first release to a section, not every subsequent edit of
+            // its window — otherwise narrowing the availableFrom/To dates would
+            // re-notify a class that already knows the quiz exists.
+            if (isNewRelease) {
+                notifyClassroomOfNewQuiz(classroom, quiz);
+            }
         }
 
         return toManageResponse(quiz);
+    }
+
+    /**
+     * Tells every enrolled student a quiz has been released to their class.
+     *
+     * <p>Best-effort: a notification failure (or a student with no linked user
+     * account) must not roll back the release itself, which is the part that
+     * actually matters here.
+     */
+    private void notifyClassroomOfNewQuiz(Classroom classroom, Quiz quiz) {
+        String teacherName = quiz.getCreatedByTeacher() != null
+                && quiz.getCreatedByTeacher().getUser() != null
+                ? quiz.getCreatedByTeacher().getUser().getFullName()
+                : "Your teacher";
+
+        for (com.universitymanagement.classroom.entity.ClassroomStudent link
+                : classroomStudentRepository.findRosterWithUser(classroom.getClassroomId())) {
+            com.universitymanagement.student.entity.Student student = link.getStudent();
+            if (student == null || student.getUser() == null) continue;
+
+            try {
+                notificationService.createNotification(
+                        student.getUser().getId(),
+                        "New quiz: " + quiz.getTitle(),
+                        quiz.getTitle() + " has been released in " + classroom.getClassName() + ".",
+                        "ANNOUNCEMENT",
+                        classroom.getClassName(),
+                        teacherName,
+                        // The Quizzes tab of the right classroom, not the
+                        // classroom's front door — matches the courses page's
+                        // own tab labels exactly ("Quizzes", case-sensitive).
+                        "/dashboard/student/courses?classroomId=" + classroom.getClassroomId() + "&tab=Quizzes",
+                        "CLASSROOM",
+                        classroom.getClassroomId()
+                );
+            } catch (Exception e) {
+                log.warn("New-quiz notification failed for student {}: {}",
+                        student.getStudentId(), e.getMessage());
+            }
+        }
     }
 
     @Override

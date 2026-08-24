@@ -27,6 +27,7 @@ import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.subject.entity.Subject;
 import com.universitymanagement.teacher.entity.Teacher;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AttendanceSessionServiceImpl implements AttendanceSessionService {
 
     private final ClassSessionRepository sessionRepository;
@@ -51,6 +53,7 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
     private final ClassroomGradeGuard guard;
     private final AttendanceMath math;
     private final MinioService minioService;
+    private final com.universitymanagement.notification.service.NotificationService notificationService;
 
     // ---- sessions ----
 
@@ -197,9 +200,10 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
                 throw new StudentNotInClassroomException(mark.studentId(), classroomId);
             }
 
-            AttendanceRecord record = recordRepository
-                    .findBySession_SessionIdAndStudent_StudentId(sessionId, mark.studentId())
-                    .orElseGet(AttendanceRecord::new);
+            Optional<AttendanceRecord> existing = recordRepository
+                    .findBySession_SessionIdAndStudent_StudentId(sessionId, mark.studentId());
+            AttendanceStatus previousStatus = existing.map(AttendanceRecord::getStatus).orElse(null);
+            AttendanceRecord record = existing.orElseGet(AttendanceRecord::new);
 
             record.setSession(session);
             record.setStudent(student);
@@ -212,6 +216,35 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
             record.setRecordedAt(now);
 
             recordRepository.save(record);
+
+            // Only on the mark that actually lands on absent/late, not every
+            // resave of an already-absent record — otherwise a teacher tweaking
+            // an unrelated remark would re-notify a student who was already told.
+            boolean landedOnConcerning = mark.status() == AttendanceStatus.ABSENT
+                    || mark.status() == AttendanceStatus.LATE;
+            boolean statusChanged = previousStatus != mark.status();
+            if (landedOnConcerning && statusChanged && student.getUser() != null) {
+                try {
+                    String label = mark.status() == AttendanceStatus.LATE ? "late" : "absent";
+                    notificationService.createNotification(
+                            student.getUser().getId(),
+                            "Marked " + label + " in " + classroom.getClassName(),
+                            "You were marked " + label + " for "
+                                    + session.getSessionDate() + " in " + classroom.getClassName() + ".",
+                            "ATTENDANCE",
+                            classroom.getClassName(),
+                            teacher.getUser() != null ? teacher.getUser().getFullName() : "Your teacher",
+                            // The student's own attendance history, pre-filtered
+                            // to this class — not the classroom's front door.
+                            "/dashboard/student/attendance?classroomId=" + classroom.getClassroomId(),
+                            "ATTENDANCE",
+                            classroom.getClassroomId()
+                    );
+                } catch (Exception e) {
+                    log.warn("Attendance notification failed for student {}: {}",
+                            student.getStudentId(), e.getMessage());
+                }
+            }
         }
 
         // Marking the register is what turns a scheduled slot into one that
@@ -418,7 +451,10 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
     }
 
     private List<Student> roster(UUID classroomId) {
-        return classroomStudentRepository.findByClassroom_ClassroomId(classroomId).stream()
+        // findRosterWithUser, not the plain derived query: the sort below reads
+        // student.user for every row, and that relation is lazy — the plain
+        // query would cost one extra round trip per student to fill it in.
+        return classroomStudentRepository.findRosterWithUser(classroomId).stream()
                 .map(ClassroomStudent::getStudent)
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(

@@ -29,6 +29,7 @@ import com.universitymanagement.student.repository.StudentRepository;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +55,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AssignmentServiceImpl implements AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
@@ -64,6 +66,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
     private final MinioService minioService;
+    private final com.universitymanagement.notification.service.NotificationService notificationService;
 
     @Override
     @Transactional
@@ -92,7 +95,9 @@ public class AssignmentServiceImpl implements AssignmentService {
             }
         }
 
-        return toAssignmentResponse(assignmentRepository.save(assignment));
+        Assignment saved = assignmentRepository.save(assignment);
+        notifyClassroomOfNewAssignment(classroom, saved, teacher);
+        return toAssignmentResponse(saved);
     }
 
     @Override
@@ -498,7 +503,46 @@ public class AssignmentServiceImpl implements AssignmentService {
             copied.getFiles().add(copiedFile);
         }
 
-        return toAssignmentResponse(assignmentRepository.save(copied));
+        Assignment savedCopy = assignmentRepository.save(copied);
+        notifyClassroomOfNewAssignment(classroom, savedCopy, savedCopy.getCreatedByTeacher());
+        return toAssignmentResponse(savedCopy);
+    }
+
+    /**
+     * Tells every enrolled student a new assignment is waiting for them.
+     *
+     * <p>Best-effort: a notification failure (or a student with no linked
+     * user account) must not roll back the assignment itself, which is the
+     * part that actually matters here.
+     */
+    private void notifyClassroomOfNewAssignment(Classroom classroom, Assignment assignment, Teacher teacher) {
+        String teacherName = teacher != null && teacher.getUser() != null
+                ? teacher.getUser().getFullName()
+                : "Your teacher";
+        String link = "/dashboard/student/courses/assignment?assignmentId=" + assignment.getAssignmentId();
+
+        for (ClassroomStudent link_ : classroomStudentRepository.findRosterWithUser(classroom.getClassroomId())) {
+            Student student = link_.getStudent();
+            if (student == null || student.getUser() == null) continue;
+
+            try {
+                notificationService.createNotification(
+                        student.getUser().getId(),
+                        "New assignment: " + assignment.getTitle(),
+                        assignment.getTitle() + " has been posted in " + classroom.getClassName()
+                                + (assignment.getDueDate() != null ? ", due " + assignment.getDueDate() : "") + ".",
+                        "ASSIGNMENT",
+                        classroom.getClassName(),
+                        teacherName,
+                        link,
+                        "ASSIGNMENT",
+                        assignment.getAssignmentId()
+                );
+            } catch (Exception e) {
+                log.warn("New-assignment notification failed for student {}: {}",
+                        student.getStudentId(), e.getMessage());
+            }
+        }
     }
 
     @Override

@@ -131,6 +131,15 @@ public class SecurityConfig {
                                 "/api/v1/comments/**"
                         ).hasAnyRole(ADMIN, TEACHER, STUDENT)
 
+                        // A student's own POST here would otherwise be caught by rule 7
+                        // below, which locks every other POST under /assignments/** to
+                        // TEACHER/ADMIN — matched here first, same as the comments carve-out
+                        // just above, so it wins instead.
+                        .requestMatchers(
+                                "/api/v1/assignments/*/private-comments",
+                                "/api/v1/assignments/*/students/*/private-comments"
+                        ).hasAnyRole(ADMIN, TEACHER, STUDENT)
+
                         // 7. Teacher & Admin Write Operations (Create, Update, Delete for Academic Resources)
                         .requestMatchers(
                                 HttpMethod.POST,
