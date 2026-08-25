@@ -60,6 +60,12 @@ public class SecurityConfig {
                         // so this reveals UP or DOWN and nothing else.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
+                        // 1c. Public certificate verification. An employer with
+                        // a printed certificate must be able to check it without
+                        // an account; the response carries only what proves
+                        // authenticity, never grades or contact details.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/verify/**").permitAll()
+
                         // 2. Swagger / OpenAPI Documentation Resources
                         .requestMatchers(
                                 "/v3/api-docs/**",

@@ -11,6 +11,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, UU
 
     List<ClassSchedule> findByClassroom_ClassroomIdOrderByDayOfWeekAscStartTimeAsc(UUID classroomId);
 
+    /** One query for a student's whole timetable, instead of one per classroom. */
+    List<ClassSchedule> findByClassroom_ClassroomIdInOrderByDayOfWeekAscStartTimeAsc(List<UUID> classroomIds);
+
     List<ClassSchedule> findByClassroom_ClassroomIdAndDayOfWeekOrderByStartTimeAsc(
             UUID classroomId, DayOfWeek dayOfWeek);
 

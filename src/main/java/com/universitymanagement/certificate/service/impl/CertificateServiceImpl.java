@@ -5,12 +5,14 @@ import com.universitymanagement.certificate.dto.response.CertificateDownloadResp
 import com.universitymanagement.certificate.dto.response.CertificateRequestResponse;
 import com.universitymanagement.certificate.entity.CertificateRequest;
 import com.universitymanagement.certificate.entity.CertificateStatus;
+import com.universitymanagement.certificate.entity.IssuedCertificate;
+import com.universitymanagement.certificate.entity.IssuedStatus;
 import com.universitymanagement.certificate.repository.CertificateRequestRepository;
 import com.universitymanagement.certificate.service.CertificateService;
 import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.student.security.StudentAccessGuard;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class CertificateServiceImpl implements CertificateService {
     private final NotificationService notificationService;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CertificateRequestResponse> getRequestsForStudent(UUID studentId) {
         accessGuard.requireSelfOrStaff(studentId);
         return certificateRequestRepository
@@ -75,6 +78,7 @@ public class CertificateServiceImpl implements CertificateService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CertificateDownloadResponse downloadApprovedCertificate(UUID studentId, UUID requestId) {
         accessGuard.requireSelfOrStaff(studentId);
 
@@ -87,16 +91,34 @@ public class CertificateServiceImpl implements CertificateService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Certificate request is not approved yet (status: " + request.getStatus() + ")");
         }
-        if (request.getFileObjectName() == null) {
+
+        // Approving issues a real certificate, so the file to hand over is that
+        // one. fileObjectName is the older path, where a registrar attached a
+        // scan by hand; it is still honoured so historic requests keep working.
+        IssuedCertificate issued = request.getIssuedCertificate();
+        String objectName = issued != null && issued.getFileObjectName() != null
+                ? issued.getFileObjectName()
+                : request.getFileObjectName();
+
+        if (objectName == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Certificate file has not been uploaded yet");
+                    "This certificate has no downloadable file. Open it from "
+                            + "My Certificates instead.");
         }
 
-        String fileName = request.getFileOriginalName() != null
-                ? request.getFileOriginalName()
-                : "certificate-" + requestId + ".pdf";
+        if (issued != null && issued.getStatus() == IssuedStatus.REVOKED) {
+            throw new ResponseStatusException(HttpStatus.GONE,
+                    "This certificate was revoked" + (issued.getRevokeReason() != null
+                            ? ": " + issued.getRevokeReason() : "."));
+        }
 
-        String url = minioService.getDownloadUrl(request.getFileObjectName(), fileName);
+        String fileName = issued != null
+                ? issued.getCertificateNumber() + ".pdf"
+                : (request.getFileOriginalName() != null
+                        ? request.getFileOriginalName()
+                        : "certificate-" + requestId + ".pdf");
+
+        String url = minioService.getAssetDownloadUrl(objectName, fileName);
         return new CertificateDownloadResponse(requestId, fileName, url);
     }
 
@@ -109,7 +131,10 @@ public class CertificateServiceImpl implements CertificateService {
                 entity.getRejectReason(),
                 entity.getCreatedAt(),
                 entity.getProcessedAt(),
-                entity.getStatus() == CertificateStatus.APPROVED && entity.getFileObjectName() != null
+                entity.getStatus() == CertificateStatus.APPROVED
+                        && (entity.getFileObjectName() != null
+                                || (entity.getIssuedCertificate() != null
+                                        && entity.getIssuedCertificate().getFileObjectName() != null))
         );
     }
 }

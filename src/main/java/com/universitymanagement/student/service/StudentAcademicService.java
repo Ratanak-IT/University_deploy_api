@@ -1,6 +1,7 @@
 package com.universitymanagement.student.service;
 
 import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
+import com.universitymanagement.attendance.dto.response.StudentTimetableSlotResponse;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.grading.dto.response.CourseGradeResponse;
 import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
@@ -28,6 +29,9 @@ public interface StudentAcademicService {
 
     /** The student's register, grouped per course, with exam eligibility. */
     List<StudentAttendanceResponse> getAttendance(UUID studentId, UUID classroomId);
+
+    /** The weekly timetable across every classroom the student is enrolled in. */
+    List<StudentTimetableSlotResponse> getTimetable(UUID studentId);
 
     List<DepartmentResponse> getDepartments(UUID studentId);
 

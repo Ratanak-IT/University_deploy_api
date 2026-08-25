@@ -6,6 +6,9 @@ import com.universitymanagement.assignment.entity.Submission;
 import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
 import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
+import com.universitymanagement.attendance.dto.response.StudentTimetableSlotResponse;
+import com.universitymanagement.attendance.entity.ClassSchedule;
+import com.universitymanagement.attendance.repository.ClassScheduleRepository;
 import com.universitymanagement.attendance.service.StudentAttendanceReader;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
@@ -49,6 +52,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final StudentAttendanceReader attendanceReader;
+    private final ClassScheduleRepository scheduleRepository;
     private final CourseGradeQueryService courseGradeQuery;
     private final GpaCalculator gpaCalculator;
     private final MinioService minioService;
@@ -206,6 +210,43 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     public List<StudentAttendanceResponse> getAttendance(UUID studentId, UUID classroomId) {
         Student student = accessGuard.requireSelfOrStaff(studentId);
         return attendanceReader.byCourse(student, classroomId);
+    }
+
+    @Override
+    public List<StudentTimetableSlotResponse> getTimetable(UUID studentId) {
+        accessGuard.requireSelfOrStaff(studentId);
+
+        List<Classroom> classrooms = enrolledClassrooms(studentId);
+        if (classrooms.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, Classroom> byId = classrooms.stream()
+                .collect(Collectors.toMap(Classroom::getClassroomId, c -> c));
+
+        return scheduleRepository
+                .findByClassroom_ClassroomIdInOrderByDayOfWeekAscStartTimeAsc(new ArrayList<>(byId.keySet()))
+                .stream()
+                .map(schedule -> toTimetableSlot(schedule, byId.get(schedule.getClassroom().getClassroomId())))
+                .toList();
+    }
+
+    private StudentTimetableSlotResponse toTimetableSlot(ClassSchedule schedule, Classroom classroom) {
+        Subject subject = classroom.getSubject();
+        return new StudentTimetableSlotResponse(
+                schedule.getScheduleId(),
+                classroom.getClassroomId(),
+                classroom.getClassName(),
+                classroom.getClassCode(),
+                subject != null ? subject.getSubjectCode() : null,
+                subject != null ? subject.getSubjectName() : null,
+                classroom.getTeacher() != null && classroom.getTeacher().getUser() != null
+                        ? classroom.getTeacher().getUser().getFullName() : null,
+                schedule.getDayOfWeek(),
+                schedule.getStartTime(),
+                schedule.getEndTime(),
+                schedule.getType(),
+                schedule.getRoom() != null ? schedule.getRoom() : classroom.getRoom());
     }
 
     @Override

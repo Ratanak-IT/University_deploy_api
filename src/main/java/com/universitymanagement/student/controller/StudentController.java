@@ -3,9 +3,12 @@ package com.universitymanagement.student.controller;
 import com.universitymanagement.assignment.dto.response.SubmissionResponse;
 import com.universitymanagement.assignment.service.AssignmentService;
 import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
+import com.universitymanagement.attendance.dto.response.StudentTimetableSlotResponse;
 import com.universitymanagement.certificate.dto.request.CreateCertificateRequest;
 import com.universitymanagement.certificate.dto.response.CertificateDownloadResponse;
 import com.universitymanagement.certificate.dto.response.CertificateRequestResponse;
+import com.universitymanagement.certificate.dto.response.IssuedCertificateResponse;
+import com.universitymanagement.certificate.service.StudentCertificateService;
 import com.universitymanagement.certificate.service.CertificateService;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.grading.dto.response.CourseGradeResponse;
@@ -39,6 +42,7 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentAcademicService academicService;
     private final CertificateService certificateService;
+    private final StudentCertificateService studentCertificateService;
     private final QuizAttemptService quizAttemptService;
     private final AssignmentService assignmentService;
     private final StudentAccessGuard accessGuard;
@@ -94,6 +98,14 @@ public class StudentController {
         return academicService.getAttendance(studentId, classroomId);
     }
 
+    /** The weekly timetable across every classroom the student is enrolled in. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/timetable")
+    public List<StudentTimetableSlotResponse> getTimetable(@PathVariable UUID studentId) {
+        return academicService.getTimetable(studentId);
+    }
+
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
     @GetMapping("/{studentId}/department")
@@ -126,6 +138,47 @@ public class StudentController {
     public StudentAssignmentResponse getAssignmentDetail(@PathVariable UUID studentId,
                                                          @PathVariable UUID assignmentId) {
         return academicService.getAssignmentDetail(studentId, assignmentId);
+    }
+
+    /**
+     * Certificates the student has actually been awarded.
+     *
+     * <p>Nothing is listed until the registrar issues it — there is no row to
+     * read before then, so an unapproved certificate cannot be seen or
+     * downloaded by any route.
+     */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/certificates")
+    public List<IssuedCertificateResponse> getMyCertificates(@PathVariable UUID studentId) {
+        return studentCertificateService.getMyCertificates(studentId);
+    }
+
+    /** The awarded document itself, as stored at the moment it was issued. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping(value = "/{studentId}/certificates/{issuedId}/document",
+            produces = MediaType.TEXT_HTML_VALUE)
+    public String getCertificateDocument(@PathVariable UUID studentId,
+                                         @PathVariable UUID issuedId) {
+        return studentCertificateService.getCertificateHtml(studentId, issuedId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/certificates/{issuedId}/download")
+    public CertificateDownloadResponse downloadIssuedCertificate(@PathVariable UUID studentId,
+                                                                 @PathVariable UUID issuedId) {
+        return studentCertificateService.download(studentId, issuedId);
+    }
+
+    /** Same file, opened inline so it can be looked at before it is saved. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/certificates/{issuedId}/preview")
+    public CertificateDownloadResponse previewIssuedCertificate(@PathVariable UUID studentId,
+                                                                 @PathVariable UUID issuedId) {
+        return studentCertificateService.preview(studentId, issuedId);
     }
 
     @ResponseStatus(HttpStatus.OK)

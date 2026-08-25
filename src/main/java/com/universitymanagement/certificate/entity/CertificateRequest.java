@@ -48,4 +48,20 @@ public class CertificateRequest extends BasedEntity {
 
     @Column(name = "reject_reason", columnDefinition = "TEXT")
     private String rejectReason;
+
+    @Column(name = "processed_by")
+    private String processedBy;
+
+    /**
+     * The certificate this request produced.
+     *
+     * <p>Approving does not attach a file by hand — it issues through the same
+     * path a cohort batch uses, so a requested certificate carries the same
+     * number, verification code and template version as any other. Without
+     * that, an approved request would produce a document that cannot be
+     * verified, which is not a certificate at all.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "issued_certificate_id")
+    private IssuedCertificate issuedCertificate;
 }

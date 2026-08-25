@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,6 +136,58 @@ public class MinioServiceImpl implements MinioService {
         }
     }
 
+    @Override
+    public String getAssetDownloadUrl(String objectName, String originalFileName) {
+        try {
+            String safeName = originalFileName != null ? originalFileName : objectName;
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(assetsBucket)
+                            .object(objectName)
+                            .expiry(DOWNLOAD_EXPIRY_SECONDS)
+                            .extraQueryParams(Map.of(
+                                    "response-content-disposition",
+                                    "attachment; filename=\"" + safeName + "\""))
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate asset download URL", e);
+        }
+    }
+
+
+    @Override
+    public byte[] getAssetBytes(String objectName) {
+        try (InputStream stream = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(assetsBucket)
+                        .object(objectName)
+                        .build())) {
+            return stream.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read asset: " + objectName, e);
+        }
+    }
+
+    @Override
+    public String uploadAssetBytes(byte[] data, String fileName, String contentType) {
+        try {
+            ensureBucketExists(assetsBucket);
+
+            String objectName = UUID.randomUUID() + "-" + fileName;
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(assetsBucket)
+                            .object(objectName)
+                            .stream(new ByteArrayInputStream(data), data.length, -1L)
+                            .contentType(contentType)
+                            .build());
+            return objectName;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store file: " + fileName, e);
+        }
+    }
 
     @Override
     public FileStream getLessonObject(String objectName) {
