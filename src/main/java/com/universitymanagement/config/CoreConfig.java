@@ -13,16 +13,7 @@ import java.util.List;
 @Configuration
 public class CoreConfig {
 
-    /**
-     * Browser origins allowed to call the API directly.
-     *
-     * <p>These were hard-coded to localhost, which is fine while the admin app
-     * proxies every request through its own server — but silently blocks the
-     * browser the moment it talks to the API directly from a real domain. Set
-     * {@code APP_CORS_ALLOWED_ORIGINS} on the server to the deployed front-end
-     * origins, comma-separated.
-     */
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,https://cambodiaunm.vercel.app}")
     private List<String> allowedOrigins;
 
     @Bean
