@@ -62,6 +62,11 @@ public class Student {
     @OneToMany(mappedBy = "student")
     private List<ClassroomStudent> classroomStudents;
 
-    @ManyToOne
+    // No explicit fetch meant EAGER (the JPA default for @ManyToOne) — every
+    // load of a Student, including every roster/list of students, silently
+    // fired one extra query per row to pull in Program. LAZY here; callers
+    // that genuinely need the program in bulk should JOIN FETCH it, the way
+    // findRosterWithUser already does for the same reason.
+    @ManyToOne(fetch = FetchType.LAZY)
     private Program program;
 }

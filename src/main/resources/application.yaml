@@ -2,6 +2,7 @@ minio:
   endpoint: https://s3.careerpatch.site
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
+
   bucket:
     assets: university-assets
     lessons: university-lessons
@@ -50,10 +51,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    # Pretty-printing and logging every statement costs real CPU/IO on every
+    # request — turned off, since this was running in production. Re-enable
+    # locally with -Dspring-boot.run.arguments if you need to see the SQL.
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
+        # Lets Hibernate group lazy loads of the same association into one
+        # IN-clause query instead of firing one per row — a real difference
+        # against a database this far away.
+        default_batch_fetch_size: 25
 
 logging:
   level:

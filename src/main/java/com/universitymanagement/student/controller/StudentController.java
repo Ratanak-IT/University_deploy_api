@@ -140,6 +140,20 @@ public class StudentController {
         return academicService.getAssignmentDetail(studentId, assignmentId);
     }
 
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/dashboard-summary")
+    public StudentDashboardSummaryResponse getDashboardSummary(@PathVariable UUID studentId) {
+        return academicService.getDashboardSummary(studentId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN','TEACHER')")
+    @GetMapping("/{studentId}/assignments-list")
+    public List<StudentAssignmentListItemResponse> getAssignmentsList(@PathVariable UUID studentId) {
+        return academicService.getAssignmentsList(studentId);
+    }
+
     /**
      * Certificates the student has actually been awarded.
      *

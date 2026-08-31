@@ -4,6 +4,7 @@ import com.universitymanagement.attendance.entity.ClassSession;
 import com.universitymanagement.attendance.entity.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,4 +35,15 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
             order by s.sessionDate asc, s.startTime asc
             """)
     List<ClassSession> findInRange(UUID classroomId, LocalDate from, LocalDate to);
+
+    /** Today's sessions still awaiting a register, across a set of classrooms — the teacher dashboard's "attendance to take" count. */
+    @Query("""
+            select count(s) from ClassSession s
+            where s.classroom.classroomId in :classroomIds
+              and s.sessionDate = :today
+              and s.status = com.universitymanagement.attendance.entity.SessionStatus.SCHEDULED
+            """)
+    long countUntakenTodayByClassroomIds(
+            @Param("classroomIds") List<UUID> classroomIds,
+            @Param("today") LocalDate today);
 }

@@ -6,7 +6,9 @@ import com.universitymanagement.department.dto.response.DepartmentResponse;
 import com.universitymanagement.grading.dto.response.CourseGradeResponse;
 import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
+import com.universitymanagement.student.dto.response.StudentAssignmentListItemResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
+import com.universitymanagement.student.dto.response.StudentDashboardSummaryResponse;
 import com.universitymanagement.student.dto.response.TranscriptResponse;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import org.springframework.data.domain.Page;
@@ -41,4 +43,10 @@ public interface StudentAcademicService {
                                                    String status, int page, int size);
 
     StudentAssignmentResponse getAssignmentDetail(UUID studentId, UUID assignmentId);
+
+    /** Pending-assignment count and the soonest-due few, for the dashboard's deadlines widget. */
+    StudentDashboardSummaryResponse getDashboardSummary(UUID studentId);
+
+    /** Every assignment across the student's classrooms, without files/description — for the list page. */
+    List<StudentAssignmentListItemResponse> getAssignmentsList(UUID studentId);
 }

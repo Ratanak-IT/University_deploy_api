@@ -3,6 +3,7 @@ package com.universitymanagement.quiz.controller;
 import com.universitymanagement.quiz.dto.request.AddQuizQuestionRequest;
 import com.universitymanagement.quiz.dto.request.AssignQuizToClassroomRequest;
 import com.universitymanagement.quiz.dto.request.CreateQuizRequest;
+import com.universitymanagement.quiz.dto.response.QuizAttemptSummaryResponse;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 import com.universitymanagement.quiz.service.QuizService;
 import jakarta.validation.Valid;
@@ -71,5 +72,12 @@ public class QuizController {
     @DeleteMapping("/{quizId}")
     public void deleteQuiz(@PathVariable UUID quizId) {
         quizService.deleteQuiz(quizId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    @GetMapping("/{quizId}/attempts")
+    public List<QuizAttemptSummaryResponse> getAttemptsForQuiz(@PathVariable UUID quizId) {
+        return quizService.getAttemptsForQuiz(quizId);
     }
 }

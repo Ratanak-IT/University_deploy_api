@@ -14,6 +14,10 @@ public record AssignmentResponse(
         Double weight,
         List<FileResponse> files,
         LocalDateTime createdAt,
-        String createdBy
+        String createdBy,
+        /** How many students have submitted. Null where the caller didn't ask for it (e.g. create/update). */
+        Long submittedCount,
+        /** Classroom roster size, for rendering "submitted / total". Null where not requested. */
+        Long totalStudents
 ) {
 }

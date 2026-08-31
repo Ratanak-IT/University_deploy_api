@@ -25,7 +25,7 @@ import com.universitymanagement.student.service.StudentAcademicService;
 import com.universitymanagement.student.service.StudentService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
@@ -45,8 +45,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Read-only by default; the write methods below each carry their own plain
+ * {@code @Transactional}, which overrides this at the method level. Without
+ * a session, {@code getStudentById}/the admin listing threw
+ * LazyInitializationException reading a student's program the moment
+ * open-in-view stopped papering over it.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StudentServiceImpl implements StudentService {
 
     private final Keycloak keycloak;
@@ -274,6 +282,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional
     public StudentDetailResponse findStudentById(String id) {
         UserRepresentation kcUser = requireKeycloakUser(id);
         List<String> roles = fetchRealmRoles(id);
@@ -282,7 +291,7 @@ public class StudentServiceImpl implements StudentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "User not found in local DB: " + id));
 
-        Student student = studentRepository.findByUserId(user.getId())
+        Student student = studentRepository.findByUserIdWithProgram(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Student profile not found for user: " + id));
 

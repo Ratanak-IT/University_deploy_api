@@ -10,10 +10,12 @@ import com.universitymanagement.identity.repository.UserRepository;
 import com.universitymanagement.quiz.dto.request.AddQuizQuestionRequest;
 import com.universitymanagement.quiz.dto.request.AssignQuizToClassroomRequest;
 import com.universitymanagement.quiz.dto.request.CreateQuizRequest;
+import com.universitymanagement.quiz.dto.response.QuizAttemptSummaryResponse;
 import com.universitymanagement.quiz.dto.response.QuizClassroomResponse;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 import com.universitymanagement.quiz.entity.Quiz;
 import com.universitymanagement.quiz.entity.QuizAssignment;
+import com.universitymanagement.quiz.entity.QuizAttempt;
 import com.universitymanagement.quiz.entity.QuizQuestion;
 import com.universitymanagement.quiz.exception.QuizAccessDeniedException;
 import com.universitymanagement.quiz.exception.QuizClassroomNotFoundException;
@@ -25,7 +27,7 @@ import com.universitymanagement.quiz.service.QuizService;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.universitymanagement.quiz.entity.QuestionType;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class QuizServiceImpl implements QuizService {
 
     private final QuizRepository quizRepository;
@@ -272,6 +275,31 @@ public class QuizServiceImpl implements QuizService {
         quiz.setIsDeleted(true);
         quizRepository.save(quiz);
         assignmentRepository.deleteByQuiz_QuizId(quizId);
+    }
+
+    @Override
+    public List<QuizAttemptSummaryResponse> getAttemptsForQuiz(UUID quizId) {
+        findOwnedQuiz(quizId);
+        return attemptRepository.findByQuiz_QuizIdWithStudent(quizId)
+                .stream()
+                .map(this::toAttemptSummary)
+                .toList();
+    }
+
+    private QuizAttemptSummaryResponse toAttemptSummary(QuizAttempt a) {
+        var student = a.getStudent();
+        var user = student.getUser();
+        return new QuizAttemptSummaryResponse(
+                a.getAttemptId(),
+                student.getStudentId(),
+                student.getStudentCode(),
+                user != null ? user.getFullName() : null,
+                a.getStatus(),
+                a.getStartedAt(),
+                a.getSubmittedAt(),
+                a.getEarnedScore(),
+                a.getTotalScore()
+        );
     }
 
 

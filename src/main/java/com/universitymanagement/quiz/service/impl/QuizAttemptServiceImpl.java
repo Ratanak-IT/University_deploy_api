@@ -70,7 +70,17 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
             throw new QuizWindowClosedException(quizId, "quiz window is already closed");
         }
 
-        long used = quizAttemptRepository.countByQuiz_QuizIdAndStudent_StudentId(quizId, studentId);
+        // Reopening a quiz that is still genuinely in progress resumes it,
+        // rather than abandoning it in place and minting a duplicate that
+        // would count a second time against the attempt limit.
+        List<QuizAttempt> active = quizAttemptRepository
+                .findActiveByQuiz_QuizIdAndStudent_StudentId(quizId, studentId, now);
+        if (!active.isEmpty()) {
+            return toAttemptResponse(active.get(0), true, false);
+        }
+
+        long used = quizAttemptRepository
+                .countSettledByQuiz_QuizIdAndStudent_StudentId(quizId, studentId, now);
         if (quiz.getMaxAttempts() != null && used >= quiz.getMaxAttempts()) {
             throw new QuizMaxAttemptsReachedException(quizId, quiz.getMaxAttempts());
         }
@@ -245,8 +255,12 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
     private QuizResponse toQuizResponse(QuizAssignment release, UUID studentId) {
         Quiz quiz = release.getQuiz();
+        // Settled attempts only — an attempt the student merely opened and
+        // has not yet finished or run out of time on must not read as
+        // "completed", and must not count against their attempt limit.
         long used = quizAttemptRepository
-                .countByQuiz_QuizIdAndStudent_StudentId(quiz.getQuizId(), studentId);
+                .countSettledByQuiz_QuizIdAndStudent_StudentId(
+                        quiz.getQuizId(), studentId, LocalDateTime.now());
         Double best = quizAttemptRepository
                 .findByStudent_StudentIdOrderByStartedAtDesc(studentId)
                 .stream()

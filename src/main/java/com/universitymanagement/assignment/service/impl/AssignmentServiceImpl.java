@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -106,7 +107,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         requireTeacherOwnsClassroomOrAdmin(assignment.getClassroom());
 
         List<Submission> submissions = submissionRepository
-                .findByAssignment_AssignmentIdOrderBySubmittedAtDesc(assignmentId);
+                .findByAssignmentWithDetails(assignmentId);
 
         Map<UUID, Submission> byStudent = new LinkedHashMap<>();
         for (Submission submission : submissions) {
@@ -173,10 +174,20 @@ public class AssignmentServiceImpl implements AssignmentService {
         Classroom classroom = findClassroom(classroomId);
         requireMemberOrAdmin(classroom);
 
-        return assignmentRepository
-                .findByClassroom_ClassroomIdAndIsDeletedFalseOrderByDueDateAsc(classroomId)
-                .stream()
-                .map(this::toAssignmentResponse)
+        List<Assignment> assignments = assignmentRepository.findByClassroomIdWithFiles(classroomId);
+        List<UUID> assignmentIds = assignments.stream().map(Assignment::getAssignmentId).toList();
+
+        Map<UUID, Long> submittedCounts = assignmentIds.isEmpty()
+                ? Map.of()
+                : submissionRepository.countByAssignmentIds(assignmentIds).stream()
+                        .collect(Collectors.toMap(
+                                SubmissionRepository.AssignmentSubmissionCount::getAssignmentId,
+                                SubmissionRepository.AssignmentSubmissionCount::getTotal));
+
+        long totalStudents = classroomStudentRepository.countByClassroom_ClassroomId(classroomId);
+
+        return assignments.stream()
+                .map(a -> toAssignmentResponse(a, submittedCounts.getOrDefault(a.getAssignmentId(), 0L), totalStudents))
                 .toList();
     }
 
@@ -229,6 +240,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
 
     private AssignmentResponse toAssignmentResponse(Assignment a) {
+        return toAssignmentResponse(a, null, null);
+    }
+
+    private AssignmentResponse toAssignmentResponse(Assignment a, Long submittedCount, Long totalStudents) {
         List<FileResponse> files = a.getFiles().stream()
                 .map(f -> new FileResponse(
                         f.getFileId(),
@@ -247,7 +262,9 @@ public class AssignmentServiceImpl implements AssignmentService {
                 a.getWeight(),
                 files,
                 a.getCreatedAt(),
-                a.getCreatedBy()
+                a.getCreatedBy(),
+                submittedCount,
+                totalStudents
         );
     }
 

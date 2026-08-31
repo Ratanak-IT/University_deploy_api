@@ -14,6 +14,7 @@ public interface ClassroomStudentRepository extends JpaRepository<ClassroomStude
     boolean existsByClassroom_ClassroomIdAndStudent_StudentId(UUID classroomId, UUID studentId);
     Optional<ClassroomStudent> findByClassroom_ClassroomIdAndStudent_StudentId(UUID classroomId, UUID studentId);
     List<ClassroomStudent> findByClassroom_ClassroomId(UUID classroomId);
+    long countByClassroom_ClassroomId(UUID classroomId);
     List<ClassroomStudent> findByClassroom_ClassroomIdIn(List<UUID> classroomIds);
 
     /**
@@ -30,4 +31,31 @@ public interface ClassroomStudentRepository extends JpaRepository<ClassroomStude
             where cs.classroom.classroomId = :classroomId
             """)
     List<ClassroomStudent> findRosterWithUser(@Param("classroomId") UUID classroomId);
+
+    /**
+     * A student's own enrolments, with each classroom and its subject already
+     * loaded. Both are lazy, so reading a class name or subject off the plain
+     * derived query costs two extra round trips per classroom — for a student
+     * in six classes that is twelve avoidable queries every time their
+     * schedule, grades or assignments are read.
+     */
+    @Query("""
+            select cs from ClassroomStudent cs
+            join fetch cs.classroom c
+            left join fetch c.subject
+            where cs.student.studentId = :studentId
+            """)
+    List<ClassroomStudent> findByStudentWithClassroomAndSubject(@Param("studentId") UUID studentId);
+
+    /**
+     * How many distinct students are enrolled across a set of classrooms —
+     * a student in more than one of the teacher's classrooms is only
+     * counted once. Feeds the teacher dashboard summary in one query
+     * instead of loading every roster row.
+     */
+    @Query("""
+            select count(distinct cs.student.studentId) from ClassroomStudent cs
+            where cs.classroom.classroomId in :classroomIds
+            """)
+    long countDistinctStudentsByClassroomIds(@Param("classroomIds") List<UUID> classroomIds);
 }

@@ -15,6 +15,22 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     Optional<Student> findByUserId(UUID id);
     boolean existsByStudentCode(String studentCode);
 
+    /**
+     * Same as {@link #findByUserId}, with the program already loaded — this
+     * is what "my profile" reads on every page load, and program is now lazy
+     * (it used to default to eager, silently costing a query per student
+     * anywhere a list of students was loaded). Without open-in-view keeping a
+     * session around, a plain findByUserId here would throw
+     * LazyInitializationException the moment the response reads the program
+     * name outside the transaction.
+     */
+    @Query("""
+            select s from Student s
+            left join fetch s.program
+            where s.user.id = :userId
+            """)
+    Optional<Student> findByUserIdWithProgram(@Param("userId") UUID userId);
+
     @Query("""
             select s from Student s
             join s.user u

@@ -23,7 +23,9 @@ import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.program.entity.Program;
 import com.universitymanagement.student.dto.response.AcademicRecordSheetResponse;
 import com.universitymanagement.student.dto.response.GpaResponse;
+import com.universitymanagement.student.dto.response.StudentAssignmentListItemResponse;
 import com.universitymanagement.student.dto.response.StudentAssignmentResponse;
+import com.universitymanagement.student.dto.response.StudentDashboardSummaryResponse;
 import com.universitymanagement.student.dto.response.TranscriptResponse;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.student.security.StudentAccessGuard;
@@ -37,13 +39,23 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Entirely read paths — grades, attendance, assignments, timetable. Every
+ * sibling service here (certificates, cohort) already runs read-only inside
+ * a transaction; this one didn't, which was invisible while open-in-view
+ * kept a session alive for the whole request regardless. With that off,
+ * every lazy association this class touches needs either an explicit fetch
+ * join or a live session to resolve in — this covers the latter.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StudentAcademicServiceImpl implements StudentAcademicService {
 
     private final StudentAccessGuard accessGuard;
@@ -305,18 +317,31 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                                                           String status, int page, int size) {
         accessGuard.requireSelfOrStaff(studentId);
 
-        List<Assignment> all = enrolledClassrooms(studentId).stream()
+        List<UUID> classroomIds = enrolledClassrooms(studentId).stream()
                 .filter(c -> subjectId == null
                         || (c.getSubject() != null
                         && c.getSubject().getSubjectId().equals(subjectId)))
-                .flatMap(c -> assignmentRepository
-                        .findByClassroom_ClassroomIdAndIsDeletedFalseOrderByDueDateAsc(
-                                c.getClassroomId())
-                        .stream())
+                .map(Classroom::getClassroomId)
                 .toList();
 
-        List<StudentAssignmentResponse> responses = all.stream()
-                .map(a -> toStudentAssignmentResponse(a, studentId))
+        // One query for every assignment across every enrolled classroom,
+        // rather than one query per classroom — and one more for every
+        // submission, rather than one per assignment. A student in six
+        // classes previously cost dozens of round trips here; now it costs
+        // two, regardless of how many classes or assignments they have.
+        List<Assignment> assignments = classroomIds.isEmpty()
+                ? List.of()
+                : assignmentRepository.findByClassroomIdsWithFiles(classroomIds);
+
+        List<UUID> assignmentIds = assignments.stream().map(Assignment::getAssignmentId).toList();
+        Map<UUID, Submission> submissionByAssignment = assignmentIds.isEmpty()
+                ? Map.of()
+                : submissionRepository.findByAssignmentIdsAndStudentWithFiles(assignmentIds, studentId)
+                        .stream()
+                        .collect(Collectors.toMap(s -> s.getAssignment().getAssignmentId(), s -> s));
+
+        List<StudentAssignmentResponse> responses = assignments.stream()
+                .map(a -> toStudentAssignmentResponse(a, submissionByAssignment.get(a.getAssignmentId())))
                 .filter(r -> matchesStatus(r, status))
                 .sorted(Comparator.comparing(StudentAssignmentResponse::dueDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
@@ -326,6 +351,67 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
         int from = Math.min((int) pageable.getOffset(), responses.size());
         int to = Math.min(from + pageable.getPageSize(), responses.size());
         return new PageImpl<>(responses.subList(from, to), pageable, responses.size());
+    }
+
+    @Override
+    public StudentDashboardSummaryResponse getDashboardSummary(UUID studentId) {
+        accessGuard.requireSelfOrStaff(studentId);
+
+        List<UUID> classroomIds = enrolledClassrooms(studentId).stream()
+                .map(Classroom::getClassroomId)
+                .toList();
+
+        List<Assignment> pending = classroomIds.isEmpty()
+                ? List.of()
+                : assignmentRepository.findPendingWithClassroomByClassroomIdsAndStudent(classroomIds, studentId);
+
+        List<StudentDashboardSummaryResponse.UpcomingDeadline> upcoming = pending.stream()
+                .limit(5)
+                .map(a -> new StudentDashboardSummaryResponse.UpcomingDeadline(
+                        a.getAssignmentId(),
+                        a.getTitle(),
+                        a.getClassroom().getClassName(),
+                        a.getDueDate()))
+                .toList();
+
+        return new StudentDashboardSummaryResponse(pending.size(), upcoming);
+    }
+
+    @Override
+    public List<StudentAssignmentListItemResponse> getAssignmentsList(UUID studentId) {
+        accessGuard.requireSelfOrStaff(studentId);
+
+        List<UUID> classroomIds = enrolledClassrooms(studentId).stream()
+                .map(Classroom::getClassroomId)
+                .toList();
+
+        List<Assignment> assignments = classroomIds.isEmpty()
+                ? List.of()
+                : assignmentRepository.findByClassroomIdsWithClassroomOnly(classroomIds);
+
+        List<UUID> assignmentIds = assignments.stream().map(Assignment::getAssignmentId).toList();
+        Map<UUID, Submission> submissionByAssignment = assignmentIds.isEmpty()
+                ? Map.of()
+                : submissionRepository.findByAssignment_AssignmentIdInAndStudent_StudentId(assignmentIds, studentId)
+                        .stream()
+                        .collect(Collectors.toMap(s -> s.getAssignment().getAssignmentId(), s -> s));
+
+        return assignments.stream()
+                .map(a -> {
+                    Submission submission = submissionByAssignment.get(a.getAssignmentId());
+                    Classroom classroom = a.getClassroom();
+                    return new StudentAssignmentListItemResponse(
+                            a.getAssignmentId(),
+                            classroom.getClassroomId(),
+                            classroom.getClassName(),
+                            classroom.getSubject() != null ? classroom.getSubject().getSubjectName() : null,
+                            a.getTitle(),
+                            a.getDueDate(),
+                            a.getMaxScore(),
+                            submission != null ? submission.getStatus() : null,
+                            submission != null ? submission.getScore() : null);
+                })
+                .toList();
     }
 
     @Override
@@ -345,7 +431,10 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                     "Student is not enrolled in the classroom of this assignment");
         }
 
-        return toStudentAssignmentResponse(assignment, studentId);
+        Submission submission = submissionRepository
+                .findByAssignment_AssignmentIdAndStudent_StudentId(assignmentId, studentId)
+                .orElse(null);
+        return toStudentAssignmentResponse(assignment, submission);
     }
 
     // Helpers
@@ -355,7 +444,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     }
 
     private List<Classroom> enrolledClassrooms(UUID studentId) {
-        return classroomStudentRepository.findByStudent_StudentId(studentId)
+        return classroomStudentRepository.findByStudentWithClassroomAndSubject(studentId)
                 .stream()
                 .map(ClassroomStudent::getClassroom)
                 .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
@@ -375,18 +464,13 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     }
 
     private StudentAssignmentResponse toStudentAssignmentResponse(Assignment assignment,
-                                                                  UUID studentId) {
+                                                                  Submission submission) {
         List<FileResponse> assignmentFiles = assignment.getFiles().stream()
                 .map(f -> new FileResponse(
                         f.getFileId(),
                         f.getFileOriginalName(),
                         minioService.getPreviewUrl(f.getFileObjectName())))
                 .toList();
-
-        Submission submission = submissionRepository
-                .findByAssignment_AssignmentIdAndStudent_StudentId(
-                        assignment.getAssignmentId(), studentId)
-                .orElse(null);
 
         List<FileResponse> submissionFiles = submission == null ? List.of()
                 : submission.getFiles().stream()

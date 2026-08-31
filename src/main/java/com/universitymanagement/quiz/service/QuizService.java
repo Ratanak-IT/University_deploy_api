@@ -3,6 +3,7 @@ package com.universitymanagement.quiz.service;
 import com.universitymanagement.quiz.dto.request.AddQuizQuestionRequest;
 import com.universitymanagement.quiz.dto.request.AssignQuizToClassroomRequest;
 import com.universitymanagement.quiz.dto.request.CreateQuizRequest;
+import com.universitymanagement.quiz.dto.response.QuizAttemptSummaryResponse;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 
 import java.util.List;
@@ -23,4 +24,6 @@ public interface QuizService {
     List<QuizManageResponse> getMyQuizzes();
 
     void deleteQuiz(UUID quizId);
+
+    List<QuizAttemptSummaryResponse> getAttemptsForQuiz(UUID quizId);
 }

@@ -8,6 +8,7 @@ import com.universitymanagement.teacher.dto.request.AssignClassroomRequest;
 import com.universitymanagement.teacher.dto.request.AssignSubjectRequest;
 import com.universitymanagement.teacher.dto.request.CreateTeacherRequest;
 import com.universitymanagement.teacher.dto.request.UpdateTeacherRequest;
+import com.universitymanagement.teacher.dto.response.TeacherDashboardSummaryResponse;
 import com.universitymanagement.teacher.dto.response.TeacherDetailResponse;
 import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import com.universitymanagement.teacher.service.TeacherService;
@@ -38,6 +39,17 @@ public class TeacherController {
             throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return teacherService.findTeacherByUserId(jwt.getSubject());
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/me/dashboard-summary")
+    public TeacherDashboardSummaryResponse getMyDashboardSummary() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return teacherService.getMyDashboardSummary(jwt.getSubject());
     }
 
     @ResponseStatus(HttpStatus.OK)

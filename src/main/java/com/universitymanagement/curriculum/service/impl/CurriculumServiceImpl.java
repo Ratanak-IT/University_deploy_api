@@ -23,13 +23,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Read-only by default — mapToRichResponse reads a curriculum's program and
+ * subject, both lazy, and this class had no transaction anywhere. That was
+ * invisible while open-in-view kept a session open for the whole request;
+ * without it, the public curriculum list (the landing page's own endpoint)
+ * would throw LazyInitializationException on the first row. The three write
+ * methods override this with their own plain @Transactional.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CurriculumServiceImpl implements CurriculumService {
     private final CurriculumRepository curriculumRepository;
     private final CurriculumMapper curriculumMapper;
@@ -145,6 +155,7 @@ public class CurriculumServiceImpl implements CurriculumService {
     }
 
     @Override
+    @Transactional
     public CurriculumResponse createCurriculum(CurriculumRequest request) {
         Program program = programRepository.findById(request.programId())
                 .orElseThrow(() -> new ProgramNotFoundException(request.programId()));
@@ -171,6 +182,7 @@ public class CurriculumServiceImpl implements CurriculumService {
     }
 
     @Override
+    @Transactional
     public CurriculumResponse updateCurriculum(UUID curriculumId, CurriculumRequest request) {
         Curriculum curriculum = curriculumRepository.findById(curriculumId)
                 .orElseThrow(() -> new CurriculumNotFoundException(curriculumId));
@@ -202,6 +214,7 @@ public class CurriculumServiceImpl implements CurriculumService {
     }
 
     @Override
+    @Transactional
     public void deleteCurriculum(UUID curriculumId) {
         Curriculum curriculum = curriculumRepository.findById(curriculumId)
                 .orElseThrow(() -> new CurriculumNotFoundException(curriculumId));

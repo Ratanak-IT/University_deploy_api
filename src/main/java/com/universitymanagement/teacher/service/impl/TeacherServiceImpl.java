@@ -23,15 +23,21 @@ import com.universitymanagement.teacher.dto.request.AssignClassroomRequest;
 import com.universitymanagement.teacher.dto.request.AssignSubjectRequest;
 import com.universitymanagement.teacher.dto.request.CreateTeacherRequest;
 import com.universitymanagement.teacher.dto.request.UpdateTeacherRequest;
+import com.universitymanagement.teacher.dto.response.TeacherDashboardSummaryResponse;
 import com.universitymanagement.teacher.dto.response.TeacherDetailResponse;
 import com.universitymanagement.teacher.dto.response.TeacherResponse;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.mapper.TeacherMapper;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import com.universitymanagement.teacher.service.TeacherService;
+import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
+import com.universitymanagement.lesson.repository.LessonRepository;
+import com.universitymanagement.assignment.repository.AssignmentRepository;
+import com.universitymanagement.assignment.repository.SubmissionRepository;
+import com.universitymanagement.attendance.repository.ClassSessionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
@@ -50,8 +56,17 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Read-only by default; the write methods below each carry their own plain
+ * {@code @Transactional}, which overrides this at the method level. Without
+ * a session, every read here that touches a teacher's departments or
+ * subjects (both lazy) threw LazyInitializationException the moment
+ * open-in-view stopped papering over it — that includes /teachers/me,
+ * which is why it was returning 500.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class TeacherServiceImpl implements TeacherService {
     private final Keycloak keycloak;
     private final KeycloakClient keycloakClient;
@@ -66,6 +81,11 @@ public class TeacherServiceImpl implements TeacherService {
     private final DepartmentRepository departmentRepository;
     private final MinioService minioService;
     private final UserProfileWriter userProfileWriter;
+    private final ClassroomStudentRepository classroomStudentRepository;
+    private final LessonRepository lessonRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final SubmissionRepository submissionRepository;
+    private final ClassSessionRepository classSessionRepository;
 
     @Value("${keycloak.target-realm}")
     private String realm;
@@ -275,6 +295,7 @@ public class TeacherServiceImpl implements TeacherService {
 
 
     @Override
+    @Transactional
     public TeacherDetailResponse findTeacherByUserId(String id) {
         UserRepresentation kcUser = requireKeycloakUser(id);
         List<String> roles = fetchRealmRoles(id);
@@ -282,7 +303,7 @@ public class TeacherServiceImpl implements TeacherService {
         User user = userRepository.findByKeycloakId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found in local DB: " + id));
 
-        Teacher teacher = teacherRepository.findByUserId(user.getId())
+        Teacher teacher = teacherRepository.findByUserIdWithDepartments(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher profile not found for user: " + id));
 
         // getAssetPreviewUrl, not getPreviewUrl: the avatar was written to the
@@ -315,6 +336,32 @@ public class TeacherServiceImpl implements TeacherService {
                 teacher.getEmploymentStatus(),
                 avatarUrl
         );
+    }
+
+    @Override
+    public TeacherDashboardSummaryResponse getMyDashboardSummary(String userId) {
+        User user = userRepository.findByKeycloakId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found in local DB: " + userId));
+        Teacher teacher = teacherRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher profile not found for user: " + userId));
+
+        List<UUID> classroomIds = classroomRepository
+                .findByTeacher_TeacherIdAndIsDeletedFalse(teacher.getTeacherId())
+                .stream()
+                .map(Classroom::getClassroomId)
+                .toList();
+
+        if (classroomIds.isEmpty()) {
+            return new TeacherDashboardSummaryResponse(0, 0, 0, 0, 0);
+        }
+
+        long totalStudents = classroomStudentRepository.countDistinctStudentsByClassroomIds(classroomIds);
+        long courseMaterials = lessonRepository.countByClassroomIds(classroomIds)
+                + assignmentRepository.countByClassroomIds(classroomIds);
+        long toGrade = submissionRepository.countUngradedByClassroomIds(classroomIds);
+        long attendanceToday = classSessionRepository.countUntakenTodayByClassroomIds(classroomIds, java.time.LocalDate.now());
+
+        return new TeacherDashboardSummaryResponse(classroomIds.size(), totalStudents, courseMaterials, toGrade, attendanceToday);
     }
 
     @Override
