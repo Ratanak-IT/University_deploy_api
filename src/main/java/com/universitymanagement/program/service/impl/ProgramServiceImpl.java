@@ -16,7 +16,7 @@ import com.universitymanagement.student.mapper.StudentMapper;
 import com.universitymanagement.student.repository.StudentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,8 +30,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Read-only by default; the write methods below each carry their own plain
+ * {@code @Transactional}. {@code Program.department} is a lazy proxy, and
+ * the mapper reads its name for every row — without a session that throws
+ * LazyInitializationException the moment open-in-view stops papering over it.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ProgramServiceImpl implements ProgramService {
 
     @PersistenceContext
@@ -45,6 +52,7 @@ public class ProgramServiceImpl implements ProgramService {
     private final DepartmentRepository departmentRepository;
 
     @Override
+    @Transactional
     public ProgramResponse create(ProgramRequest request) {
         String programName = request.programName().trim();
         if (programRepository.existsByProgramNameIgnoreCase(programName)) {
@@ -105,6 +113,7 @@ public class ProgramServiceImpl implements ProgramService {
     }
 
     @Override
+    @Transactional
     public ProgramResponse update(UUID id, ProgramRequest request) {
         Program program = programRepository.findById(id).orElseThrow(() -> new ProgramNotFoundException(id));
         String programName = request.programName().trim();

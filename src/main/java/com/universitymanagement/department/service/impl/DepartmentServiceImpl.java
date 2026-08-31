@@ -14,7 +14,7 @@ import com.universitymanagement.teacher.mapper.TeacherMapper;
 import com.universitymanagement.teacher.repository.TeacherRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,8 +27,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Read-only by default; the write methods below each carry their own plain
+ * {@code @Transactional}. Without a session, {@code getAllDepartments} threw
+ * LazyInitializationException the moment open-in-view stopped papering over
+ * it — {@code Department.subjects} is lazy, and the mapper reads its size
+ * when building each {@code DepartmentResponse}.
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class DepartmentServiceImpl implements DepartmentService {
 
     @PersistenceContext
@@ -40,6 +48,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     private final TeacherRepository teacherRepository;
     private final TeacherMapper teacherMapper;
     @Override
+    @Transactional
     public DepartmentResponse createDepartment(DepartmentRequest departmentRequest) {
         if (departmentRepository.existsByDepartmentNameIgnoreCase(departmentRequest.departmentName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Department already exists");
@@ -60,6 +69,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public DepartmentResponse updateDepartment(UUID departmentId, DepartmentRequest departmentRequest) {
         Department department = departmentRepository.findById(departmentId).orElseThrow(() -> new DepartmentNotFoundException(departmentId));
         String departmentName = departmentRequest.departmentName().trim();
@@ -85,6 +95,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public void softDelete(UUID departmentId) {
         Department department = departmentRepository.findById(departmentId).orElseThrow(() -> new DepartmentNotFoundException(departmentId));
         department.setIsDeleted(true);
