@@ -103,6 +103,16 @@ management:
 
 server:
   port: 8081
+
+  # TLS ends at Nginx Proxy Manager, which forwards to this container over
+  # plain HTTP. Without this, request.getScheme() reads "http" and every URL
+  # the app builds about itself is wrong — the OAuth callback most visibly,
+  # which Keycloak then refuses as an unregistered redirect_uri.
+  #
+  # Safe to trust here because the container publishes no host port: the proxy
+  # on the shared Docker network is the only way in, so X-Forwarded-* headers
+  # cannot be set by a caller from outside.
+  forward-headers-strategy: framework
   max-http-request-header-size: 32KB
 
 
