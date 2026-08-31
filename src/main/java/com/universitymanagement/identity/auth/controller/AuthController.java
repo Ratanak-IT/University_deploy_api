@@ -16,10 +16,13 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -29,6 +32,9 @@ public class AuthController {
 
     private final AuthService authService;
     private final KeycloakProperties keycloakProperties;
+
+    @Value("${app.frontend-url:https://cambodiaunm.vercel.app}")
+    private String frontendUrl;
 
     private static final String SESSION_CODE_VERIFIER = "PKCE_CODE_VERIFIER";
     private static final String SESSION_STATE = "OAUTH2_STATE";
@@ -42,11 +48,6 @@ public class AuthController {
 //        return authService.register(request);
 //    }
 
-
-    /**
-     * ចាប់ផ្ដើម login៖ redirect browser ទៅ Keycloak login form
-     * (Authorization Code + PKCE flow)។ User login នៅលើ form របស់ Keycloak ផ្ទាល់។
-     */
 
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
@@ -96,11 +97,12 @@ public class AuthController {
      * និង "Valid redirect URIs" នៅក្នុង Keycloak client។
      */
     @GetMapping("/callback")
-    public LoginResponse callback(
+    public void callback(
             @RequestParam("code") String code,
             @RequestParam(value = "state", required = false) String state,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
         HttpSession session = request.getSession(false);
         if (session == null) {
             throw new InvalidAuthorizationCodeException("No active login session. Please start login again.");
@@ -123,7 +125,20 @@ public class AuthController {
         session.removeAttribute(SESSION_CODE_VERIFIER);
         session.removeAttribute(SESSION_REDIRECT_URI);
 
-        return loginResponse;
+        // Tokens travel in the URL fragment, not a query string: the fragment
+        // never leaves the browser (not sent to any server, not logged by
+        // this redirect or the frontend's own server), and the frontend page
+        // that reads it strips it from the address bar immediately after.
+        String fragment = "access_token=" + urlEncode(loginResponse.getAccessToken())
+                + "&refresh_token=" + urlEncode(loginResponse.getRefreshToken())
+                + "&token_type=" + urlEncode(loginResponse.getTokenType())
+                + "&expires_in=" + loginResponse.getExpiresIn();
+
+        response.sendRedirect(frontendUrl + "/auth/callback#" + fragment);
+    }
+
+    private static String urlEncode(String value) {
+        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     @PostMapping("/refresh-token")
@@ -138,6 +153,43 @@ public class AuthController {
             @Valid @RequestBody LogoutRequest request
     ) {
         authService.logout(request);
+    }
+
+    /**
+     * Ends the login properly, then sends the browser home.
+     *
+     * <p>Clearing localStorage only forgets the tokens on this device. The
+     * Keycloak SSO cookie lives on the Keycloak domain and survives it, so the
+     * next login request is answered silently from that session and the user
+     * appears to be signed straight back in without ever seeing a form. Ending
+     * the session has to be done by Keycloak, which is what this hands over to.
+     *
+     * <p>Paired with {@code POST /logout}, which revokes the refresh token: the
+     * token goes in a request body there rather than a query string here,
+     * because a query string would be written to access logs, browser history
+     * and every proxy in between.
+     */
+    @GetMapping("/logout")
+    public void endSession(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+
+        // Our own session holds the PKCE verifier and OAuth state. Left alive,
+        // a half-finished login could be resumed after signing out.
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        String postLogoutRedirect = frontendUrl;
+
+        String endSession = keycloakProperties.getServerUrl()
+                + "/realms/" + keycloakProperties.getTargetRealm()
+                + "/protocol/openid-connect/logout"
+                + "?client_id=" + urlEncode(keycloakProperties.getClientId())
+                + "&post_logout_redirect_uri=" + urlEncode(postLogoutRedirect);
+
+        log.info("Ending Keycloak session, returning to {}", postLogoutRedirect);
+        response.sendRedirect(endSession);
     }
 
     @ResponseStatus(HttpStatus.OK)

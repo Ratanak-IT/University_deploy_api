@@ -76,9 +76,20 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // 3. Public Authentication & Identity Endpoints
+                        //
+                        // Logout is public on purpose, and for two separate
+                        // reasons. The GET is a top-level browser navigation on
+                        // its way to Keycloak, so it carries no Authorization
+                        // header — tokens live in localStorage, not a cookie.
+                        // The POST is a token revocation: the refresh token in
+                        // the body is itself the credential, which Keycloak
+                        // verifies. Requiring a valid access token to log out
+                        // would fail exactly when it matters most — a session
+                        // old enough that the user is trying to end it.
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/callback",
+                                "/api/v1/auth/logout",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh-token"
                         ).permitAll()

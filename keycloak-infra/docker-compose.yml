@@ -64,6 +64,7 @@ services:
     volumes:
       - university-keycloak-vol:/opt/keycloak/data
       - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/providers:/opt/keycloak/providers
       - ./keycloak/conf:/opt/keycloak/conf
     networks:
       - university-net
@@ -116,6 +117,7 @@ services:
       - "8081"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Phnom_Penh
       - SPRING_DATASOURCE_URL=jdbc:postgresql://university-postgres-db/university_db
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}

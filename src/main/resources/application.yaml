@@ -68,6 +68,11 @@ logging:
   level:
     org.springframework.security: INFO
 
+app:
+  frontend-url: http://localhost:3000
+
+  timezone: Asia/Phnom_Penh
+
 keycloak:
   server-url: https://auth.careerpatch.site
 
