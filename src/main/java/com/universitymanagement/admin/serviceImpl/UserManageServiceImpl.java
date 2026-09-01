@@ -43,6 +43,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import com.universitymanagement.identity.enums.RoleName;
+
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +53,9 @@ import java.util.Map;
 public class UserManageServiceImpl implements UserManageService {
     private final Keycloak keycloak;
     private final AdminUserMapper userMapper;
+    /** Keycloak's own id for "make the user pick a new password at next login". */
+    private static final String UPDATE_PASSWORD = "UPDATE_PASSWORD";
+
     private final KeycloakClient keycloakClient;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -144,11 +149,33 @@ public class UserManageServiceImpl implements UserManageService {
         kcUser.setEnabled(true);
         kcUser.setEmailVerified(true);
 
+        // The password on a newly created account was typed by whoever created
+        // it, so until the owner replaces it the registrar knows it too. Marking
+        // it temporary makes Keycloak demand a new one the first time they sign
+        // in, which is the only point at which the account becomes theirs alone.
+        //
+        // Students and teachers only. Both reach Keycloak through the browser
+        // redirect flow, where it can present its own update-password screen.
+        // The admin app signs in by posting credentials straight to the token
+        // endpoint, and that grant has nowhere to show such a screen — Keycloak
+        // refuses it outright with "Account is not fully set up", which would
+        // lock a new administrator out of the very system that created them.
+        boolean mustChangePassword = request.role() == RoleName.STUDENT
+                || request.role() == RoleName.TEACHER;
+
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(request.password());
-        credential.setTemporary(false);
+        credential.setTemporary(mustChangePassword);
         kcUser.setCredentials(List.of(credential));
+
+        if (mustChangePassword) {
+            // Set explicitly as well as through the temporary flag. Keycloak
+            // derives the action from the flag today, but a later password
+            // reset that clears the flag would otherwise drop the requirement
+            // silently.
+            kcUser.setRequiredActions(List.of(UPDATE_PASSWORD));
+        }
 
         String keycloakId = keycloakClient.createUser(kcUser);
         keycloakClient.assignRealmRole(keycloakId, request.role().name());

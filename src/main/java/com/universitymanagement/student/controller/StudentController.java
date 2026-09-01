@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -243,6 +244,26 @@ public class StudentController {
             @PathVariable UUID attemptId,
             @Valid @RequestBody SubmitQuizAttemptRequest request) {
         return quizAttemptService.submitAttempt(studentId, quizId, attemptId, request);
+    }
+
+    /**
+     * Reports that the student left the quiz screen — switched tab or window,
+     * or dropped out of fullscreen.
+     *
+     * <p>Recorded against the attempt for the teacher to weigh up. Nothing here
+     * ends the attempt: a browser cannot actually stop someone alt-tabbing, and
+     * auto-submitting on a stray notification would punish the wrong thing.
+     *
+     * @return the running count for this attempt
+     */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('STUDENT')")
+    @PostMapping("/{studentId}/quizzes/{quizId}/attempts/{attemptId}/focus-loss")
+    public Map<String, Integer> recordQuizFocusLoss(@PathVariable UUID studentId,
+                                                    @PathVariable UUID quizId,
+                                                    @PathVariable UUID attemptId) {
+        return Map.of("focusLossCount",
+                quizAttemptService.recordFocusLoss(studentId, quizId, attemptId));
     }
 
     @ResponseStatus(HttpStatus.OK)

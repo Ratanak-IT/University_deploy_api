@@ -153,6 +153,26 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         return toAttemptResponse(attempt, !showAnswers, showAnswers);
     }
 
+    @Override
+    @Transactional
+    public int recordFocusLoss(UUID studentId, UUID quizId, UUID attemptId) {
+        // Only the student sitting the quiz may report on their own attempt;
+        // staff have no reason to and a stray call would corrupt the record.
+        accessGuard.requireSelf(studentId);
+        QuizAttempt attempt = findAttempt(attemptId, quizId, studentId);
+
+        // A submitted or expired attempt is finished. Counting after the fact
+        // would let a closed browser tab keep inflating someone's tally.
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            return attempt.getFocusLossCount();
+        }
+
+        attempt.setFocusLossCount(attempt.getFocusLossCount() + 1);
+        attempt.setLastFocusLossAt(LocalDateTime.now());
+
+        return quizAttemptRepository.save(attempt).getFocusLossCount();
+    }
+
     /**
      * Whether an answer earns its marks.
      *

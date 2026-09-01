@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-01T08:06:56+0700",
+    date = "2026-09-01T13:52:01+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -28,12 +28,14 @@ public class DepartmentmapperImpl implements Departmentmapper {
         UUID departmentId = null;
         String departmentName = null;
         String departmentCode = null;
+        String description = null;
         boolean isDeleted = false;
         List<SubjectResponse> subjects = null;
         if ( department != null ) {
             departmentId = department.getDepartmentId();
             departmentName = department.getDepartmentName();
             departmentCode = department.getDepartmentCode();
+            description = department.getDescription();
             if ( department.getIsDeleted() != null ) {
                 isDeleted = department.getIsDeleted();
             }
@@ -44,7 +46,7 @@ public class DepartmentmapperImpl implements Departmentmapper {
         long subjectCount1 = 0L;
         subjectCount1 = subjectCount;
 
-        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, departmentCode, isDeleted, subjects, teacherCount1, subjectCount1 );
+        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, departmentCode, description, isDeleted, subjects, teacherCount1, subjectCount1 );
 
         return departmentResponse;
     }
@@ -58,6 +60,7 @@ public class DepartmentmapperImpl implements Departmentmapper {
         Department department = new Department();
 
         department.setDepartmentName( departmentRequest.departmentName() );
+        department.setDescription( departmentRequest.description() );
 
         return department;
     }

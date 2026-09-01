@@ -26,6 +26,17 @@ public class Department extends BasedEntity {
     private String departmentName;
     private Boolean isDeleted;
     private String departmentCode;
+
+    /**
+     * Free text the registrar writes about the department.
+     *
+     * <p>Nullable on purpose. Adding a NOT NULL column to a table that already
+     * holds departments would fail the schema update outright, the way
+     * quiz_attempts.focus_loss_count did — and a department that has never had
+     * a description written for it genuinely has none, which is what null says.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String description;
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private List<Subject> subjects = new ArrayList<>();
 

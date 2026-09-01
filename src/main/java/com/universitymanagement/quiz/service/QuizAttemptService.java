@@ -12,4 +12,11 @@ public interface QuizAttemptService {
     QuizAttemptResponse startAttempt(UUID studentId, UUID quizId);
     QuizAttemptResponse submitAttempt(UUID studentId, UUID quizId, UUID attemptId, SubmitQuizAttemptRequest request);
     QuizAttemptResponse getAttemptResult(UUID studentId, UUID quizId, UUID attemptId);
+
+    /**
+     * Records that the student left the quiz screen.
+     *
+     * @return how many times it has now happened during this attempt
+     */
+    int recordFocusLoss(UUID studentId, UUID quizId, UUID attemptId);
 }

@@ -23,6 +23,13 @@ public record QuizAttemptSummaryResponse(
         LocalDateTime startedAt,
         LocalDateTime submittedAt,
         Double earnedScore,
-        Double totalScore
+        Double totalScore,
+
+        /**
+         * How many times this student left the quiz screen. Shown so the
+         * teacher can decide what it means — nothing here acts on it.
+         */
+        int focusLossCount,
+        LocalDateTime lastFocusLossAt
 ) {
 }

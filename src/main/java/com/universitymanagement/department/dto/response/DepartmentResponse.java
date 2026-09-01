@@ -9,6 +9,7 @@ public record DepartmentResponse(
         UUID departmentId,
         String departmentName,
         String departmentCode,
+        String description,
         boolean isDeleted,
         List<SubjectResponse> subjects,
 

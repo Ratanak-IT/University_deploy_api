@@ -342,6 +342,9 @@ public class QuizServiceImpl implements QuizService {
                     null,
                     null,
                     null,
+                    null,
+                    // Nobody who has not started can have left the screen.
+                    0,
                     null
             );
         }
@@ -357,7 +360,9 @@ public class QuizServiceImpl implements QuizService {
                 a.getStartedAt(),
                 a.getSubmittedAt(),
                 a.getEarnedScore(),
-                a.getTotalScore()
+                a.getTotalScore(),
+                a.getFocusLossCount(),
+                a.getLastFocusLossAt()
         );
     }
 

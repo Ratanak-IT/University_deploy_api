@@ -5,6 +5,9 @@ import com.universitymanagement.assignment.exception.ClassroomHasNoTeacherExcept
 import com.universitymanagement.assignment.exception.NotClassroomTeacherException;
 import com.universitymanagement.assignment.exception.TeacherProfileNotFoundException;
 import com.universitymanagement.classroom.entity.Classroom;
+import com.universitymanagement.classroom.dto.ClassroomRole;
+import com.universitymanagement.classroom.dto.MemberStatus;
+import com.universitymanagement.classroom.repository.ClassroomMemberRepository;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.UserNotFoundException;
@@ -29,6 +32,7 @@ import java.util.UUID;
 public class ClassroomGradeGuard {
 
     private final ClassroomRepository classroomRepository;
+    private final ClassroomMemberRepository memberRepository;
     private final TeacherRepository teacherRepository;
     private final UserRepository userRepository;
 
@@ -53,9 +57,23 @@ public class ClassroomGradeGuard {
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(TeacherProfileNotFoundException::new);
 
-        boolean owns = classroom.getTeacher() != null
+        // Two things make someone a teacher of a classroom, and both count.
+        //
+        // `classroom.teacher` is the lead — one person, used for attribution and
+        // as the default when an admin acts. Membership in classroom_members is
+        // the wider teaching staff, and it is what the People tab lists.
+        // Checking only the lead meant a second teacher could be added to a
+        // class, see themselves listed on it, and still be refused by every
+        // screen that writes: the invitation looked real and granted nothing.
+        boolean isLead = classroom.getTeacher() != null
                 && classroom.getTeacher().getTeacherId().equals(teacher.getTeacherId());
-        if (!owns) {
+
+        boolean isMember = memberRepository
+                .existsByClassroom_ClassroomIdAndUser_IdAndRoleAndStatus(
+                        classroom.getClassroomId(), user.getId(),
+                        ClassroomRole.TEACHER, MemberStatus.ACTIVE);
+
+        if (!isLead && !isMember) {
             throw new NotClassroomTeacherException(classroom.getClassroomId());
         }
         return teacher;

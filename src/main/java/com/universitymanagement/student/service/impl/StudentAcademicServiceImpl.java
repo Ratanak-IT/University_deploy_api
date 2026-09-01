@@ -300,6 +300,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 d.getDepartmentId(),
                 d.getDepartmentName(),
                 d.getDepartmentCode(),
+                d.getDescription(),
                 Boolean.TRUE.equals(d.getIsDeleted()),
                 subjects,
                 departmentRepository.countTeachersIn(d.getDepartmentId()),

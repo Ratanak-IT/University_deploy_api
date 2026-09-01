@@ -84,6 +84,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             throw new DuplicateDepartmentException("Department with name " + departmentName + " already exists");
         }
         department.setDepartmentName(departmentName);
+        department.setDescription(departmentRequest.description());
         Department updatedDepartment = departmentRepository.save(department);
         return withCounts(updatedDepartment);
     }

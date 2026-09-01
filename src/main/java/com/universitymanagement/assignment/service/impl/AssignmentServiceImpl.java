@@ -16,6 +16,9 @@ import com.universitymanagement.assignment.exception.TeacherProfileNotFoundExcep
 import com.universitymanagement.assignment.repository.AssignmentRepository;
 import com.universitymanagement.assignment.repository.SubmissionRepository;
 import com.universitymanagement.assignment.service.AssignmentService;
+import com.universitymanagement.classroom.dto.ClassroomRole;
+import com.universitymanagement.classroom.dto.MemberStatus;
+import com.universitymanagement.classroom.repository.ClassroomMemberRepository;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
@@ -63,6 +66,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final SubmissionRepository submissionRepository;
     private final ClassroomRepository classroomRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
+    private final ClassroomMemberRepository classroomMemberRepository;
     private final TeacherRepository teacherRepository;
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
@@ -354,9 +358,19 @@ public class AssignmentServiceImpl implements AssignmentService {
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(TeacherProfileNotFoundException::new);
 
-        boolean owns = classroom.getTeacher() != null
+        // Lead teacher or a listed member of the teaching staff — the same rule
+        // ClassroomServiceImpl already applies when deciding who may see the
+        // class. Checking only the lead here is what let a second teacher open
+        // a classroom and then be refused by everything that writes to it.
+        boolean isLead = classroom.getTeacher() != null
                 && classroom.getTeacher().getTeacherId().equals(teacher.getTeacherId());
-        if (!owns) {
+
+        boolean isMember = classroomMemberRepository
+                .existsByClassroom_ClassroomIdAndUser_IdAndRoleAndStatus(
+                        classroom.getClassroomId(), user.getId(),
+                        ClassroomRole.TEACHER, MemberStatus.ACTIVE);
+
+        if (!isLead && !isMember) {
             throw new NotClassroomTeacherException(classroom.getClassroomId());
         }
         return teacher;

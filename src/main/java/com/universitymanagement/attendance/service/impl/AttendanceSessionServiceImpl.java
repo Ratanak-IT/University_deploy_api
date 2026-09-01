@@ -84,14 +84,32 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
 
         requireDateWithinTerm(classroom, request.sessionDate());
 
-        sessionRepository
+        // Adding a session onto a cancelled one is not a clash, it is a
+        // correction: the register was closed, the class met anyway, and this
+        // is the teacher saying so. Only a live session at that time is a
+        // genuine duplicate.
+        Optional<ClassSession> occupying = sessionRepository
                 .findByClassroom_ClassroomIdAndSessionDateAndStartTime(
-                        classroomId, request.sessionDate(), request.startTime())
-                .ifPresent(existing -> {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "This class already has a session at "
-                                    + request.startTime() + " on " + request.sessionDate() + ".");
-                });
+                        classroomId, request.sessionDate(), request.startTime());
+
+        if (occupying.isPresent()) {
+            ClassSession existing = occupying.get();
+            if (existing.getStatus() != SessionStatus.CANCELLED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "This class already has a session at "
+                                + request.startTime() + " on " + request.sessionDate() + ".");
+            }
+
+            existing.setStatus(SessionStatus.SCHEDULED);
+            existing.setCancellationReason(null);
+            existing.setTakenByTeacher(teacher);
+            if (request.topic() != null) {
+                existing.setTopic(request.topic());
+            }
+
+            ClassSession revived = sessionRepository.save(existing);
+            return toSessionResponse(revived, roster(classroomId).size(), List.of());
+        }
 
         ClassSession session = new ClassSession();
         session.setClassroom(classroom);
@@ -165,8 +183,32 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
             fresh.setType(slot.getType());
         }
 
+        // A cancelled session is hidden from the list above but still holds the
+        // (classroom, date, start_time) unique key, so inserting over it fails
+        // with a raw constraint violation. Opening the register for a day the
+        // class was marked as not meeting is the teacher saying it met after
+        // all, so the cancelled one is reinstated rather than duplicated.
         return OpenSessionResponse.of(
-                buildRegister(classroom, sessionRepository.save(fresh)));
+                buildRegister(classroom, saveOrReinstate(fresh)));
+    }
+
+    /**
+     * Writes a session, reviving a cancelled one occupying the same slot.
+     *
+     * @param fresh an unsaved session; its slot may already be taken
+     */
+    private ClassSession saveOrReinstate(ClassSession fresh) {
+        return sessionRepository
+                .findByClassroom_ClassroomIdAndSessionDateAndStartTime(
+                        fresh.getClassroom().getClassroomId(),
+                        fresh.getSessionDate(),
+                        fresh.getStartTime())
+                .map(existing -> {
+                    existing.setStatus(SessionStatus.SCHEDULED);
+                    existing.setCancellationReason(null);
+                    return sessionRepository.save(existing);
+                })
+                .orElseGet(() -> sessionRepository.save(fresh));
     }
 
     @Override
