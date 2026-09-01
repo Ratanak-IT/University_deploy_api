@@ -15,6 +15,7 @@ import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.department.dto.response.DepartmentResponse;
+import com.universitymanagement.department.repository.DepartmentRepository;
 import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.grading.calc.GpaCalculator;
 import com.universitymanagement.grading.dto.response.CourseGradeResponse;
@@ -68,6 +69,7 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
     private final CourseGradeQueryService courseGradeQuery;
     private final GpaCalculator gpaCalculator;
     private final MinioService minioService;
+    private final DepartmentRepository departmentRepository;
 
     @Override
     public TranscriptResponse getTranscript(UUID studentId) {
@@ -274,21 +276,36 @@ public class StudentAcademicServiceImpl implements StudentAcademicService {
                 .collect(Collectors.toMap(Department::getDepartmentId, d -> d, (a, b) -> a))
                 .values()
                 .stream()
-                .map(d -> new DepartmentResponse(
-                        d.getDepartmentId(),
-                        d.getDepartmentName(),
-                        d.getDepartmentCode(),
-                        d.getIsDeleted(),
-                        d.getSubjects().stream()
-                                .filter(s -> !Boolean.TRUE.equals(s.getIsDeleted()))
-                                .map(s -> new SubjectResponse(
-                                        s.getSubjectId(),
-                                        s.getSubjectCode(),
-                                        s.getSubjectName(),
-                                        s.getCredit(),
-                                        d.getDepartmentId()))
-                                .toList()))
+                .map(this::toDepartmentResponse)
                 .toList();
+    }
+
+    /**
+     * A student sees only the departments behind the subjects they are taking,
+     * so this list is a handful of rows — cheap enough to count teachers one
+     * department at a time rather than reaching for a bulk query.
+     */
+    private DepartmentResponse toDepartmentResponse(Department d) {
+        List<SubjectResponse> subjects = d.getSubjects().stream()
+                .filter(s -> !Boolean.TRUE.equals(s.getIsDeleted()))
+                .map(s -> new SubjectResponse(
+                        s.getSubjectId(),
+                        s.getSubjectCode(),
+                        s.getSubjectName(),
+                        s.getCredit(),
+                        d.getDepartmentId()))
+                .toList();
+
+        return new DepartmentResponse(
+                d.getDepartmentId(),
+                d.getDepartmentName(),
+                d.getDepartmentCode(),
+                Boolean.TRUE.equals(d.getIsDeleted()),
+                subjects,
+                departmentRepository.countTeachersIn(d.getDepartmentId()),
+                // Already in hand, and it is the same set the caller is shown —
+                // a second query could only disagree with the list above it.
+                subjects.size());
     }
 
     @Override

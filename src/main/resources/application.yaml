@@ -69,7 +69,7 @@ logging:
     org.springframework.security: INFO
 
 app:
-  frontend-url: https://cambodiaunm.vercel.app
+  frontend-url: ${FRONTEND_URL}
 
   timezone: Asia/Phnom_Penh
 

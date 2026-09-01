@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-26T08:34:32+0700",
+    date = "2026-09-01T08:06:56+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
 public class DepartmentmapperImpl implements Departmentmapper {
 
     @Override
-    public DepartmentResponse toResponse(Department department) {
+    public DepartmentResponse toResponse(Department department, long teacherCount, long subjectCount) {
         if ( department == null ) {
             return null;
         }
@@ -30,16 +30,21 @@ public class DepartmentmapperImpl implements Departmentmapper {
         String departmentCode = null;
         boolean isDeleted = false;
         List<SubjectResponse> subjects = null;
-
-        departmentId = department.getDepartmentId();
-        departmentName = department.getDepartmentName();
-        departmentCode = department.getDepartmentCode();
-        if ( department.getIsDeleted() != null ) {
-            isDeleted = department.getIsDeleted();
+        if ( department != null ) {
+            departmentId = department.getDepartmentId();
+            departmentName = department.getDepartmentName();
+            departmentCode = department.getDepartmentCode();
+            if ( department.getIsDeleted() != null ) {
+                isDeleted = department.getIsDeleted();
+            }
+            subjects = subjectListToSubjectResponseList( department.getSubjects() );
         }
-        subjects = subjectListToSubjectResponseList( department.getSubjects() );
+        long teacherCount1 = 0L;
+        teacherCount1 = teacherCount;
+        long subjectCount1 = 0L;
+        subjectCount1 = subjectCount;
 
-        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, departmentCode, isDeleted, subjects );
+        DepartmentResponse departmentResponse = new DepartmentResponse( departmentId, departmentName, departmentCode, isDeleted, subjects, teacherCount1, subjectCount1 );
 
         return departmentResponse;
     }

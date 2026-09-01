@@ -58,4 +58,23 @@ public interface ClassroomStudentRepository extends JpaRepository<ClassroomStude
             where cs.classroom.classroomId in :classroomIds
             """)
     long countDistinctStudentsByClassroomIds(@Param("classroomIds") List<UUID> classroomIds);
+
+    /**
+     * The combined roster of a set of classrooms, each student's user row
+     * and their classroom already loaded — the teacher's per-quiz results
+     * table needs a name for every enrolled student, including the ones who
+     * never attempted the quiz, so this can't start from the attempts
+     * table. The classroom is fetched too because a quiz can be released to
+     * several sections at once, and a row with no classroom label would
+     * leave the teacher unable to tell which one each student is in.
+     */
+    @Query("""
+            select distinct cs from ClassroomStudent cs
+            join fetch cs.student s
+            left join fetch s.user u
+            join fetch cs.classroom c
+            where cs.classroom.classroomId in :classroomIds
+            order by c.className asc, s.studentCode asc
+            """)
+    List<ClassroomStudent> findRosterWithUserByClassroomIds(@Param("classroomIds") List<UUID> classroomIds);
 }

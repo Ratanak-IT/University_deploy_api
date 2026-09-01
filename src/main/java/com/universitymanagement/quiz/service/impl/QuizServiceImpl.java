@@ -3,6 +3,7 @@ package com.universitymanagement.quiz.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.universitymanagement.classroom.entity.Classroom;
+import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.UserNotFoundException;
@@ -15,6 +16,7 @@ import com.universitymanagement.quiz.dto.response.QuizClassroomResponse;
 import com.universitymanagement.quiz.dto.response.QuizManageResponse;
 import com.universitymanagement.quiz.entity.Quiz;
 import com.universitymanagement.quiz.entity.QuizAssignment;
+import com.universitymanagement.quiz.entity.AttemptStatus;
 import com.universitymanagement.quiz.entity.QuizAttempt;
 import com.universitymanagement.quiz.entity.QuizQuestion;
 import com.universitymanagement.quiz.exception.QuizAccessDeniedException;
@@ -24,6 +26,7 @@ import com.universitymanagement.quiz.repository.QuizAssignmentRepository;
 import com.universitymanagement.quiz.repository.QuizAttemptRepository;
 import com.universitymanagement.quiz.repository.QuizRepository;
 import com.universitymanagement.quiz.service.QuizService;
+import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.teacher.entity.Teacher;
 import com.universitymanagement.teacher.exception.TeacherNotFoundException;
 import com.universitymanagement.teacher.repository.TeacherRepository;
@@ -39,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -280,21 +284,76 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public List<QuizAttemptSummaryResponse> getAttemptsForQuiz(UUID quizId) {
         findOwnedQuiz(quizId);
-        return attemptRepository.findByQuiz_QuizIdWithStudent(quizId)
+
+        // The full roster of every classroom the quiz was released to, not
+        // just the students who happened to attempt it — a teacher filtering
+        // for "not started" needs those rows to exist at all.
+        List<UUID> classroomIds = assignmentRepository.findByQuizWithClassroom(quizId).stream()
+                .map(a -> a.getClassroom().getClassroomId())
+                .distinct()
+                .toList();
+
+        if (classroomIds.isEmpty()) {
+            return List.of();
+        }
+
+        // One row per (classroom, student) enrolment rather than deduped by
+        // student — a quiz released to two sections should show which of
+        // them each row belongs to, not silently collapse a student into a
+        // single unlabeled row.
+        List<ClassroomStudent> roster = classroomStudentRepository.findRosterWithUserByClassroomIds(classroomIds);
+
+        Map<UUID, QuizAttempt> attemptByStudent = attemptRepository.findByQuiz_QuizIdWithStudent(quizId)
                 .stream()
-                .map(this::toAttemptSummary)
+                .collect(Collectors.toMap(
+                        a -> a.getStudent().getStudentId(),
+                        a -> a,
+                        // A student can have more than one attempt (a resumed
+                        // one after an expiry): keep the settled one over an
+                        // abandoned in-progress one, then the most recent.
+                        (a, b) -> {
+                            boolean aSettled = a.getStatus() != AttemptStatus.IN_PROGRESS;
+                            boolean bSettled = b.getStatus() != AttemptStatus.IN_PROGRESS;
+                            if (aSettled != bSettled) return aSettled ? a : b;
+                            return a.getStartedAt().isAfter(b.getStartedAt()) ? a : b;
+                        }));
+
+        return roster.stream()
+                .map(cs -> toAttemptSummary(cs, attemptByStudent.get(cs.getStudent().getStudentId())))
                 .toList();
     }
 
-    private QuizAttemptSummaryResponse toAttemptSummary(QuizAttempt a) {
-        var student = a.getStudent();
+    private QuizAttemptSummaryResponse toAttemptSummary(ClassroomStudent cs, QuizAttempt a) {
+        Student student = cs.getStudent();
         var user = student.getUser();
+        String studentName = user != null ? user.getFullName() : null;
+        UUID classroomId = cs.getClassroom().getClassroomId();
+        String className = cs.getClassroom().getClassName();
+
+        if (a == null) {
+            return new QuizAttemptSummaryResponse(
+                    null,
+                    student.getStudentId(),
+                    student.getStudentCode(),
+                    studentName,
+                    classroomId,
+                    className,
+                    "NOT_STARTED",
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
+
         return new QuizAttemptSummaryResponse(
                 a.getAttemptId(),
                 student.getStudentId(),
                 student.getStudentCode(),
-                user != null ? user.getFullName() : null,
-                a.getStatus(),
+                studentName,
+                classroomId,
+                className,
+                a.getStatus().name(),
                 a.getStartedAt(),
                 a.getSubmittedAt(),
                 a.getEarnedScore(),

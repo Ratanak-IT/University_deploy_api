@@ -6,6 +6,7 @@ import com.universitymanagement.department.entity.Department;
 import com.universitymanagement.department.exception.DepartmentNotFoundException;
 import com.universitymanagement.department.exception.DuplicateDepartmentException;
 import com.universitymanagement.department.mapper.Departmentmapper;
+import com.universitymanagement.department.repository.DepartmentCount;
 import com.universitymanagement.department.repository.DepartmentRepository;
 import com.universitymanagement.department.service.DepartmentService;
 import com.universitymanagement.subject.repository.SubjectRepository;
@@ -25,7 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Read-only by default; the write methods below each carry their own plain
@@ -58,14 +62,16 @@ public class DepartmentServiceImpl implements DepartmentService {
         department.setIsDeleted(false);
         department.setDepartmentCode(generateDepartmentCode());
         Department savedDepartment = departmentRepository.save(department);
-        return departmentmapper.toResponse(savedDepartment);
+        // Nothing has been assigned to a department that was created a moment
+        // ago, so counting would be a query to learn zero.
+        return departmentmapper.toResponse(savedDepartment, 0, 0);
     }
 
     @Override
     public Page<DepartmentResponse> getAllDepartments(int page, int size) {
         Sort sort = Sort.by(Sort.Direction.ASC, "departmentName");
         Pageable pageable = PageRequest.of(page, size,sort);
-       return departmentRepository.findAll(pageable).map(departmentmapper::toResponse);
+        return withCounts(departmentRepository.findAll(pageable));
     }
 
     @Override
@@ -79,7 +85,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
         department.setDepartmentName(departmentName);
         Department updatedDepartment = departmentRepository.save(department);
-        return departmentmapper.toResponse(updatedDepartment);
+        return withCounts(updatedDepartment);
     }
 
     @Override
@@ -105,14 +111,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public DepartmentResponse getDepartmentById(UUID departmentId) {
         Department department = departmentRepository.findById(departmentId).orElseThrow(() -> new DepartmentNotFoundException(departmentId));
-        return departmentmapper.toResponse(department);
+        return withCounts(department);
     }
     @Override
     public Page<DepartmentResponse> getByStatus(int page, int size, Boolean isDeleted) {
         Pageable pageable = PageRequest.of(page, size);
         Boolean filterValue = (isDeleted != null) ? isDeleted : Boolean.FALSE;
-        return departmentRepository.findByIsDeleted(filterValue, pageable)
-                .map(departmentmapper::toResponse);
+        return withCounts(departmentRepository.findByIsDeleted(filterValue, pageable));
     }
 
     @Override
@@ -125,6 +130,39 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .stream()
                 .map(teacherMapper::toResponse)
                 .toList();
+    }
+
+    /**
+     * Counts a whole page in two queries rather than two per row.
+     *
+     * <p>A page of 25 departments would otherwise cost 50 round trips to answer
+     * a question the database can answer for all of them at once.
+     */
+    private Page<DepartmentResponse> withCounts(Page<Department> departments) {
+        if (departments.isEmpty()) {
+            return departments.map(d -> departmentmapper.toResponse(d, 0, 0));
+        }
+
+        Map<UUID, Long> teachers = toMap(departmentRepository.countTeachersPerDepartment());
+        Map<UUID, Long> subjects = toMap(departmentRepository.countSubjectsPerDepartment());
+
+        return departments.map(d -> departmentmapper.toResponse(
+                d,
+                teachers.getOrDefault(d.getDepartmentId(), 0L),
+                subjects.getOrDefault(d.getDepartmentId(), 0L)));
+    }
+
+    private DepartmentResponse withCounts(Department department) {
+        UUID id = department.getDepartmentId();
+        return departmentmapper.toResponse(
+                department,
+                departmentRepository.countTeachersIn(id),
+                departmentRepository.countSubjectsIn(id));
+    }
+
+    private Map<UUID, Long> toMap(List<DepartmentCount> counts) {
+        return counts.stream().collect(Collectors.toMap(
+                DepartmentCount::departmentId, DepartmentCount::total));
     }
 
     private String generateDepartmentCode() {
