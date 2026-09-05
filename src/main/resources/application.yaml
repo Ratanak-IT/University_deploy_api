@@ -65,7 +65,8 @@ logging:
     org.springframework.security: INFO
 
 app:
-  frontend-url: ${FRONTEND_URL}
+
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
   timezone: Asia/Phnom_Penh
 
