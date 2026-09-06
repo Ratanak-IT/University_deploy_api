@@ -359,6 +359,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional
     public StudentDetailResponse uploadMyAvatar(MultipartFile file) {
         User user = accessGuard.getCurrentUser();
         String objectName = minioService.uploadAsset(file);
