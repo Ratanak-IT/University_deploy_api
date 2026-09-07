@@ -241,6 +241,14 @@ public class QuizServiceImpl implements QuizService {
         }
 
         if (request.questions() != null) {
+            long attemptCount = attemptRepository.countByQuiz_QuizId(quizId);
+            if (attemptCount > 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "This quiz already has " + attemptCount + " student attempt(s), so its questions "
+                                + "can no longer be edited — changing them now would invalidate what students "
+                                + "already answered. The title, description, duration and attempt limit can "
+                                + "still be updated; create a new quiz if the questions need to change.");
+            }
             quiz.getQuestions().clear();
             int order = 0;
             for (CreateQuizRequest.QuestionItem item : request.questions()) {

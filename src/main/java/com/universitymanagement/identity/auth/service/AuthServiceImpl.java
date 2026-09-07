@@ -61,6 +61,7 @@ public class AuthServiceImpl implements AuthService {
     private final StudentRepository studentRepository;
     private final RoleCodeGenerator roleCodeGenerator;
     private final ObjectMapper objectMapper;
+    private final com.universitymanagement.minio.MinioService minioService;
 
 
 
@@ -197,7 +198,35 @@ public class AuthServiceImpl implements AuthService {
         User user = getCurrentUser();
         UserProfileResponse response = userMapper.toResponse(user);
         response.setRole(resolveCurrentRole());
+        response.setAvatarUrl(avatarUrlFor(user));
         return response;
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse uploadMyAvatar(org.springframework.web.multipart.MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "No file was uploaded.");
+        }
+
+        User user = getCurrentUser();
+        user.setAvatarObjectName(minioService.uploadAsset(file));
+        userRepository.save(user);
+
+        return getProfile();
+    }
+
+    /**
+     * @return a signed link to the user's picture, or null when they have none
+     */
+    private String avatarUrlFor(User user) {
+        // getAssetPreviewUrl, not getPreviewUrl: avatars are written to the
+        // assets bucket, and signing against the lessons bucket produces a URL
+        // that 404s even though the upload itself worked.
+        return user.getAvatarObjectName() != null
+                ? minioService.getAssetPreviewUrl(user.getAvatarObjectName())
+                : null;
     }
     private RoleName resolveCurrentRole() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

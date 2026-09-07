@@ -74,6 +74,22 @@ public class CertificateServiceImpl implements CertificateService {
             );
         }
 
+        // The request sits at PENDING until somebody decides on it, so the
+        // people who make that decision are told it is waiting.
+        notificationService.notifyAdmins(
+                "New certificate request",
+                (student.getUser() != null ? student.getUser().getFullName() : "A student")
+                        + " requested a "
+                        + request.certificateType().toString().replace("_", " ").toLowerCase()
+                        + " certificate.",
+                "CERTIFICATE_REQUEST",
+                "Awaiting approval",
+                student.getUser() != null ? student.getUser().getFullName() : "Student",
+                "/certificates",
+                "CERTIFICATE_REQUEST",
+                saved.getRequestId()
+        );
+
         return toResponse(saved);
     }
 

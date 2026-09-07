@@ -137,4 +137,13 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
      * belonged to; they no longer block removal of any section.
      */
     long countByQuiz_QuizIdAndClassroom_ClassroomId(UUID quizId, UUID classroomId);
+
+    /**
+     * Any attempt at all on this quiz, settled or still in progress.
+     * Replacing the question set while this is non-zero would delete
+     * {@code QuizQuestion} rows a submitted {@code QuizAttemptAnswer} still
+     * points at — a mandatory foreign key, so the database rejects it outright
+     * rather than silently orphaning the answer.
+     */
+    long countByQuiz_QuizId(UUID quizId);
 }

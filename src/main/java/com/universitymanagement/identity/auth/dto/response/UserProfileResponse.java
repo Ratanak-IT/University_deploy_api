@@ -22,4 +22,12 @@ public class UserProfileResponse {
     private GenderOption gender;
     private RoleName role;
     private Boolean isActive;
+
+    /**
+     * A signed, short-lived link to the profile picture, or null.
+     *
+     * <p>A link rather than the object name: the bucket is private, so the name
+     * on its own is not something a browser can load.
+     */
+    private String avatarUrl;
 }

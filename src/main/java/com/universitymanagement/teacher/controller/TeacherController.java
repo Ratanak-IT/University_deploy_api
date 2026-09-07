@@ -1,6 +1,7 @@
 package com.universitymanagement.teacher.controller;
 
 
+import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.department.service.DepartmentService;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
@@ -17,7 +18,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,8 +39,8 @@ public class TeacherController {
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/me")
     public TeacherDetailResponse getMyProfile() {
-        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+        Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
             throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return teacherService.findTeacherByUserId(jwt.getSubject());
@@ -45,9 +50,9 @@ public class TeacherController {
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/me/dashboard-summary")
     public TeacherDashboardSummaryResponse getMyDashboardSummary() {
-        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
         return teacherService.getMyDashboardSummary(jwt.getSubject());
     }
@@ -170,5 +175,35 @@ public class TeacherController {
     public TeacherResponse unassignDepartment(@PathVariable UUID teacherId,
                                               @PathVariable UUID departmentId) {
         return teacherService.unassignDepartment(teacherId, departmentId);
+    }
+
+    /**
+     * Sets a new password for this teacher. Administrators only, and no
+     * current password is required — see TeacherService#resetPassword.
+     */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{teacherId}/reset-password")
+    public void resetPassword(@PathVariable UUID teacherId,
+                              @Valid @RequestBody AdminResetPasswordRequest request) {
+        teacherService.resetPassword(teacherId, request);
+    }
+
+    /** Teachers that were retired, so a mistake can be found and undone. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/withdrawn")
+    public Page<TeacherResponse> getWithdrawnTeachers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size) {
+        return teacherService.getWithdrawnTeachers(page, size);
+    }
+
+    /** Puts a retired teacher back, sign-in account included. */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{teacherId}/restore")
+    public void restoreTeacher(@PathVariable UUID teacherId) {
+        teacherService.restoreTeacher(teacherId);
     }
 }

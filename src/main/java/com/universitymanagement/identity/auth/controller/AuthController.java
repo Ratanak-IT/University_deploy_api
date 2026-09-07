@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -37,13 +39,28 @@ public class AuthController {
     private String frontendUrl;
 
     /** Where the admin portal's own `/auth/callback` lives — a separate app/origin from {@link #frontendUrl}. */
-    @Value("${app.admin-frontend-url:http://localhost:3000}")
+    @Value("${app.admin-frontend-url:https://administratorcambodiaunm-three.vercel.app}")
     private String adminFrontendUrl;
 
     private static final String SESSION_CODE_VERIFIER = "PKCE_CODE_VERIFIER";
     private static final String SESSION_STATE = "OAUTH2_STATE";
     private static final String SESSION_REDIRECT_URI = "OAUTH2_REDIRECT_URI";
     private static final String SESSION_APP = "LOGIN_APP";
+    private static final String SESSION_RETURN_TO = "LOGIN_RETURN_TO";
+
+    /**
+     * Front ends this server is willing to hand tokens to.
+     *
+     * <p>The callback finishes by putting the access and refresh tokens in a URL
+     * fragment. Redirecting to an address supplied in the query string without
+     * checking it would therefore be an open redirect that leaks credentials:
+     * anyone could send a victim to /auth/login?returnTo=their-own-site and
+     * collect the tokens on arrival. An allow-list is what makes the parameter
+     * safe to accept at all — the same reason OAuth registers redirect URIs
+     * rather than trusting whatever a request asks for.
+     */
+    @Value("${app.allowed-return-urls:}")
+    private String allowedReturnUrls;
 
 //    @PostMapping("/register")
 //    public RegisterResponse register(
@@ -61,6 +78,7 @@ public class AuthController {
     @GetMapping("/login")
     public void login(
             @RequestParam(value = "app", required = false) String app,
+            @RequestParam(value = "returnTo", required = false) String returnTo,
             HttpServletRequest request,
             HttpServletResponse response
     ) throws IOException {
@@ -72,6 +90,15 @@ public class AuthController {
         session.setAttribute(SESSION_STATE, pkce.state());
         session.setAttribute(SESSION_REDIRECT_URI, redirectUri);
         session.setAttribute(SESSION_APP, app);
+
+        // Lets a developer running the site locally finish login on their own
+        // machine while still talking to this server. Stored only if it is on
+        // the allow-list; anything else is dropped and the default is used.
+        String allowed = permittedReturnUrl(returnTo);
+        if (allowed != null) {
+            session.setAttribute(SESSION_RETURN_TO, allowed);
+            log.info("Login will return to {}", allowed);
+        }
 
         String authorizationUrl = authService.buildLoginUrl(pkce.state(), pkce.codeChallenge(), redirectUri);
         log.info("Redirecting to Keycloak login form: {}", authorizationUrl);
@@ -136,6 +163,7 @@ public class AuthController {
         session.removeAttribute(SESSION_CODE_VERIFIER);
         session.removeAttribute(SESSION_REDIRECT_URI);
         session.removeAttribute(SESSION_APP);
+        session.removeAttribute(SESSION_RETURN_TO);
 
         // Tokens travel in the URL fragment, not a query string: the fragment
         // never leaves the browser (not sent to any server, not logged by
@@ -151,9 +179,35 @@ public class AuthController {
         // /login request (see below) is what threads that choice through the
         // whole Keycloak round trip via the session, since nothing else
         // survives the redirect to Keycloak and back.
-        String targetFrontend = "admin".equals(app) ? adminFrontendUrl : frontendUrl;
+        String returnTo = (String) session.getAttribute(SESSION_RETURN_TO);
+        String targetFrontend = returnTo != null
+                ? returnTo
+                : ("admin".equals(app) ? adminFrontendUrl : frontendUrl);
 
         response.sendRedirect(targetFrontend + "/auth/callback#" + fragment);
+    }
+
+    /**
+     * @return the requested return URL if it is allowed, otherwise null
+     */
+    private String permittedReturnUrl(String requested) {
+        if (requested == null || requested.isBlank() || allowedReturnUrls == null) {
+            return null;
+        }
+
+        String candidate = requested.trim();
+        // Compared whole and exactly. Matching on a prefix would accept
+        // "http://localhost:3000.evil.com", which starts with an allowed value
+        // and is a different site entirely.
+        for (String allowed : allowedReturnUrls.split(",")) {
+            String trimmed = allowed.trim();
+            if (!trimmed.isEmpty() && trimmed.equals(candidate)) {
+                return trimmed;
+            }
+        }
+
+        log.warn("Refused returnTo that is not on the allow-list: {}", candidate);
+        return null;
     }
 
     private static String urlEncode(String value) {
@@ -231,6 +285,18 @@ public class AuthController {
     @GetMapping("/me")
     public UserProfileResponse getProfile() {
         return authService.getProfile();
+    }
+
+    /**
+     * Replaces the signed-in user's profile picture.
+     *
+     * <p>Open to any signed-in role. Students and teachers each had their own
+     * version of this on their own controller; an administrator is neither, and
+     * so had no way to set a picture at all.
+     */
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UserProfileResponse uploadMyAvatar(@RequestPart("file") MultipartFile file) {
+        return authService.uploadMyAvatar(file);
     }
 
     @PutMapping("/me/profile")

@@ -4,6 +4,7 @@ import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.minio.MinioService;
 import com.universitymanagement.program.entity.Program;
 import com.universitymanagement.student.dto.response.StudentAdminResponse;
+import com.universitymanagement.student.dto.response.StudentDirectoryResponse;
 import com.universitymanagement.student.dto.response.StudentResponse;
 import com.universitymanagement.student.entity.Student;
 import org.mapstruct.Mapper;
@@ -83,6 +84,36 @@ public abstract class StudentMapper {
                 student.getGraduationDate(),
                 advisor != null ? advisor.getTeacherId() : null,
                 advisorName
+        );
+    }
+
+    /** The safe-for-teachers slice — see {@link StudentDirectoryResponse}. */
+    public StudentDirectoryResponse toDirectoryResponse(Student student) {
+        if (student == null) {
+            return null;
+        }
+
+        User user = student.getUser();
+        Program program = student.getProgram();
+
+        String avatarUrl = null;
+        if (user != null && user.getAvatarObjectName() != null) {
+            try {
+                avatarUrl = minioService.getAssetPreviewUrl(user.getAvatarObjectName());
+            } catch (Exception e) {
+                avatarUrl = null;
+            }
+        }
+
+        return new StudentDirectoryResponse(
+                student.getStudentId(),
+                student.getStudentCode(),
+                user != null ? user.getFullName() : null,
+                user != null ? user.getEmail() : null,
+                avatarUrl,
+                student.getYearLevel(),
+                program != null && program.getDepartment() != null
+                        ? program.getDepartment().getDepartmentName() : null
         );
     }
 }

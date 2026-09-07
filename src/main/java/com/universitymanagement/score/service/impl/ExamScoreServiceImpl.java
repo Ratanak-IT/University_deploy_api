@@ -153,6 +153,26 @@ public class ExamScoreServiceImpl implements ExamScoreService {
                 }
             }
         }
+
+        // One notification for the batch, not one per student. A teacher
+        // posting thirty marks is a single event to the registry, and thirty
+        // copies of it would bury everything else in the list.
+        if (!saved.isEmpty()) {
+            notificationService.notifyAdmins(
+                    "Grades posted",
+                    (teacher.getUser() != null ? teacher.getUser().getFullName() : "A teacher")
+                            + " posted " + saved.size() + " "
+                            + request.examType().name().toLowerCase()
+                            + " score" + (saved.size() == 1 ? "" : "s")
+                            + " for " + classroom.getClassName() + ".",
+                    "GRADE",
+                    classroom.getClassName(),
+                    teacher.getUser() != null ? teacher.getUser().getFullName() : "Teacher",
+                    "/classrooms/" + classroom.getClassroomId(),
+                    "CLASSROOM",
+                    classroom.getClassroomId()
+            );
+        }
         return saved;
     }
 

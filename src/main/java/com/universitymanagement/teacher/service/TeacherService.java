@@ -1,5 +1,6 @@
 package com.universitymanagement.teacher.service;
 
+import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.subject.dto.response.SubjectResponse;
 import com.universitymanagement.teacher.dto.request.AssignClassroomRequest;
@@ -47,4 +48,10 @@ public interface TeacherService {
     TeacherDashboardSummaryResponse getMyDashboardSummary(String userId);
 
     List<StudentMetricsResponse> getMyStudentMetrics(String userId);
+
+    void resetPassword(UUID teacherId, AdminResetPasswordRequest request);
+
+    Page<TeacherResponse> getWithdrawnTeachers(int page, int size);
+
+    void restoreTeacher(UUID teacherId);
 }

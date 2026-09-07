@@ -34,12 +34,32 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     @Query("""
             select s from Student s
             join s.user u
-            where lower(s.studentCode) like lower(concat('%', :keyword, '%'))
-               or lower(u.fullName)    like lower(concat('%', :keyword, '%'))
-               or lower(u.email)       like lower(concat('%', :keyword, '%'))
+            where (s.isDeleted is null or s.isDeleted = false)
+              and (lower(s.studentCode) like lower(concat('%', :keyword, '%'))
+                or lower(u.fullName)    like lower(concat('%', :keyword, '%'))
+                or lower(u.email)       like lower(concat('%', :keyword, '%')))
             """)
     Page<Student> search(@Param("keyword") String keyword, Pageable pageable);
-    List<Student> findByProgram_Id(UUID programId);
+    @Query("""
+            select s from Student s
+            where s.program.id = :programId
+              and (s.isDeleted is null or s.isDeleted = false)
+            """)
+    List<Student> findByProgram_IdAndIsDeletedFalse(@Param("programId") UUID programId);
+
+    /** The admin list. Withdrawn students are hidden, not gone. */
+    @Query("""
+            select s from Student s
+            where s.isDeleted is null or s.isDeleted = false
+            """)
+    Page<Student> findAllLive(Pageable pageable);
+
+    /** Withdrawn students, so a mistaken removal can be found and undone. */
+    @Query("""
+            select s from Student s
+            where s.isDeleted = true
+            """)
+    Page<Student> findAllWithdrawn(Pageable pageable);
 
     /** Enrolled headcount per program. */
     interface ProgramStudentCount {
@@ -53,6 +73,7 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
             select s.program.id as programId, count(s) as total
             from Student s
             where s.program is not null
+              and (s.isDeleted is null or s.isDeleted = false)
             group by s.program.id
             """)
     List<ProgramStudentCount> countStudentsByProgram();
@@ -65,7 +86,8 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
             select s from Student s
             left join fetch s.user
             left join fetch s.program
-            where (:programId is null or s.program.id = :programId)
+            where (s.isDeleted is null or s.isDeleted = false)
+              and (:programId is null or s.program.id = :programId)
               and (:yearLevel is null or s.yearLevel = :yearLevel)
               and (:semester is null or s.semester = :semester)
               and (:academicYear is null or s.academicYear = :academicYear)

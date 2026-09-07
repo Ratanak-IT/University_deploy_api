@@ -72,4 +72,22 @@ public class StudentAdminController {
                                               @RequestBody(required = false) UUID teacherId) {
         return studentService.assignAdvisor(studentId, teacherId);
     }
+
+    /** Students that were withdrawn, so a mistake can be found and undone. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/withdrawn")
+    public Page<StudentAdminResponse> getWithdrawnStudents(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size) {
+        return studentService.getWithdrawnStudents(page, size);
+    }
+
+    /** Puts a withdrawn student back, sign-in account included. */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{studentId}/restore")
+    public void restoreStudent(@PathVariable UUID studentId) {
+        studentService.restoreStudent(studentId);
+    }
 }

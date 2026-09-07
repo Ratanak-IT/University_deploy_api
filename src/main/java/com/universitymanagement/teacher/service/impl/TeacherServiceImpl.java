@@ -1,5 +1,6 @@
 package com.universitymanagement.teacher.service.impl;
 
+import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.admin.service.UserManageService;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.classroom.entity.Classroom;
@@ -68,6 +69,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TeacherServiceImpl implements TeacherService {
+
+    /**
+     * Employment statuses that stop a teacher using the platform.
+     *
+     * <p>Kept in step with ClassroomGradeGuard, which refuses the same set.
+     * "on-leave" is absent from both: someone away for a term is still staff.
+     */
+    private static final java.util.Set<String> BLOCKED_STATUSES =
+            java.util.Set.of("suspended", "inactive", "terminated");
+
     private final Keycloak keycloak;
     private final KeycloakClient keycloakClient;
     private final UserRepository userRepository;
@@ -95,7 +106,7 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     public Page<TeacherResponse> getAllTeachers(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return teacherRepository.findAll(pageable).map(teacherMapper::toResponse);
+        return teacherRepository.findAllLive(pageable).map(teacherMapper::toResponse);
     }
 
     @Override
@@ -157,6 +168,12 @@ public class TeacherServiceImpl implements TeacherService {
         }
         if (request.employmentStatus() != null) {
             teacher.setEmploymentStatus(request.employmentStatus());
+
+            // The guard already refuses a suspended teacher on the next
+            // request. Mirroring it into Keycloak takes their tokens away too,
+            // so the change survives a browser tab they already have open —
+            // and putting the status back re-enables them.
+            syncSignInWithStatus(teacher);
         }
 
         return teacherMapper.toResponse(teacherRepository.save(teacher));
@@ -195,6 +212,12 @@ public class TeacherServiceImpl implements TeacherService {
         }
         if (request.employmentStatus() != null) {
             teacher.setEmploymentStatus(request.employmentStatus());
+
+            // The guard already refuses a suspended teacher on the next
+            // request. Mirroring it into Keycloak takes their tokens away too,
+            // so the change survives a browser tab they already have open —
+            // and putting the status back re-enables them.
+            syncSignInWithStatus(teacher);
         }
 
         return teacherMapper.toResponse(teacherRepository.save(teacher));
@@ -205,31 +228,123 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     @Transactional
+    /**
+     * Retires a teacher without destroying what they marked.
+     *
+     * <p>Deleting the row would take their grading, attendance registers and
+     * assignment feedback with it — records the university has to keep, and
+     * which other people's transcripts depend on. So the record is marked
+     * retired and the sign-in account is disabled instead.
+     */
     public void deleteTeacher(UUID teacherId) {
         Teacher teacher = findTeacher(teacherId);
 
+        // Classrooms lose their lead teacher so the class is not left pointing
+        // at somebody who has gone, and the next screen can prompt for a
+        // replacement. Everything they graded stays exactly where it is.
         List<Classroom> classrooms = classroomRepository.findByTeacher_TeacherId(teacherId);
         if (classrooms != null && !classrooms.isEmpty()) {
             classrooms.forEach(c -> c.setTeacher(null));
             classroomRepository.saveAll(classrooms);
         }
 
-        if (teacher.getSubjects() != null) {
-            teacher.getSubjects().clear();
-        }
-        if (teacher.getDepartments() != null) {
-            teacher.getDepartments().clear();
-        }
+        teacher.setIsDeleted(true);
+        teacher.setEmploymentStatus("inactive");
         teacherRepository.save(teacher);
 
-        User user = teacher.getUser();
-        teacherRepository.delete(teacher);
+        disableSignIn(teacher.getUser());
+    }
 
-        if (user != null) {
-            userRepository.delete(user);
-            try {
-                keycloakClient.deleteUser(user.getKeycloakId());
-            } catch (Exception ignored) {}
+    @Override
+    public Page<TeacherResponse> getWithdrawnTeachers(int page, int size) {
+        return teacherRepository.findAllWithdrawn(PageRequest.of(page, size))
+                .map(teacherMapper::toResponse);
+    }
+
+    @Override
+    @Transactional
+    public void restoreTeacher(UUID teacherId) {
+        Teacher teacher = findTeacher(teacherId);
+
+        teacher.setIsDeleted(false);
+        teacher.setEmploymentStatus("active");
+        teacherRepository.save(teacher);
+
+        enableSignIn(teacher.getUser());
+    }
+
+    /** Undoes {@link #disableSignIn}. */
+    private void enableSignIn(User user) {
+        if (user == null) {
+            return;
+        }
+
+        user.setIsActive(true);
+        user.setAccountStatus("ACTIVE");
+        userRepository.save(user);
+
+        if (user.getKeycloakId() == null) {
+            return;
+        }
+
+        try {
+            UserRepresentation kcUser = keycloakClient.findUserById(user.getKeycloakId());
+            if (kcUser != null) {
+                kcUser.setEnabled(true);
+                keycloakClient.updateUser(kcUser);
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The record was restored but the sign-in account could not "
+                            + "be re-enabled. Enable it in Keycloak.", e);
+        }
+    }
+
+    /** Enables or disables sign-in to match the teacher's employment status. */
+    private void syncSignInWithStatus(Teacher teacher) {
+        String status = teacher.getEmploymentStatus() == null
+                ? "" : teacher.getEmploymentStatus().trim().toLowerCase();
+
+        if (BLOCKED_STATUSES.contains(status)) {
+            disableSignIn(teacher.getUser());
+        } else {
+            enableSignIn(teacher.getUser());
+        }
+    }
+
+    /** Locks the person out, locally and at Keycloak. */
+    private void disableSignIn(User user) {
+        if (user == null) {
+            return;
+        }
+
+        user.setIsActive(false);
+        user.setAccountStatus("DISABLED");
+        userRepository.save(user);
+
+        if (user.getKeycloakId() == null) {
+            return;
+        }
+
+        try {
+            UserRepresentation kcUser = keycloakClient.findUserById(user.getKeycloakId());
+            if (kcUser != null) {
+                kcUser.setEnabled(false);
+                keycloakClient.updateUser(kcUser);
+            }
+
+            // Disabling alone leaves whatever is already out there working —
+            // the browser's session cookie and any access token still in play.
+            // Ending the sessions turns "cannot sign in again" into "signed out
+            // now", which is what a suspension is supposed to mean.
+            keycloakClient.logoutAllSessions(user.getKeycloakId());
+        } catch (Exception e) {
+            // Loud on purpose: an account that can still sign in is exactly
+            // what this method exists to prevent, so a half-done removal must
+            // not look like a finished one.
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The record was withdrawn but the sign-in account could not "
+                            + "be disabled. Disable it in Keycloak before relying on this.", e);
         }
     }
 
@@ -517,5 +632,21 @@ public class TeacherServiceImpl implements TeacherService {
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Department not found with id: " + id)))
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(UUID teacherId, AdminResetPasswordRequest request) {
+        Teacher teacher = teacherRepository.findById(teacherId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Teacher not found: " + teacherId));
+
+        User user = teacher.getUser();
+        if (user == null || user.getKeycloakId() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This teacher has no sign-in account to reset.");
+        }
+
+        userManageService.resetPassword(user.getKeycloakId(), request);
     }
 }

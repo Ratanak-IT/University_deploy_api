@@ -174,7 +174,11 @@ public class CurriculumServiceImpl implements CurriculumService {
         curriculum.setSubject(subject);
         curriculum.setIsDeleted(false);
         if (request.courseType() != null) curriculum.setCourseType(request.courseType());
-        if (request.prerequisiteSubjectId() != null) curriculum.setPrerequisiteSubjectId(request.prerequisiteSubjectId());
+        // Set unconditionally, unlike the fields above: this is a PUT, so the
+        // body is the whole row and an absent prerequisite means "there is no
+        // prerequisite". Treating null as "leave it alone" made an existing
+        // prerequisite impossible to remove through the API at all.
+        curriculum.setPrerequisiteSubjectId(request.prerequisiteSubjectId());
         if (request.lectureHours() != null) curriculum.setLectureHours(request.lectureHours());
         if (request.labHours() != null) curriculum.setLabHours(request.labHours());
 

@@ -1,5 +1,6 @@
 package com.universitymanagement.student.service.impl;
 
+import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.admin.service.UserManageService;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
 import com.universitymanagement.identity.auth.dto.request.CreateUserRequest;
@@ -17,6 +18,7 @@ import com.universitymanagement.student.dto.request.StudentUpdateProfileRequest;
 import com.universitymanagement.student.dto.request.StudentUpdateRequest;
 import com.universitymanagement.student.dto.response.StudentAdminResponse;
 import com.universitymanagement.student.dto.response.StudentDetailResponse;
+import com.universitymanagement.student.dto.response.StudentDirectoryResponse;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.student.mapper.StudentMapper;
 import com.universitymanagement.student.repository.StudentRepository;
@@ -81,10 +83,68 @@ public class StudentServiceImpl implements StudentService {
     public Page<StudentAdminResponse> getAllStudents(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("enrollmentDate").descending());
         if (keyword == null || keyword.isBlank()) {
-            return studentRepository.findAll(pageable).map(studentMapper::toAdminResponse);
+            return studentRepository.findAllLive(pageable).map(studentMapper::toAdminResponse);
         }
         return studentRepository.search(keyword.trim(), pageable)
                 .map(studentMapper::toAdminResponse);
+    }
+
+    @Override
+    public Page<StudentDirectoryResponse> searchStudentDirectory(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("enrollmentDate").descending());
+        if (keyword == null || keyword.isBlank()) {
+            return studentRepository.findAllLive(pageable).map(studentMapper::toDirectoryResponse);
+        }
+        return studentRepository.search(keyword.trim(), pageable)
+                .map(studentMapper::toDirectoryResponse);
+    }
+
+    @Override
+    public Page<StudentAdminResponse> getWithdrawnStudents(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("enrollmentDate").descending());
+        return studentRepository.findAllWithdrawn(pageable).map(studentMapper::toAdminResponse);
+    }
+
+    @Override
+    @Transactional
+    public void restoreStudent(UUID studentId) {
+        Student student = findStudent(studentId);
+
+        student.setIsDeleted(false);
+        student.setStatus("active");
+        studentRepository.save(student);
+
+        enableSignIn(student.getUser());
+    }
+
+    /** Undoes {@link #disableSignIn}. */
+    private void enableSignIn(User user) {
+        if (user == null) {
+            return;
+        }
+
+        user.setIsActive(true);
+        user.setAccountStatus("ACTIVE");
+        userRepository.save(user);
+
+        if (user.getKeycloakId() == null) {
+            return;
+        }
+
+        try {
+            UserRepresentation kcUser = keycloakClient.findUserById(user.getKeycloakId());
+            if (kcUser != null) {
+                kcUser.setEnabled(true);
+                keycloakClient.updateUser(kcUser);
+            }
+        } catch (Exception e) {
+            // Loud, because the opposite failure mode of disableSignIn applies:
+            // the record would read as restored while the person still cannot
+            // sign in, and nobody would know why.
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The record was restored but the sign-in account could not "
+                            + "be re-enabled. Enable it in Keycloak.", e);
+        }
     }
 
     @Override
@@ -206,6 +266,16 @@ public class StudentServiceImpl implements StudentService {
             if ("graduated".equals(status)) {
                 student.setGraduationStatus("graduated");
             }
+
+            // The guard already refuses a suspended student on the next
+            // request. Mirroring it into Keycloak takes away their tokens as
+            // well, so the sanction survives the browser tab they already have
+            // open — and lifting it puts everything back.
+            if (BLOCKED_STATUSES.contains(status)) {
+                disableSignIn(student.getUser());
+            } else {
+                enableSignIn(student.getUser());
+            }
         }
 
         // 3. Keep the denormalised copies on `students` in sync so older
@@ -231,28 +301,78 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toAdminResponse(studentRepository.save(student));
     }
 
+    /**
+     * Statuses that stop a student using the platform.
+     *
+     * <p>"graduated" is not one of them: a graduate needs their transcript and
+     * certificates more than anyone, and that is exactly when they come looking.
+     */
+    private static final java.util.Set<String> BLOCKED_STATUSES =
+            java.util.Set.of("suspended", "inactive");
+
     @PersistenceContext
     private EntityManager entityManager;
 
+    /**
+     * Withdraws a student without destroying what they did here.
+     *
+     * <p>This used to delete the row, and to make that possible it first
+     * deleted every attendance record, submission, exam score, quiz attempt and
+     * enrolment belonging to them. That is the university's academic record —
+     * the thing a transcript is made of — and once gone a certificate could
+     * never be reissued, nor a grade appeal answered. It also meant "cannot be
+     * deleted as it is currently in use" whenever a foreign key was missed.
+     *
+     * <p>So the record is marked withdrawn and the sign-in account is disabled
+     * in Keycloak. Disabling there is the part that actually locks them out:
+     * no new tokens can be minted, so their session dies when the current
+     * access token expires, and the refresh token stops working at once.
+     */
     @Override
     @Transactional
     public void deleteStudent(UUID studentId) {
         Student student = findStudent(studentId);
 
-        entityManager.createQuery("DELETE FROM Attendance a WHERE a.student.studentId = :id").setParameter("id", studentId).executeUpdate();
-        entityManager.createQuery("DELETE FROM Submission s WHERE s.student.studentId = :id").setParameter("id", studentId).executeUpdate();
-        entityManager.createQuery("DELETE FROM ExamScore e WHERE e.student.studentId = :id").setParameter("id", studentId).executeUpdate();
-        entityManager.createQuery("DELETE FROM QuizAttempt q WHERE q.student.studentId = :id").setParameter("id", studentId).executeUpdate();
-        entityManager.createQuery("DELETE FROM ClassroomStudent cs WHERE cs.student.studentId = :id").setParameter("id", studentId).executeUpdate();
+        student.setIsDeleted(true);
+        student.setStatus("inactive");
+        studentRepository.save(student);
 
-        User user = student.getUser();
-        studentRepository.delete(student);
+        disableSignIn(student.getUser());
+    }
 
-        if (user != null) {
-            try {
-                keycloakClient.deleteUser(user.getKeycloakId());
-            } catch (Exception ignored) {}
-            userRepository.delete(user);
+    /** Locks the person out, locally and at Keycloak. */
+    private void disableSignIn(User user) {
+        if (user == null) {
+            return;
+        }
+
+        user.setIsActive(false);
+        user.setAccountStatus("DISABLED");
+        userRepository.save(user);
+
+        if (user.getKeycloakId() == null) {
+            return;
+        }
+
+        try {
+            UserRepresentation kcUser = keycloakClient.findUserById(user.getKeycloakId());
+            if (kcUser != null) {
+                kcUser.setEnabled(false);
+                keycloakClient.updateUser(kcUser);
+            }
+
+            // Disabling alone leaves whatever is already out there working —
+            // the browser's session cookie and any access token still in play.
+            // Ending the sessions turns "cannot sign in again" into "signed out
+            // now", which is what a suspension is supposed to mean.
+            keycloakClient.logoutAllSessions(user.getKeycloakId());
+        } catch (Exception e) {
+            // The local record is already withdrawn, so failing here would
+            // leave the two halves disagreeing. Loud, because an account that
+            // can still sign in is exactly what this method exists to prevent.
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The record was withdrawn but the sign-in account could not "
+                            + "be disabled. Disable it in Keycloak before relying on this.", e);
         }
     }
 
@@ -398,5 +518,23 @@ public class StudentServiceImpl implements StudentService {
         user.setAvatarObjectName(objectName);
         userRepository.save(user);
         return findStudentById(user.getKeycloakId());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(UUID studentId, AdminResetPasswordRequest request) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Student not found: " + studentId));
+
+        User user = student.getUser();
+        if (user == null || user.getKeycloakId() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This student has no sign-in account to reset.");
+        }
+
+        // Delegated: the Keycloak call, the confirmation check and the
+        // temporary-password flag all already live in one place.
+        userManageService.resetPassword(user.getKeycloakId(), request);
     }
 }

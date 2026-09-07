@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -32,10 +33,26 @@ public class StudentAccessGuard {
     }
     public Student getCurrentStudent() {
         User user = getCurrentUser();
-        return studentRepository.findByUserId(user.getId())
+        Student student = studentRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Student profile not found for current user"));
+
+        if (Boolean.TRUE.equals(student.getIsDeleted())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "This student record has been withdrawn. Contact the registrar.");
+        }
+
+        String status = student.getStatus() == null ? "" : student.getStatus().trim().toLowerCase();
+        if (BLOCKED_STUDENT_STATUSES.contains(status)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "This account is " + status + ". Contact the registrar.");
+        }
+        return student;
     }
+
+
+    private static final Set<String> BLOCKED_STUDENT_STATUSES =
+            Set.of("suspended", "inactive");
 
     public Student requireSelfOrStaff(UUID studentId) {
         Student target = findStudent(studentId);

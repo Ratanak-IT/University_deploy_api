@@ -51,6 +51,22 @@ public class Student {
     private String motherContact;
     private String gender;
 
+
+    /**
+     * Withdrawn from the university, but not erased.
+     *
+     * <p>A student's record is the anchor for attendance, marks, submissions and
+     * certificates. Deleting the row means deleting all of that with it — the
+     * previous implementation did exactly that, and a graduate whose transcript
+     * had been destroyed could never be issued one again.
+     *
+     * <p>So removal hides the record and disables the sign-in account instead.
+     * Nullable because the column is added to a table that already holds rows:
+     * a NOT NULL column with no default fails the schema update outright.
+     */
+    @Column(name = "is_deleted", columnDefinition = "boolean default false")
+    private Boolean isDeleted = false;
+
     @Column(name = "status", length = 30)
     private String status = "active";
 

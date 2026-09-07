@@ -100,7 +100,7 @@ public class ClassroomController {
 
     @PostMapping("/{classroomId}/students")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public void addStudents(
             @PathVariable UUID classroomId,
             @Valid @RequestBody AddStudentsRequest request
@@ -108,9 +108,15 @@ public class ClassroomController {
         classroomService.addStudentsToClassroom(classroomId, request);
     }
 
+    /**
+     * Teachers may unenrol, but only from their own classroom — the service
+     * enforces that, the same way it does for adding. A teacher who can put a
+     * student in the wrong class and not take them out again has to ask the
+     * registry to undo a mistake they just made.
+     */
     @DeleteMapping("/{classroomId}/students/{studentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public void removeStudent(
             @PathVariable UUID classroomId,
             @PathVariable UUID studentId

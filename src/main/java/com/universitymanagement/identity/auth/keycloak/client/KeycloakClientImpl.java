@@ -115,6 +115,15 @@ public class KeycloakClientImpl implements KeycloakClient{
         }
     }
 
+    @Override
+    public void logoutAllSessions(String userId) {
+        try {
+            user(userId).logout();
+        } catch (ClientErrorException e) {
+            throw new KeycloakOperationException(buildErrorMessage("logout user sessions", e));
+        }
+    }
+
     private String buildErrorMessage(String action, ClientErrorException e) {
         String body = e.getResponse().readEntity(String.class);
         return String.format("Keycloak %s failed. Status=%d, Response=%s",

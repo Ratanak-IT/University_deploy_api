@@ -3,11 +3,13 @@ package com.universitymanagement.notification.service.impl;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.UserNotFoundException;
 import com.universitymanagement.identity.repository.UserRepository;
+import com.universitymanagement.identity.repository.UserRoleRepository;
 import com.universitymanagement.notification.dto.response.NotificationResponse;
 import com.universitymanagement.notification.entity.Notification;
 import com.universitymanagement.notification.repository.NotificationRepository;
 import com.universitymanagement.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +30,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
 
     @Override
     public List<NotificationResponse> getMyNotifications() {
@@ -93,6 +97,32 @@ public class NotificationServiceImpl implements NotificationService {
         n.setRead(false);
         n.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(n);
+    }
+
+    /** Both spellings, because the role is written each way in different places. */
+    private static final List<String> ADMIN_ROLE_NAMES = List.of("ADMIN", "ROLE_ADMIN");
+
+    @Override
+    @Transactional
+    public void notifyAdmins(String title, String message, String type,
+                             String context, String actor, String link,
+                             String resourceType, UUID resourceId) {
+        try {
+            List<UUID> adminIds = userRoleRepository.findUserIdsByRoleNames(ADMIN_ROLE_NAMES);
+            if (adminIds.isEmpty()) {
+                log.warn("No administrator holds the ADMIN role; dropping notification: {}", title);
+                return;
+            }
+            for (UUID adminId : adminIds) {
+                createNotification(adminId, title, message, type, context, actor,
+                        link, resourceType, resourceId);
+            }
+        } catch (RuntimeException e) {
+            // Deliberately swallowed. This runs inside the transaction of the
+            // action being reported, and failing to tell somebody about a
+            // certificate request is not a reason to refuse the request.
+            log.error("Could not notify administrators: {}", title, e);
+        }
     }
 
     private NotificationResponse toResponse(Notification n) {

@@ -1,5 +1,6 @@
 package com.universitymanagement.student.controller;
 
+import com.universitymanagement.admin.dto.request.AdminResetPasswordRequest;
 import com.universitymanagement.assignment.dto.response.SubmissionResponse;
 import com.universitymanagement.assignment.service.AssignmentService;
 import com.universitymanagement.attendance.dto.response.StudentAttendanceResponse;
@@ -53,6 +54,17 @@ public class StudentController {
     @GetMapping("/me")
     public StudentDetailResponse getMyProfile() {
         return studentService.getMyProfile();
+    }
+
+    /** Name/code search for a teacher picking who to enroll in their classroom. */
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    @GetMapping("/search")
+    public Page<StudentDirectoryResponse> searchStudentDirectory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String q) {
+        return studentService.searchStudentDirectory(page, size, q);
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -273,5 +285,17 @@ public class StudentController {
                                                     @PathVariable UUID quizId,
                                                     @PathVariable UUID attemptId) {
         return quizAttemptService.getAttemptResult(studentId, quizId, attemptId);
+    }
+
+    /**
+     * Sets a new password for this student. Administrators only, and no
+     * current password is required — see StudentService#resetPassword.
+     */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{studentId}/reset-password")
+    public void resetPassword(@PathVariable UUID studentId,
+                              @Valid @RequestBody AdminResetPasswordRequest request) {
+        studentService.resetPassword(studentId, request);
     }
 }

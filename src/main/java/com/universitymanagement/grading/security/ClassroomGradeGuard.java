@@ -20,6 +20,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -30,6 +32,11 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class ClassroomGradeGuard {
+
+    /** Employment statuses that stop a teacher marking or grading. */
+    private static final java.util.Set<String> BLOCKED_TEACHER_STATUSES =
+            java.util.Set.of("suspended", "inactive", "terminated");
+
 
     private final ClassroomRepository classroomRepository;
     private final ClassroomMemberRepository memberRepository;
@@ -56,6 +63,26 @@ public class ClassroomGradeGuard {
         User user = currentUser(auth);
         Teacher teacher = teacherRepository.findByUserId(user.getId())
                 .orElseThrow(TeacherProfileNotFoundException::new);
+
+        // Disabling the Keycloak account stops new tokens being issued, but one
+        // already in hand keeps working until it expires. Checking here refuses
+        // a retired teacher from the next request onwards rather than from
+        // whenever their token happens to run out.
+        if (Boolean.TRUE.equals(teacher.getIsDeleted())) {
+            throw new NotClassroomTeacherException(classroom.getClassroomId());
+        }
+
+        // Employment status was stored and never read, so a teacher marked
+        // suspended kept full access to marking and attendance. "on-leave" is
+        // not in this set on purpose: someone away for a term is still staff,
+        // and locking them out of their own classes would be a different and
+        // much blunter decision than the one the registrar made.
+        String employment = teacher.getEmploymentStatus() == null
+                ? "" : teacher.getEmploymentStatus().trim().toLowerCase();
+        if (BLOCKED_TEACHER_STATUSES.contains(employment)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "This teaching account is " + employment + ". Contact the registrar.");
+        }
 
         // Two things make someone a teacher of a classroom, and both count.
         //

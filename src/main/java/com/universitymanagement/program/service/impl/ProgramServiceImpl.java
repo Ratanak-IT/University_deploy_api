@@ -153,7 +153,7 @@ public class ProgramServiceImpl implements ProgramService {
             throw new ProgramNotFoundException(programId);
         }
 
-        return studentRepository.findByProgram_Id(programId)
+        return studentRepository.findByProgram_IdAndIsDeletedFalse(programId)
                 .stream()
                 .map(studentMapper::toResponse)
                 .toList();

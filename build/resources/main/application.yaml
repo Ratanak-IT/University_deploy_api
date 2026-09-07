@@ -68,7 +68,10 @@ app:
 
   frontend-url: ${FRONTEND_URL:https://cambodiaunm.vercel.app}
 
-  admin-frontend-url: ${ADMIN_FRONTEND_URL:https://administrator.cambodiaunm.vercel.app}
+  admin-frontend-url: ${ADMIN_FRONTEND_URL:https://administratorcambodiaunm-three.vercel.app}
+
+
+  allowed-return-urls: ${ALLOWED_RETURN_URLS:}
 
   timezone: Asia/Phnom_Penh
 

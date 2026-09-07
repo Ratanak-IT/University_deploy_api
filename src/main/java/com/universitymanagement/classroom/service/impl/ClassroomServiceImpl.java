@@ -281,6 +281,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Transactional
     public void addStudentsToClassroom(UUID classroomId, AddStudentsRequest request) {
         Classroom classroom = findClassroom(classroomId);
+        checkTeacherOwnsClassroomIfTeacher(classroom);
 
         for (UUID studentId : request.studentIds()) {
             Student student = studentRepository.findById(studentId)
@@ -292,8 +293,13 @@ public class ClassroomServiceImpl implements ClassroomService {
                 continue;
             }
 
-            checkPrerequisiteMet(student, classroom);
-            checkNoScheduleConflict(student, classroom);
+            // Skipped only when the caller asked for it explicitly, so the
+            // default answer to "may this student join?" is still the checked
+            // one — an override has to be a decision somebody made.
+            if (!request.override()) {
+                checkPrerequisiteMet(student, classroom);
+                checkNoScheduleConflict(student, classroom);
+            }
 
             if (classroom.getMaxCapacity() != null
                     && classroomStudentRepository.countByClassroom_ClassroomId(classroomId) >= classroom.getMaxCapacity()) {
@@ -325,7 +331,20 @@ public class ClassroomServiceImpl implements ClassroomService {
             boolean passed = posted.stream()
                     .anyMatch(g -> g.getLetterGrade() != null && g.getLetterGrade().isPassing());
             if (!passed) {
-                throw new MissingPrerequisiteException(student.getStudentId(), prerequisiteSubjectId);
+                String who = student.getUser() != null && student.getUser().getFullName() != null
+                        ? student.getUser().getFullName()
+                        : "This student";
+
+                // A prerequisite is a bare UUID on the curriculum row with no
+                // foreign key behind it, so it can outlive the subject it
+                // points at. That case is not the student's fault and needs
+                // saying differently — no grade they could earn would clear it.
+                throw subjectRepository.findById(prerequisiteSubjectId)
+                        .map(sub -> new MissingPrerequisiteException(who,
+                                sub.getSubjectName()
+                                        + (sub.getSubjectCode() != null
+                                                ? " (" + sub.getSubjectCode() + ")" : "")))
+                        .orElseGet(() -> new MissingPrerequisiteException(who, prerequisiteSubjectId));
             }
         }
     }
@@ -378,6 +397,11 @@ public class ClassroomServiceImpl implements ClassroomService {
     @Override
     @Transactional
     public void removeStudentFromClassroom(UUID classroomId, UUID studentId) {
+        // Same gate as adding: a teacher acts only on their own classroom.
+        // Loaded for the check alone, which also turns an unknown classroom
+        // into a 404 rather than "student is not enrolled".
+        checkTeacherOwnsClassroomIfTeacher(findClassroom(classroomId));
+
         ClassroomStudent enrollment = classroomStudentRepository
                 .findByClassroom_ClassroomIdAndStudent_StudentId(classroomId, studentId)
                 .orElseThrow(() -> new StudentNotEnrolledException(

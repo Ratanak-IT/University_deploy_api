@@ -25,5 +25,13 @@ public interface AuthService {
     UserDetailResponse getMyDetails();
     UserProfileResponse updateProfile(UpdateProfileRequest request);
 
+    /**
+     * Replaces the signed-in user's profile picture.
+     *
+     * <p>Lives here rather than on the student or teacher service because an
+     * administrator is neither, and had no way to set one at all.
+     */
+    UserProfileResponse uploadMyAvatar(org.springframework.web.multipart.MultipartFile file);
+
     void changePassword(ChangePasswordRequest request);
 }

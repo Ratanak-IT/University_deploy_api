@@ -1,6 +1,8 @@
 package com.universitymanagement.teacher.repository;
 
 import com.universitymanagement.teacher.entity.Teacher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,20 @@ public interface TeacherRepository extends JpaRepository<Teacher, UUID> {
     Optional<Teacher> findByUserId(UUID id);
     boolean existsByTeacherCode(String teacherCode);
     List<Teacher> findByDepartments_DepartmentId(UUID departmentId);
+
+    /** The admin list. Retired teachers are hidden, not gone. */
+    @Query("""
+            select t from Teacher t
+            where t.isDeleted is null or t.isDeleted = false
+            """)
+    Page<Teacher> findAllLive(Pageable pageable);
+
+    /** Retired teachers, so a mistaken removal can be found and undone. */
+    @Query("""
+            select t from Teacher t
+            where t.isDeleted = true
+            """)
+    Page<Teacher> findAllWithdrawn(Pageable pageable);
 
     /**
      * Same as {@link #findByUserId}, with departments already loaded — "my
