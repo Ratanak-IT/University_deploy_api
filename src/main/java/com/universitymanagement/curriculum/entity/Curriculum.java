@@ -36,6 +36,14 @@ public class Curriculum {
 
     private Boolean isDeleted = false;
 
+    /**
+     * The academic year (e.g. "2025-2026") this requirement took effect. Null means
+     * "always applied" (the pre-versioning default). Lets a future curriculum edit
+     * be scoped to new cohorts without silently rewriting the plan for students
+     * who already enrolled under the prior requirements.
+     */
+    private String effectiveAcademicYear;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private Program program;
 

@@ -23,6 +23,9 @@ import com.universitymanagement.student.repository.StudentRepository;
 import com.universitymanagement.student.security.StudentAccessGuard;
 import com.universitymanagement.student.service.StudentAcademicService;
 import com.universitymanagement.student.service.StudentService;
+import com.universitymanagement.teacher.entity.Teacher;
+import com.universitymanagement.teacher.exception.TeacherNotFoundException;
+import com.universitymanagement.teacher.repository.TeacherRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +71,7 @@ public class StudentServiceImpl implements StudentService {
     private final StudentAccessGuard accessGuard;
     private final MinioService minioService;
     private final UserProfileWriter userProfileWriter;
+    private final TeacherRepository teacherRepository;
     @Lazy private final StudentAcademicService academicService;
 
     @Value("${keycloak.target-realm}")
@@ -317,8 +321,36 @@ public class StudentServiceImpl implements StudentService {
                 user.getPhoneNumber(),
                 user.getAvatarObjectName() != null ? minioService.getAssetPreviewUrl(user.getAvatarObjectName()) : null,
                 student.getGraduationStatus(),
-                student.getProgram() != null ? student.getProgram().getProgramName() : null
+                student.getProgram() != null ? student.getProgram().getProgramName() : null,
+                resolveAdvisorName(student)
         );
+    }
+
+    private String resolveAdvisorName(Student student) {
+        if (student.getAdvisor() == null || student.getAdvisor().getUser() == null) {
+            return null;
+        }
+        User advisorUser = student.getAdvisor().getUser();
+        String first = advisorUser.resolvedFirstName();
+        String last = advisorUser.resolvedLastName();
+        if (first == null && last == null) {
+            return null;
+        }
+        return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+    }
+
+    @Override
+    @Transactional
+    public StudentAdminResponse assignAdvisor(UUID studentId, UUID teacherId) {
+        Student student = findStudent(studentId);
+        if (teacherId == null) {
+            student.setAdvisor(null);
+        } else {
+            Teacher teacher = teacherRepository.findById(teacherId)
+                    .orElseThrow(() -> new TeacherNotFoundException(teacherId));
+            student.setAdvisor(teacher);
+        }
+        return studentMapper.toAdminResponse(studentRepository.save(student));
     }
 
     private Student findStudent(UUID studentId) {

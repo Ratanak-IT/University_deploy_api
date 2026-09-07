@@ -36,9 +36,14 @@ public class AuthController {
     @Value("${app.frontend-url:https://cambodiaunm.vercel.app}")
     private String frontendUrl;
 
+    /** Where the admin portal's own `/auth/callback` lives — a separate app/origin from {@link #frontendUrl}. */
+    @Value("${app.admin-frontend-url:http://localhost:3000}")
+    private String adminFrontendUrl;
+
     private static final String SESSION_CODE_VERIFIER = "PKCE_CODE_VERIFIER";
     private static final String SESSION_STATE = "OAUTH2_STATE";
     private static final String SESSION_REDIRECT_URI = "OAUTH2_REDIRECT_URI";
+    private static final String SESSION_APP = "LOGIN_APP";
 
 //    @PostMapping("/register")
 //    public RegisterResponse register(
@@ -54,7 +59,11 @@ public class AuthController {
         return authService.login(request);
     }
     @GetMapping("/login")
-    public void login(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void login(
+            @RequestParam(value = "app", required = false) String app,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
         PkceUtil.Pkce pkce = PkceUtil.generate();
         String redirectUri = resolveCallbackUri(request);
 
@@ -62,6 +71,7 @@ public class AuthController {
         session.setAttribute(SESSION_CODE_VERIFIER, pkce.codeVerifier());
         session.setAttribute(SESSION_STATE, pkce.state());
         session.setAttribute(SESSION_REDIRECT_URI, redirectUri);
+        session.setAttribute(SESSION_APP, app);
 
         String authorizationUrl = authService.buildLoginUrl(pkce.state(), pkce.codeChallenge(), redirectUri);
         log.info("Redirecting to Keycloak login form: {}", authorizationUrl);
@@ -111,6 +121,7 @@ public class AuthController {
         String expectedState = (String) session.getAttribute(SESSION_STATE);
         String codeVerifier = (String) session.getAttribute(SESSION_CODE_VERIFIER);
         String redirectUri = (String) session.getAttribute(SESSION_REDIRECT_URI);
+        String app = (String) session.getAttribute(SESSION_APP);
 
         if (expectedState == null || !expectedState.equals(state)) {
             throw new InvalidAuthorizationCodeException("Invalid OAuth2 state (possible CSRF or expired session).");
@@ -124,6 +135,7 @@ public class AuthController {
         session.removeAttribute(SESSION_STATE);
         session.removeAttribute(SESSION_CODE_VERIFIER);
         session.removeAttribute(SESSION_REDIRECT_URI);
+        session.removeAttribute(SESSION_APP);
 
         // Tokens travel in the URL fragment, not a query string: the fragment
         // never leaves the browser (not sent to any server, not logged by
@@ -134,7 +146,14 @@ public class AuthController {
                 + "&token_type=" + urlEncode(loginResponse.getTokenType())
                 + "&expires_in=" + loginResponse.getExpiresIn();
 
-        response.sendRedirect(frontendUrl + "/auth/callback#" + fragment);
+        // The admin portal is a separate app/origin from the student/teacher
+        // one, so it needs its own callback URL. `app=admin` on the initial
+        // /login request (see below) is what threads that choice through the
+        // whole Keycloak round trip via the session, since nothing else
+        // survives the redirect to Keycloak and back.
+        String targetFrontend = "admin".equals(app) ? adminFrontendUrl : frontendUrl;
+
+        response.sendRedirect(targetFrontend + "/auth/callback#" + fragment);
     }
 
     private static String urlEncode(String value) {
@@ -170,17 +189,28 @@ public class AuthController {
      * and every proxy in between.
      */
     @GetMapping("/logout")
-    public void endSession(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+    public void endSession(
+            @RequestParam(value = "app", required = false) String app,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
 
         // Our own session holds the PKCE verifier and OAuth state. Left alive,
         // a half-finished login could be resumed after signing out.
+        //
+        // Read before invalidating: the session is also where login recorded
+        // which app started it, and destroying it first would lose that.
         HttpSession session = request.getSession(false);
+        String startedBy = session != null ? (String) session.getAttribute(SESSION_APP) : null;
         if (session != null) {
             session.invalidate();
         }
 
-        String postLogoutRedirect = frontendUrl;
+        // The admin portal is a separate origin, so sending it back to the
+        // student app would strand whoever signed out of it. The query
+        // parameter wins because the session may already be gone — signing out
+        // twice, or after it expired, still has to land somewhere sensible.
+        String which = app != null ? app : startedBy;
+        String postLogoutRedirect = "admin".equals(which) ? adminFrontendUrl : frontendUrl;
 
         String endSession = keycloakProperties.getServerUrl()
                 + "/realms/" + keycloakProperties.getTargetRealm()

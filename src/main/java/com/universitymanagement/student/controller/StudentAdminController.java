@@ -64,4 +64,12 @@ public class StudentAdminController {
     public void deleteStudent(@PathVariable UUID studentId) {
         studentService.deleteStudent(studentId);
     }
+
+    /** Assign (or clear, with a null body) the student's academic advisor. */
+    @ResponseStatus(HttpStatus.OK)
+    @PutMapping("/{studentId}/advisor")
+    public StudentAdminResponse assignAdvisor(@PathVariable UUID studentId,
+                                              @RequestBody(required = false) UUID teacherId) {
+        return studentService.assignAdvisor(studentId, teacherId);
+    }
 }

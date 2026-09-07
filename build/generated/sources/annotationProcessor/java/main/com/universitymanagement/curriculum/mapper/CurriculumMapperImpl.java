@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-01T13:52:01+0700",
+    date = "2026-09-06T17:24:56+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -37,6 +37,7 @@ public class CurriculumMapperImpl implements CurriculumMapper {
         UUID prerequisiteSubjectId = null;
         Integer lectureHours = null;
         Integer labHours = null;
+        String effectiveAcademicYear = null;
 
         programId = curriculumProgramId( curriculum );
         programName = curriculumProgramProgramName( curriculum );
@@ -51,11 +52,12 @@ public class CurriculumMapperImpl implements CurriculumMapper {
         prerequisiteSubjectId = curriculum.getPrerequisiteSubjectId();
         lectureHours = curriculum.getLectureHours();
         labHours = curriculum.getLabHours();
+        effectiveAcademicYear = curriculum.getEffectiveAcademicYear();
 
         String prerequisiteSubjectName = null;
         String prerequisiteSubjectCode = null;
 
-        CurriculumResponse curriculumResponse = new CurriculumResponse( curriculumId, semester, yearLevel, programId, programName, subjectId, subjectName, subjectCode, credit, courseType, prerequisiteSubjectId, prerequisiteSubjectName, prerequisiteSubjectCode, lectureHours, labHours );
+        CurriculumResponse curriculumResponse = new CurriculumResponse( curriculumId, semester, yearLevel, programId, programName, subjectId, subjectName, subjectCode, credit, courseType, prerequisiteSubjectId, prerequisiteSubjectName, prerequisiteSubjectCode, lectureHours, labHours, effectiveAcademicYear );
 
         return curriculumResponse;
     }
@@ -74,6 +76,7 @@ public class CurriculumMapperImpl implements CurriculumMapper {
         curriculum.setPrerequisiteSubjectId( curriculumRequest.prerequisiteSubjectId() );
         curriculum.setLectureHours( curriculumRequest.lectureHours() );
         curriculum.setLabHours( curriculumRequest.labHours() );
+        curriculum.setEffectiveAcademicYear( curriculumRequest.effectiveAcademicYear() );
 
         return curriculum;
     }

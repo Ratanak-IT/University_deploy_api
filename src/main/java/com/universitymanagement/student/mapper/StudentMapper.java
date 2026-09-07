@@ -28,6 +28,11 @@ public abstract class StudentMapper {
 
         User user = student.getUser();
         Program program = student.getProgram();
+        com.universitymanagement.teacher.entity.Teacher advisor = student.getAdvisor();
+        String advisorName = null;
+        if (advisor != null && advisor.getUser() != null) {
+            advisorName = advisor.getUser().getFullName();
+        }
 
         String avatarUrl = null;
         if (user != null && user.getAvatarObjectName() != null) {
@@ -75,7 +80,9 @@ public abstract class StudentMapper {
                 student.getEnrollmentDate(),
                 student.getStatus() != null ? student.getStatus() : "active",
                 student.getGraduationStatus(),
-                student.getGraduationDate()
+                student.getGraduationDate(),
+                advisor != null ? advisor.getTeacherId() : null,
+                advisorName
         );
     }
 }

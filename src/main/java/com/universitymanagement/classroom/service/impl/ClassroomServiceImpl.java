@@ -12,8 +12,12 @@ import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
 import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.classroom.entity.ClassroomMember;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
+import com.universitymanagement.classroom.entity.ClassroomWaitlist;
 import com.universitymanagement.classroom.exception.ClassroomAccessDeniedException;
+import com.universitymanagement.classroom.exception.ClassroomFullException;
 import com.universitymanagement.classroom.exception.ClassroomNotFoundException;
+import com.universitymanagement.classroom.exception.MissingPrerequisiteException;
+import com.universitymanagement.classroom.exception.ScheduleConflictException;
 import com.universitymanagement.classroom.exception.StudentNotEnrolledException;
 import com.universitymanagement.classroom.exception.TeacherAlreadyAssignedException;
 import com.universitymanagement.classroom.exception.TeacherNotInClassroomException;
@@ -21,7 +25,14 @@ import com.universitymanagement.classroom.mapper.ClassroomMapper;
 import com.universitymanagement.classroom.repository.ClassroomMemberRepository;
 import com.universitymanagement.classroom.repository.ClassroomRepository;
 import com.universitymanagement.classroom.repository.ClassroomStudentRepository;
+import com.universitymanagement.classroom.repository.ClassroomWaitlistRepository;
 import com.universitymanagement.classroom.service.ClassroomService;
+import com.universitymanagement.attendance.entity.ClassSchedule;
+import com.universitymanagement.attendance.repository.ClassScheduleRepository;
+import com.universitymanagement.curriculum.entity.Curriculum;
+import com.universitymanagement.curriculum.repository.CurriculumRepository;
+import com.universitymanagement.grading.entity.CourseGrade;
+import com.universitymanagement.grading.repository.CourseGradeRepository;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.identity.exception.UserNotFoundException;
 import com.universitymanagement.identity.repository.UserRepository;
@@ -78,6 +89,11 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final ProgramRepository programRepository;
     private final UserRepository userRepository;
     private final MinioService minioService;
+    private final ClassroomWaitlistRepository classroomWaitlistRepository;
+    private final CurriculumRepository curriculumRepository;
+    private final CourseGradeRepository courseGradeRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final com.universitymanagement.academicterm.repository.AcademicTermRepository academicTermRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String INVITE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -134,6 +150,9 @@ public class ClassroomServiceImpl implements ClassroomService {
         classroom.setClassCode(generateClassCode());
         classroom.setInviteCode(generateInviteCode());
         classroom.setIsDeleted(false);
+        if (request.academicTermId() != null) {
+            classroom.setAcademicTerm(academicTermRepository.findById(request.academicTermId()).orElse(null));
+        }
 
         Classroom saved = classroomRepository.save(classroom);
         if (teacher != null) {
@@ -162,6 +181,9 @@ public class ClassroomServiceImpl implements ClassroomService {
         if (request.programId() != null) {
             classroom.setProgram(programRepository.findById(request.programId())
                     .orElseThrow(() -> new ProgramNotFoundException(request.programId())));
+        }
+        if (request.academicTermId() != null) {
+            classroom.setAcademicTerm(academicTermRepository.findById(request.academicTermId()).orElse(null));
         }
 
         return classroomMapper.toResponse(classroomRepository.save(classroom));
@@ -270,11 +292,87 @@ public class ClassroomServiceImpl implements ClassroomService {
                 continue;
             }
 
+            checkPrerequisiteMet(student, classroom);
+            checkNoScheduleConflict(student, classroom);
+
+            if (classroom.getMaxCapacity() != null
+                    && classroomStudentRepository.countByClassroom_ClassroomId(classroomId) >= classroom.getMaxCapacity()) {
+                waitlistStudent(classroom, student);
+                continue;
+            }
+
             ClassroomStudent enrollment = new ClassroomStudent();
             enrollment.setClassroom(classroom);
             enrollment.setStudent(student);
             classroomStudentRepository.save(enrollment);
         }
+    }
+
+    /** Blocks enrollment if the curriculum requires a prerequisite the student hasn't posted a passing grade for. */
+    private void checkPrerequisiteMet(Student student, Classroom classroom) {
+        if (classroom.getProgram() == null || classroom.getSubject() == null) {
+            return;
+        }
+        List<Curriculum> entries = curriculumRepository.findByProgram_IdAndSubject_SubjectIdAndIsDeletedFalse(
+                classroom.getProgram().getId(), classroom.getSubject().getSubjectId());
+        for (Curriculum entry : entries) {
+            UUID prerequisiteSubjectId = entry.getPrerequisiteSubjectId();
+            if (prerequisiteSubjectId == null) {
+                continue;
+            }
+            List<CourseGrade> posted = courseGradeRepository.findPostedByStudentAndSubject(
+                    student.getStudentId(), prerequisiteSubjectId);
+            boolean passed = posted.stream()
+                    .anyMatch(g -> g.getLetterGrade() != null && g.getLetterGrade().isPassing());
+            if (!passed) {
+                throw new MissingPrerequisiteException(student.getStudentId(), prerequisiteSubjectId);
+            }
+        }
+    }
+
+    /** Blocks enrollment if the new classroom's weekly schedule overlaps one the student is already in. */
+    private void checkNoScheduleConflict(Student student, Classroom classroom) {
+        List<ClassSchedule> newSchedules = classScheduleRepository
+                .findByClassroom_ClassroomIdOrderByDayOfWeekAscStartTimeAsc(classroom.getClassroomId());
+        if (newSchedules.isEmpty()) {
+            return;
+        }
+
+        List<UUID> otherClassroomIds = classroomStudentRepository
+                .findByStudent_StudentId(student.getStudentId())
+                .stream()
+                .map(cs -> cs.getClassroom().getClassroomId())
+                .filter(id -> !id.equals(classroom.getClassroomId()))
+                .distinct()
+                .toList();
+        if (otherClassroomIds.isEmpty()) {
+            return;
+        }
+
+        List<ClassSchedule> existingSchedules = classScheduleRepository
+                .findByClassroom_ClassroomIdInOrderByDayOfWeekAscStartTimeAsc(otherClassroomIds);
+
+        for (ClassSchedule newSlot : newSchedules) {
+            for (ClassSchedule existingSlot : existingSchedules) {
+                if (newSlot.getDayOfWeek() == existingSlot.getDayOfWeek()
+                        && newSlot.getStartTime().isBefore(existingSlot.getEndTime())
+                        && existingSlot.getStartTime().isBefore(newSlot.getEndTime())) {
+                    throw new ScheduleConflictException(student.getStudentId(), classroom.getClassroomId());
+                }
+            }
+        }
+    }
+
+    private void waitlistStudent(Classroom classroom, Student student) {
+        boolean alreadyWaitlisted = classroomWaitlistRepository
+                .existsByClassroom_ClassroomIdAndStudent_StudentId(classroom.getClassroomId(), student.getStudentId());
+        if (alreadyWaitlisted) {
+            return;
+        }
+        ClassroomWaitlist waitlist = new ClassroomWaitlist();
+        waitlist.setClassroom(classroom);
+        waitlist.setStudent(student);
+        classroomWaitlistRepository.save(waitlist);
     }
 
     @Override
@@ -285,6 +383,19 @@ public class ClassroomServiceImpl implements ClassroomService {
                 .orElseThrow(() -> new StudentNotEnrolledException(
                         "Student is not enrolled in this classroom"));
         classroomStudentRepository.delete(enrollment);
+        promoteFromWaitlist(classroomId);
+    }
+
+    /** A dropped seat goes to the longest-waiting student on the waitlist, if any. */
+    private void promoteFromWaitlist(UUID classroomId) {
+        classroomWaitlistRepository.findFirstByClassroom_ClassroomIdOrderByRequestedAtAsc(classroomId)
+                .ifPresent(waitlistEntry -> {
+                    ClassroomStudent enrollment = new ClassroomStudent();
+                    enrollment.setClassroom(waitlistEntry.getClassroom());
+                    enrollment.setStudent(waitlistEntry.getStudent());
+                    classroomStudentRepository.save(enrollment);
+                    classroomWaitlistRepository.delete(waitlistEntry);
+                });
     }
 
     @Override
@@ -444,6 +555,32 @@ public class ClassroomServiceImpl implements ClassroomService {
         return classroomRepository.findById(classroomId)
                 .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
                 .orElseThrow(() -> new ClassroomNotFoundException(classroomId));
+    }
+
+    @Override
+    public List<com.universitymanagement.classroom.dto.response.WaitlistEntryResponse> getWaitlist(UUID classroomId) {
+        findClassroom(classroomId);
+        return classroomWaitlistRepository.findByClassroom_ClassroomIdOrderByRequestedAtAsc(classroomId).stream()
+                .map(entry -> {
+                    Student student = entry.getStudent();
+                    String name = student.getUser() != null ? student.getUser().getFullName() : null;
+                    return new com.universitymanagement.classroom.dto.response.WaitlistEntryResponse(
+                            student.getStudentId(),
+                            student.getStudentCode(),
+                            name,
+                            entry.getRequestedAt()
+                    );
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void removeFromWaitlist(UUID classroomId, UUID studentId) {
+        classroomWaitlistRepository.findByClassroom_ClassroomIdOrderByRequestedAtAsc(classroomId).stream()
+                .filter(w -> w.getStudent().getStudentId().equals(studentId))
+                .findFirst()
+                .ifPresent(classroomWaitlistRepository::delete);
     }
 
     private Teacher findTeacher(UUID teacherId) {

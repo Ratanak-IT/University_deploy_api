@@ -28,4 +28,5 @@ public interface StudentService {
     StudentDetailResponse updateMyProfile(StudentUpdateProfileRequest request);
     StudentDetailResponse findStudentById(String keycloakUserId);
     StudentDetailResponse uploadMyAvatar(MultipartFile file);
+    StudentAdminResponse assignAdvisor(UUID studentId, UUID teacherId);
 }

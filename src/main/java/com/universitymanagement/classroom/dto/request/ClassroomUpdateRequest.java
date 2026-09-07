@@ -32,6 +32,10 @@ public record ClassroomUpdateRequest(
 
         LocalDate startDate,
 
-        LocalDate endDate
+        LocalDate endDate,
+
+        Integer maxCapacity,
+
+        UUID academicTermId
 ) {
 }

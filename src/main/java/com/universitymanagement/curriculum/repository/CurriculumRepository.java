@@ -20,6 +20,8 @@ public interface CurriculumRepository extends JpaRepository<Curriculum, UUID> {
     boolean existsByProgram_IdAndSubject_SubjectIdAndSemesterAndYearLevelAndCurriculumIdNot(
             UUID programId, UUID subjectId, Integer semester, Integer yearLevel, UUID curriculumId);
 
+    List<Curriculum> findByProgram_IdAndSubject_SubjectIdAndIsDeletedFalse(UUID programId, UUID subjectId);
+
     /** How many distinct subjects a program's curriculum covers. */
     interface ProgramSubjectCount {
         UUID getProgramId();

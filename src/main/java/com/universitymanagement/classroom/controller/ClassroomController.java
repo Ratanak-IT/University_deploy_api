@@ -135,4 +135,22 @@ public class ClassroomController {
     public List<ClassroomResponse> getMyClassrooms() {
         return classroomService.getMyClassrooms();
     }
+
+    @GetMapping("/{classroomId}/waitlist")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public List<com.universitymanagement.classroom.dto.response.WaitlistEntryResponse> getWaitlist(
+            @PathVariable UUID classroomId
+    ) {
+        return classroomService.getWaitlist(classroomId);
+    }
+
+    @DeleteMapping("/{classroomId}/waitlist/{studentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void removeFromWaitlist(
+            @PathVariable UUID classroomId,
+            @PathVariable UUID studentId
+    ) {
+        classroomService.removeFromWaitlist(classroomId, studentId);
+    }
 }

@@ -48,4 +48,23 @@ public interface CourseGradeRepository extends JpaRepository<CourseGrade, UUID> 
             where g.student.studentId in :studentIds
             """)
     List<CourseGrade> findByStudentIds(List<UUID> studentIds);
+
+    /** Posted course grades a student has for a given subject, across any classroom/section. */
+    @Query("""
+            select g from CourseGrade g
+            where g.student.studentId = :studentId
+            and g.classroom.subject.subjectId = :subjectId
+            and g.status = com.universitymanagement.grading.entity.CourseGradeStatus.POSTED
+            """)
+    List<CourseGrade> findPostedByStudentAndSubject(UUID studentId, UUID subjectId);
+
+    /** Other counted attempts at the same subject, to be superseded when a newer attempt posts. */
+    @Query("""
+            select g from CourseGrade g
+            where g.student.studentId = :studentId
+            and g.classroom.subject.subjectId = :subjectId
+            and g.courseGradeId <> :excludingCourseGradeId
+            and g.countsInGpa = true
+            """)
+    List<CourseGrade> findOtherCountedAttempts(UUID studentId, UUID subjectId, UUID excludingCourseGradeId);
 }

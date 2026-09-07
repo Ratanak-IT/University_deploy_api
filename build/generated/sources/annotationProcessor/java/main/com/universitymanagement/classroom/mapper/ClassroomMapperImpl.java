@@ -1,5 +1,6 @@
 package com.universitymanagement.classroom.mapper;
 
+import com.universitymanagement.academicterm.entity.AcademicTerm;
 import com.universitymanagement.classroom.dto.request.ClassroomCreateRequest;
 import com.universitymanagement.classroom.dto.request.ClassroomUpdateRequest;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-01T13:52:01+0700",
+    date = "2026-09-06T17:27:15+0700",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.14.5.jar, environment: Java 25.0.3 (Oracle Corporation)"
 )
 @Component
@@ -37,6 +38,8 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         String subjectName = null;
         UUID programId = null;
         String programName = null;
+        UUID academicTermId = null;
+        String academicTermName = null;
         LocalDateTime updatedAt = null;
         String updatedBy = null;
         UUID classroomId = null;
@@ -49,6 +52,7 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         String room = null;
         LocalDate startDate = null;
         LocalDate endDate = null;
+        Integer maxCapacity = null;
         LocalDateTime createdAt = null;
         String createdBy = null;
 
@@ -58,6 +62,8 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         subjectName = classroomSubjectSubjectName( classroom );
         programId = classroomProgramId( classroom );
         programName = classroomProgramProgramName( classroom );
+        academicTermId = classroomAcademicTermTermId( classroom );
+        academicTermName = classroomAcademicTermName( classroom );
         updatedAt = classroom.getLastUpdateAt();
         updatedBy = classroom.getLastUpdatedBy();
         classroomId = classroom.getClassroomId();
@@ -70,10 +76,11 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         room = classroom.getRoom();
         startDate = classroom.getStartDate();
         endDate = classroom.getEndDate();
+        maxCapacity = classroom.getMaxCapacity();
         createdAt = classroom.getCreatedAt();
         createdBy = classroom.getCreatedBy();
 
-        ClassroomResponse classroomResponse = new ClassroomResponse( classroomId, className, classCode, teacherId, teacherName, subjectId, subjectName, programId, programName, academicYear, semester, yearLevel, inviteCode, room, startDate, endDate, createdAt, updatedAt, createdBy, updatedBy );
+        ClassroomResponse classroomResponse = new ClassroomResponse( classroomId, className, classCode, teacherId, teacherName, subjectId, subjectName, programId, programName, academicYear, semester, yearLevel, inviteCode, room, startDate, endDate, maxCapacity, academicTermId, academicTermName, createdAt, updatedAt, createdBy, updatedBy );
 
         return classroomResponse;
     }
@@ -90,6 +97,7 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         classroom.setAcademicYear( classroomCreateRequest.academicYear() );
         classroom.setSemester( classroomCreateRequest.semester() );
         classroom.setYearLevel( classroomCreateRequest.yearLevel() );
+        classroom.setMaxCapacity( classroomCreateRequest.maxCapacity() );
         classroom.setRoom( classroomCreateRequest.room() );
         classroom.setStartDate( classroomCreateRequest.startDate() );
         classroom.setEndDate( classroomCreateRequest.endDate() );
@@ -136,6 +144,7 @@ public class ClassroomMapperImpl implements ClassroomMapper {
         classroom.setAcademicYear( request.academicYear() );
         classroom.setSemester( request.semester() );
         classroom.setYearLevel( request.yearLevel() );
+        classroom.setMaxCapacity( request.maxCapacity() );
         classroom.setRoom( request.room() );
         classroom.setStartDate( request.startDate() );
         classroom.setEndDate( request.endDate() );
@@ -191,6 +200,22 @@ public class ClassroomMapperImpl implements ClassroomMapper {
             return null;
         }
         return program.getProgramName();
+    }
+
+    private UUID classroomAcademicTermTermId(Classroom classroom) {
+        AcademicTerm academicTerm = classroom.getAcademicTerm();
+        if ( academicTerm == null ) {
+            return null;
+        }
+        return academicTerm.getTermId();
+    }
+
+    private String classroomAcademicTermName(Classroom classroom) {
+        AcademicTerm academicTerm = classroom.getAcademicTerm();
+        if ( academicTerm == null ) {
+            return null;
+        }
+        return academicTerm.getName();
     }
 
     private UUID classroomStudentStudentStudentId(ClassroomStudent classroomStudent) {

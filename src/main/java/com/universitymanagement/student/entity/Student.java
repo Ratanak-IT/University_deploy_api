@@ -4,6 +4,7 @@ package com.universitymanagement.student.entity;
 import com.universitymanagement.classroom.entity.ClassroomStudent;
 import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.program.entity.Program;
+import com.universitymanagement.teacher.entity.Teacher;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -69,4 +70,8 @@ public class Student {
     // findRosterWithUser already does for the same reason.
     @ManyToOne(fetch = FetchType.LAZY)
     private Program program;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "advisor_teacher_id")
+    private Teacher advisor;
 }

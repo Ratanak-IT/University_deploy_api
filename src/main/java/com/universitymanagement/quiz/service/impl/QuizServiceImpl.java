@@ -120,7 +120,7 @@ public class QuizServiceImpl implements QuizService {
             if (keep.contains(classroomId)) {
                 continue;
             }
-            long attempts = attemptRepository.countByQuiz_QuizIdAndClassroom(quizId, classroomId);
+            long attempts = attemptRepository.countByQuiz_QuizIdAndClassroom_ClassroomId(quizId, classroomId);
             if (attempts > 0) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "\"" + assignment.getClassroom().getClassName() + "\" already has "
@@ -303,10 +303,18 @@ public class QuizServiceImpl implements QuizService {
         // single unlabeled row.
         List<ClassroomStudent> roster = classroomStudentRepository.findRosterWithUserByClassroomIds(classroomIds);
 
-        Map<UUID, QuizAttempt> attemptByStudent = attemptRepository.findByQuiz_QuizIdWithStudent(quizId)
+        // Keyed by (student, classroom) rather than student alone — a student
+        // enrolled in two sections that both received this quiz has an
+        // independent attempt count per section, and an attempt taken under
+        // Section A's release must not read as "completed" on Section B's
+        // roster row. Attempts recorded before attempts carried a classroom
+        // (classroom is null) can't be attributed to a specific roster row,
+        // so they're left out rather than matched everywhere.
+        Map<String, QuizAttempt> attemptByStudentAndClassroom = attemptRepository.findByQuiz_QuizIdWithStudent(quizId)
                 .stream()
+                .filter(a -> a.getClassroom() != null)
                 .collect(Collectors.toMap(
-                        a -> a.getStudent().getStudentId(),
+                        a -> a.getStudent().getStudentId() + "|" + a.getClassroom().getClassroomId(),
                         a -> a,
                         // A student can have more than one attempt (a resumed
                         // one after an expiry): keep the settled one over an
@@ -319,7 +327,8 @@ public class QuizServiceImpl implements QuizService {
                         }));
 
         return roster.stream()
-                .map(cs -> toAttemptSummary(cs, attemptByStudent.get(cs.getStudent().getStudentId())))
+                .map(cs -> toAttemptSummary(cs, attemptByStudentAndClassroom.get(
+                        cs.getStudent().getStudentId() + "|" + cs.getClassroom().getClassroomId())))
                 .toList();
     }
 

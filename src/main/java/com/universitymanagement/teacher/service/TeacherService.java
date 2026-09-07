@@ -6,6 +6,7 @@ import com.universitymanagement.teacher.dto.request.AssignClassroomRequest;
 import com.universitymanagement.teacher.dto.request.AssignSubjectRequest;
 import com.universitymanagement.teacher.dto.request.CreateTeacherRequest;
 import com.universitymanagement.teacher.dto.request.UpdateTeacherRequest;
+import com.universitymanagement.teacher.dto.response.StudentMetricsResponse;
 import com.universitymanagement.teacher.dto.response.TeacherDashboardSummaryResponse;
 import com.universitymanagement.teacher.dto.response.TeacherDetailResponse;
 import com.universitymanagement.teacher.dto.response.TeacherResponse;
@@ -44,4 +45,6 @@ public interface TeacherService {
     TeacherDetailResponse uploadMyAvatar(org.springframework.web.multipart.MultipartFile file);
 
     TeacherDashboardSummaryResponse getMyDashboardSummary(String userId);
+
+    List<StudentMetricsResponse> getMyStudentMetrics(String userId);
 }

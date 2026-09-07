@@ -1,9 +1,11 @@
 package com.universitymanagement.attendance.entity;
 
 import com.universitymanagement.auditing.BasedEntity;
+import com.universitymanagement.identity.entity.User;
 import com.universitymanagement.student.entity.Student;
 import com.universitymanagement.teacher.entity.Teacher;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -66,4 +68,21 @@ public class AttendanceRecord extends BasedEntity {
 
     @Column(name = "recorded_at")
     private LocalDateTime recordedAt;
+
+    // NOT NULL with a DB-level default (not just a Java field initializer) —
+    // this column is being added to an already-populated table, and
+    // ddl-auto: update has no migration tooling behind it to backfill
+    // existing rows. Without the default, Postgres rejects the ALTER TABLE
+    // the moment it hits the first pre-existing row.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "excuse_approval_status", length = 20, nullable = false)
+    @ColumnDefault("'NONE'")
+    private ExcuseApprovalStatus excuseApprovalStatus = ExcuseApprovalStatus.NONE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "excuse_reviewed_by")
+    private User excuseReviewedBy;
+
+    @Column(name = "excuse_reviewed_at")
+    private LocalDateTime excuseReviewedAt;
 }

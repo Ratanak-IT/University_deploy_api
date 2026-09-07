@@ -4,6 +4,7 @@ import com.universitymanagement.classroom.dto.request.*;
 import com.universitymanagement.classroom.dto.response.ClassroomMemberResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomResponse;
 import com.universitymanagement.classroom.dto.response.ClassroomStudentResponse;
+import com.universitymanagement.classroom.dto.response.WaitlistEntryResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -38,4 +39,8 @@ public interface ClassroomService {
     void removeTeacherFromClassroom(UUID classroomId, UUID teacherId);
 
     ClassroomResponse setLeadTeacher(UUID classroomId, AssignTeacherRequest request);
+
+    List<WaitlistEntryResponse> getWaitlist(UUID classroomId);
+
+    void removeFromWaitlist(UUID classroomId, UUID studentId);
 }

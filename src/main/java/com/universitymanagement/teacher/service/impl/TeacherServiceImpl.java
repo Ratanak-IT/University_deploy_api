@@ -86,6 +86,8 @@ public class TeacherServiceImpl implements TeacherService {
     private final AssignmentRepository assignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final ClassSessionRepository classSessionRepository;
+    private final com.universitymanagement.grading.repository.CourseGradeRepository courseGradeRepository;
+    private final com.universitymanagement.attendance.service.AttendanceSessionService attendanceSessionService;
 
     @Value("${keycloak.target-realm}")
     private String realm;
@@ -352,7 +354,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .toList();
 
         if (classroomIds.isEmpty()) {
-            return new TeacherDashboardSummaryResponse(0, 0, 0, 0, 0);
+            return new TeacherDashboardSummaryResponse(0, 0, 0, 0, 0, null, null);
         }
 
         long totalStudents = classroomStudentRepository.countDistinctStudentsByClassroomIds(classroomIds);
@@ -361,7 +363,77 @@ public class TeacherServiceImpl implements TeacherService {
         long toGrade = submissionRepository.countUngradedByClassroomIds(classroomIds);
         long attendanceToday = classSessionRepository.countUntakenTodayByClassroomIds(classroomIds, java.time.LocalDate.now());
 
-        return new TeacherDashboardSummaryResponse(classroomIds.size(), totalStudents, courseMaterials, toGrade, attendanceToday);
+        Double avgAttendancePercent = classroomIds.stream()
+                .flatMap(id -> attendanceSessionService.getSummary(id).stream())
+                .map(com.universitymanagement.attendance.dto.response.AttendanceSummaryResponse::attendancePercent)
+                .filter(java.util.Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .stream().boxed().findFirst()
+                .orElse(null);
+
+        Double avgPerformancePercent = courseGradeRepository.findByClassroomsWithCourse(classroomIds).stream()
+                .map(com.universitymanagement.grading.entity.CourseGrade::getScorePercent)
+                .filter(java.util.Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .stream().boxed().findFirst()
+                .orElse(null);
+
+        return new TeacherDashboardSummaryResponse(
+                classroomIds.size(), totalStudents, courseMaterials, toGrade, attendanceToday,
+                avgAttendancePercent, avgPerformancePercent);
+    }
+
+    @Override
+    public List<com.universitymanagement.teacher.dto.response.StudentMetricsResponse> getMyStudentMetrics(String userId) {
+        User user = userRepository.findByKeycloakId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found in local DB: " + userId));
+        Teacher teacher = teacherRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher profile not found for user: " + userId));
+
+        List<UUID> classroomIds = classroomRepository
+                .findByTeacher_TeacherIdAndIsDeletedFalse(teacher.getTeacherId())
+                .stream()
+                .map(Classroom::getClassroomId)
+                .toList();
+
+        if (classroomIds.isEmpty()) {
+            return List.of();
+        }
+
+        java.util.Map<UUID, List<Double>> attendanceByStudent = classroomIds.stream()
+                .flatMap(id -> attendanceSessionService.getSummary(id).stream())
+                .filter(s -> s.attendancePercent() != null)
+                .collect(Collectors.groupingBy(
+                        com.universitymanagement.attendance.dto.response.AttendanceSummaryResponse::studentId,
+                        Collectors.mapping(
+                                com.universitymanagement.attendance.dto.response.AttendanceSummaryResponse::attendancePercent,
+                                Collectors.toList())));
+
+        java.util.Map<UUID, List<Double>> performanceByStudent = courseGradeRepository.findByClassroomsWithCourse(classroomIds).stream()
+                .filter(g -> g.getScorePercent() != null)
+                .collect(Collectors.groupingBy(
+                        g -> g.getStudent().getStudentId(),
+                        Collectors.mapping(com.universitymanagement.grading.entity.CourseGrade::getScorePercent, Collectors.toList())));
+
+        Set<UUID> allStudentIds = new java.util.HashSet<>();
+        allStudentIds.addAll(attendanceByStudent.keySet());
+        allStudentIds.addAll(performanceByStudent.keySet());
+        classroomStudentRepository.findByClassroom_ClassroomIdIn(classroomIds)
+                .forEach(cs -> allStudentIds.add(cs.getStudent().getStudentId()));
+
+        return allStudentIds.stream()
+                .map(studentId -> new com.universitymanagement.teacher.dto.response.StudentMetricsResponse(
+                        studentId,
+                        average(attendanceByStudent.get(studentId)),
+                        average(performanceByStudent.get(studentId))))
+                .toList();
+    }
+
+    private Double average(List<Double> values) {
+        if (values == null || values.isEmpty()) return null;
+        return values.stream().mapToDouble(Double::doubleValue).average().orElse(0);
     }
 
     @Override

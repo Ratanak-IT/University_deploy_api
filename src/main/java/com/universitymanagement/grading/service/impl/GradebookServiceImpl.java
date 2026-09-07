@@ -69,6 +69,7 @@ public class GradebookServiceImpl implements GradebookService {
     private final CourseGradeRepository courseGradeRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
     private final MinioService minioService;
+    private final com.universitymanagement.grading.repository.AssessmentScoreHistoryRepository scoreHistoryRepository;
 
     @Override
     @Transactional
@@ -136,6 +137,19 @@ public class GradebookServiceImpl implements GradebookService {
                     scoreRepository.delete(existing);
                 }
                 continue;
+            }
+
+            // A prior grade is about to be overwritten — snapshot it before it's
+            // gone, so a later dispute ("this used to be a 60") has an answer.
+            if (existing != null && existing.getGradedAt() != null) {
+                com.universitymanagement.grading.entity.AssessmentScoreHistory history =
+                        new com.universitymanagement.grading.entity.AssessmentScoreHistory();
+                history.setAssessmentScore(existing);
+                history.setPreviousScore(existing.getScore());
+                history.setPreviousStatus(existing.getStatus());
+                history.setPreviousGradedByTeacher(existing.getGradedByTeacher());
+                history.setPreviousGradedAt(existing.getGradedAt());
+                scoreHistoryRepository.save(history);
             }
 
             AssessmentScore score = existing != null ? existing : new AssessmentScore();
@@ -288,6 +302,23 @@ public class GradebookServiceImpl implements GradebookService {
                             : 0.0);
         }
         courseGradeRepository.saveAll(grades);
+
+        // Retake policy: replace, not average — the freshly posted attempt is the
+        // one that counts, so any earlier counted attempt at the same subject
+        // stops contributing to GPA.
+        if (subject != null) {
+            for (CourseGrade grade : grades) {
+                if (grade.getStatus() != CourseGradeStatus.POSTED) {
+                    continue;
+                }
+                List<CourseGrade> superseded = courseGradeRepository.findOtherCountedAttempts(
+                        grade.getStudent().getStudentId(), subject.getSubjectId(), grade.getCourseGradeId());
+                if (!superseded.isEmpty()) {
+                    superseded.forEach(old -> old.setCountsInGpa(false));
+                    courseGradeRepository.saveAll(superseded);
+                }
+            }
+        }
 
         return build(classroom, contextLoader.load(classroomId));
     }

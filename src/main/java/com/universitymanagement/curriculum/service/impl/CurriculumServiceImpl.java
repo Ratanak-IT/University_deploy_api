@@ -76,7 +76,8 @@ public class CurriculumServiceImpl implements CurriculumService {
                 prereqName,
                 prereqCode,
                 c.getLectureHours(),
-                c.getLabHours()
+                c.getLabHours(),
+                c.getEffectiveAcademicYear()
         );
     }
 
@@ -208,6 +209,7 @@ public class CurriculumServiceImpl implements CurriculumService {
         if (request.prerequisiteSubjectId() != null) curriculum.setPrerequisiteSubjectId(request.prerequisiteSubjectId());
         if (request.lectureHours() != null) curriculum.setLectureHours(request.lectureHours());
         if (request.labHours() != null) curriculum.setLabHours(request.labHours());
+        curriculum.setEffectiveAcademicYear(request.effectiveAcademicYear());
 
         Curriculum updatedCurriculum = curriculumRepository.save(curriculum);
         return mapToRichResponse(updatedCurriculum);

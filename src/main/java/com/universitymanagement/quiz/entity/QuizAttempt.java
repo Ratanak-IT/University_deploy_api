@@ -1,6 +1,7 @@
 package com.universitymanagement.quiz.entity;
 
 import com.universitymanagement.auditing.BasedEntity;
+import com.universitymanagement.classroom.entity.Classroom;
 import com.universitymanagement.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -30,6 +31,17 @@ public class QuizAttempt extends BasedEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
+
+    /**
+     * The classroom release this attempt was started under. The same quiz can
+     * be released to several sections a student is enrolled in, each with its
+     * own attempt limit — without this, an attempt used up in one section
+     * would read as "completed" in every other section too. Nullable because
+     * rows written before this column existed have no way to backfill it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_id")
+    private Classroom classroom;
 
     @Column(nullable = false)
     private LocalDateTime startedAt;

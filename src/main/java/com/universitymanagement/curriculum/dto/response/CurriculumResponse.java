@@ -18,6 +18,7 @@ public record CurriculumResponse(
         String prerequisiteSubjectName,
         String prerequisiteSubjectCode,
         Integer lectureHours,
-        Integer labHours
+        Integer labHours,
+        String effectiveAcademicYear
 ) {
 }

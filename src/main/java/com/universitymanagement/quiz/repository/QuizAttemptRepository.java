@@ -14,7 +14,6 @@ import java.util.UUID;
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
     long countByQuiz_QuizIdAndStudent_StudentId(UUID quizId, UUID studentId);
     Optional<QuizAttempt> findByAttemptIdAndQuiz_QuizIdAndStudent_StudentId(UUID attemptId, UUID quizId, UUID studentId);
-    List<QuizAttempt> findByStudent_StudentIdOrderByStartedAtDesc(UUID studentId);
 
     /**
      * Attempts that actually count against the limit and against "completed"
@@ -39,6 +38,43 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
             @Param("now") LocalDateTime now);
 
     /**
+     * Same as {@link #countSettledByQuiz_QuizIdAndStudent_StudentId} but
+     * scoped to one classroom release, so a student's attempts in Section A
+     * don't count against — or read as "completed" for — the same quiz
+     * released separately to Section B. Legacy attempts recorded before
+     * {@code classroom_id} existed (classroom is null) are excluded, since
+     * there is no way to know which release they belonged to.
+     */
+    @Query("""
+            select count(a) from QuizAttempt a
+            where a.quiz.quizId = :quizId
+              and a.student.studentId = :studentId
+              and a.classroom.classroomId = :classroomId
+              and (a.status = AttemptStatus.SUBMITTED
+                or a.status = AttemptStatus.EXPIRED
+                or (a.status = AttemptStatus.IN_PROGRESS
+                    and a.expiresAt is not null and a.expiresAt < :now))
+            """)
+    long countSettledByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+            @Param("quizId") UUID quizId,
+            @Param("studentId") UUID studentId,
+            @Param("classroomId") UUID classroomId,
+            @Param("now") LocalDateTime now);
+
+    /** Best earned score for a student on a quiz, scoped to one classroom release. */
+    @Query("""
+            select max(a.earnedScore) from QuizAttempt a
+            where a.quiz.quizId = :quizId
+              and a.student.studentId = :studentId
+              and a.classroom.classroomId = :classroomId
+              and a.earnedScore is not null
+            """)
+    Double findBestScoreByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+            @Param("quizId") UUID quizId,
+            @Param("studentId") UUID studentId,
+            @Param("classroomId") UUID classroomId);
+
+    /**
      * An attempt still genuinely open to answer — IN_PROGRESS and either
      * undated or not yet past its deadline. Reused so starting a quiz resumes
      * this instead of silently abandoning it and creating a duplicate.
@@ -54,6 +90,22 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
     List<QuizAttempt> findActiveByQuiz_QuizIdAndStudent_StudentId(
             @Param("quizId") UUID quizId,
             @Param("studentId") UUID studentId,
+            @Param("now") LocalDateTime now);
+
+    /** Same as above, scoped to the classroom release being resumed. */
+    @Query("""
+            select a from QuizAttempt a
+            where a.quiz.quizId = :quizId
+              and a.student.studentId = :studentId
+              and a.classroom.classroomId = :classroomId
+              and a.status = AttemptStatus.IN_PROGRESS
+              and (a.expiresAt is null or a.expiresAt >= :now)
+            order by a.startedAt desc
+            """)
+    List<QuizAttempt> findActiveByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+            @Param("quizId") UUID quizId,
+            @Param("studentId") UUID studentId,
+            @Param("classroomId") UUID classroomId,
             @Param("now") LocalDateTime now);
 
     /** Submitted attempts for a set of quizzes — the gradebook keeps the best one per student. */
@@ -73,17 +125,16 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
     List<QuizAttempt> findByQuiz_QuizIdWithStudent(@Param("quizId") UUID quizId);
 
     /**
-     * Attempts on a quiz by students of one classroom. Pulling a quiz from a
-     * section is only safe while this is zero.
+     * Attempts taken under one classroom's release of a quiz. Pulling a quiz
+     * from a section is only safe while this is zero.
+     *
+     * <p>Filters on the attempt's own {@code classroom}, not on which
+     * classroom the student currently belongs to — a student enrolled in two
+     * sections that both received this quiz may have attempted it under
+     * Section A only, and that must not block removing Section B's release.
+     * Legacy attempts recorded before {@code classroom_id} existed (classroom
+     * is null) are excluded, since there's no way to know which release they
+     * belonged to; they no longer block removal of any section.
      */
-    @Query("""
-            select count(a) from QuizAttempt a
-            where a.quiz.quizId = :quizId
-              and a.student.studentId in (
-                  select cs.student.studentId
-                  from ClassroomStudent cs
-                  where cs.classroom.classroomId = :classroomId
-              )
-            """)
-    long countByQuiz_QuizIdAndClassroom(UUID quizId, UUID classroomId);
+    long countByQuiz_QuizIdAndClassroom_ClassroomId(UUID quizId, UUID classroomId);
 }

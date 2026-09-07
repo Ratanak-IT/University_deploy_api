@@ -18,6 +18,8 @@ public interface ClassroomMapper {
     @Mapping(target = "subjectName", source = "subject.subjectName")
     @Mapping(target = "programId", source = "program.id")
     @Mapping(target = "programName", source = "program.programName")
+    @Mapping(target = "academicTermId", source = "academicTerm.termId")
+    @Mapping(target = "academicTermName", source = "academicTerm.name")
     @Mapping(target = "updatedAt", source = "lastUpdateAt")
     @Mapping(target = "updatedBy", source = "lastUpdatedBy")
     ClassroomResponse toResponse(Classroom classroom);

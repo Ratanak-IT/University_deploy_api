@@ -46,4 +46,17 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             order by s.sessionDate desc, s.startTime desc
             """)
     List<AttendanceRecord> findForStudent(UUID studentId, UUID classroomId);
+
+    /** Excuse claims awaiting (or already) reviewed, with student/session/classroom joined for the admin queue. */
+    @Query("""
+            select r from AttendanceRecord r
+            join fetch r.session s
+            left join fetch s.classroom c
+            join fetch r.student st
+            left join fetch st.user u
+            where r.excuseApprovalStatus = :status
+            order by r.recordedAt asc
+            """)
+    List<AttendanceRecord> findByExcuseApprovalStatus(
+            com.universitymanagement.attendance.entity.ExcuseApprovalStatus status);
 }

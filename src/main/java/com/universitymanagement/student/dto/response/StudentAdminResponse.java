@@ -36,6 +36,8 @@ public record StudentAdminResponse(
         LocalDate enrollmentDate,
         String status,
         String graduationStatus,
-        LocalDate graduationDate
+        LocalDate graduationDate,
+        UUID advisorId,
+        String advisorName
 ) {
 }

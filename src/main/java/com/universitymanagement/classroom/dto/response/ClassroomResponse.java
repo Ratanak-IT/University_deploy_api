@@ -34,6 +34,12 @@ public record ClassroomResponse(
 
         LocalDate endDate,
 
+        Integer maxCapacity,
+
+        UUID academicTermId,
+
+        String academicTermName,
+
         LocalDateTime createdAt,
 
         LocalDateTime updatedAt,

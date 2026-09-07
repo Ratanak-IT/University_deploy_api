@@ -25,6 +25,7 @@ public record StudentDetailResponse(
         String phoneNumber,
         String avatarUrl,
         String graduationStatus,
-        String major
+        String major,
+        String advisorName
 ) {
 }

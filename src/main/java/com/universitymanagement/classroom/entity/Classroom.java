@@ -49,6 +49,12 @@ public class Classroom extends BasedEntity {
 
     private Integer yearLevel;
 
+    private Integer maxCapacity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_term_id")
+    private com.universitymanagement.academicterm.entity.AcademicTerm academicTerm;
+
     @Column(unique = true)
     private String inviteCode;
 

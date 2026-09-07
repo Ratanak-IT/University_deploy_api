@@ -30,6 +30,8 @@ public record CurriculumRequest(
 
         Integer lectureHours,
 
-        Integer labHours
+        Integer labHours,
+
+        String effectiveAcademicYear
 ) {
 }

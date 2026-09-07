@@ -70,17 +70,23 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
             throw new QuizWindowClosedException(quizId, "quiz window is already closed");
         }
 
+        UUID classroomId = release.getClassroom().getClassroomId();
+
         // Reopening a quiz that is still genuinely in progress resumes it,
         // rather than abandoning it in place and minting a duplicate that
-        // would count a second time against the attempt limit.
+        // would count a second time against the attempt limit. Scoped to
+        // this classroom release so a still-open attempt in another section
+        // isn't mistaken for one here.
         List<QuizAttempt> active = quizAttemptRepository
-                .findActiveByQuiz_QuizIdAndStudent_StudentId(quizId, studentId, now);
+                .findActiveByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+                        quizId, studentId, classroomId, now);
         if (!active.isEmpty()) {
             return toAttemptResponse(active.get(0), true, false);
         }
 
         long used = quizAttemptRepository
-                .countSettledByQuiz_QuizIdAndStudent_StudentId(quizId, studentId, now);
+                .countSettledByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+                        quizId, studentId, classroomId, now);
         if (quiz.getMaxAttempts() != null && used >= quiz.getMaxAttempts()) {
             throw new QuizMaxAttemptsReachedException(quizId, quiz.getMaxAttempts());
         }
@@ -88,6 +94,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuiz(quiz);
         attempt.setStudent(student);
+        attempt.setClassroom(release.getClassroom());
         attempt.setStartedAt(now);
         if (quiz.getDurationMinutes() != null) {
             attempt.setExpiresAt(now.plusMinutes(quiz.getDurationMinutes()));
@@ -275,20 +282,20 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
     private QuizResponse toQuizResponse(QuizAssignment release, UUID studentId) {
         Quiz quiz = release.getQuiz();
+        UUID classroomId = release.getClassroom().getClassroomId();
         // Settled attempts only — an attempt the student merely opened and
         // has not yet finished or run out of time on must not read as
         // "completed", and must not count against their attempt limit.
+        // Scoped to this classroom's release: the same quiz can be released
+        // to several sections a student sits in, each with its own attempt
+        // count, so a completion in Section A must not read as "completed"
+        // for Section B too.
         long used = quizAttemptRepository
-                .countSettledByQuiz_QuizIdAndStudent_StudentId(
-                        quiz.getQuizId(), studentId, LocalDateTime.now());
+                .countSettledByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+                        quiz.getQuizId(), studentId, classroomId, LocalDateTime.now());
         Double best = quizAttemptRepository
-                .findByStudent_StudentIdOrderByStartedAtDesc(studentId)
-                .stream()
-                .filter(a -> a.getQuiz().getQuizId().equals(quiz.getQuizId()))
-                .map(QuizAttempt::getEarnedScore)
-                .filter(java.util.Objects::nonNull)
-                .max(Double::compareTo)
-                .orElse(null);
+                .findBestScoreByQuiz_QuizIdAndStudent_StudentIdAndClassroom_ClassroomId(
+                        quiz.getQuizId(), studentId, classroomId);
 
         return new QuizResponse(
                 quiz.getQuizId(),

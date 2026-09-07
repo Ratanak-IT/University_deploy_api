@@ -54,6 +54,17 @@ public class TeacherController {
 
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/me/student-metrics")
+    public java.util.List<com.universitymanagement.teacher.dto.response.StudentMetricsResponse> getMyStudentMetrics() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return teacherService.getMyStudentMetrics(jwt.getSubject());
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping(value = "/me/avatar", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public TeacherDetailResponse uploadMyAvatar(@RequestPart("file") org.springframework.web.multipart.MultipartFile file) {
         return teacherService.uploadMyAvatar(file);

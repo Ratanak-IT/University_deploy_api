@@ -955,4 +955,68 @@ public class GlobalExceptionHandler {
                         "GRD-409-LOCK",
                         request));
     }
+
+    @ExceptionHandler(ClassroomFullException.class)
+    public ResponseEntity<ProblemDetail> handleClassroomFull(
+            ClassroomFullException ex,
+            HttpServletRequest request) {
+
+        log.warn("Classroom full: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Classroom Full",
+                        ex.getMessage(),
+                        "CLS-409-FULL",
+                        request));
+    }
+
+    @ExceptionHandler(MissingPrerequisiteException.class)
+    public ResponseEntity<ProblemDetail> handleMissingPrerequisite(
+            MissingPrerequisiteException ex,
+            HttpServletRequest request) {
+
+        log.warn("Missing prerequisite: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(buildProblemDetail(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Missing Prerequisite",
+                        ex.getMessage(),
+                        "CLS-422-PREREQ",
+                        request));
+    }
+
+    @ExceptionHandler(ScheduleConflictException.class)
+    public ResponseEntity<ProblemDetail> handleScheduleConflict(
+            ScheduleConflictException ex,
+            HttpServletRequest request) {
+
+        log.warn("Schedule conflict: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(buildProblemDetail(
+                        HttpStatus.CONFLICT,
+                        "Schedule Conflict",
+                        ex.getMessage(),
+                        "CLS-409-SCHED",
+                        request));
+    }
+
+    @ExceptionHandler(com.universitymanagement.academicterm.exception.AcademicTermNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleAcademicTermNotFound(
+            com.universitymanagement.academicterm.exception.AcademicTermNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Academic term not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildProblemDetail(
+                        HttpStatus.NOT_FOUND,
+                        "Academic Term Not Found",
+                        ex.getMessage(),
+                        "TRM-404",
+                        request));
+    }
 }

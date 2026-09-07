@@ -257,6 +257,14 @@ public class AttendanceSessionServiceImpl implements AttendanceSessionService {
             record.setRecordedByTeacher(teacher);
             record.setRecordedAt(now);
 
+            // A teacher marking a student excused only starts the claim — it isn't
+            // final until admin reviews it, so it always lands as PENDING here
+            // regardless of any prior review state.
+            record.setExcuseApprovalStatus(
+                    mark.status() == AttendanceStatus.EXCUSED
+                            ? com.universitymanagement.attendance.entity.ExcuseApprovalStatus.PENDING
+                            : com.universitymanagement.attendance.entity.ExcuseApprovalStatus.NONE);
+
             recordRepository.save(record);
 
             // Only on the mark that actually lands on absent/late, not every
