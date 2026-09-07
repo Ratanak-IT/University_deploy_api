@@ -66,19 +66,9 @@ logging:
 
 app:
 
-  # Where login and logout send the browser back to — see AuthController.
-  #
-  # The defaults are the deployed sites, not localhost. A default is what an
-  # environment falls back to when it forgot to set the variable, and the
-  # environment most likely to forget is the server: a localhost default means
-  # every real user is thrown onto a machine that is not theirs after a
-  # successful login, while a production default merely inconveniences one
-  # developer who has to set the variable locally.
-  #
-  # Fail towards the many, not the one.
   frontend-url: ${FRONTEND_URL:https://cambodiaunm.vercel.app}
 
-  admin-frontend-url: ${ADMIN_FRONTEND_URL:https://administrator.cambodiaunm.vercel.app}
+  admin-frontend-url: ${ADMIN_FRONTEND_URL:https://administratorcambodiaunm-three.vercel.app}
 
   timezone: Asia/Phnom_Penh
 
